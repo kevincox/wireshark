@@ -108,6 +108,7 @@ static int hf_connect_auth_proto                 = -1;
 static int hf_connect_auth_len                   = -1;
 static int hf_connect_flags                      = -1;
 static int hf_connect_flags_lossy                = -1;
+static int hf_connect_reply                      = -1;
 
 static guint gPORT_PREF = 6789;
 
@@ -121,6 +122,7 @@ enum c_proto_data_keys {
 static gint ett_ceph = -1;
 static gint ett_sockaddr = -1;
 static gint ett_connect = -1;
+static gint ett_connect_reply = -1;
 
 static const char *C_BANNER = "ceph";
 enum c_banner {
@@ -198,7 +200,8 @@ enum c_connect_flags {
 enum c_sizes {
 	C_SIZE_SOCKADDR_STORAGE = 128,
 	C_SIZE_CONNECT = 33,
-	C_SIZE_HELLO_S = C_BANNER_LEN_MAX + 2*(8+C_SIZE_SOCKADDR_STORAGE),
+	C_SIZE_CONNECT_REPLY = 26,
+	C_SIZE_HELLO_S = C_BANNER_LEN_MAX + 2*(8+C_SIZE_SOCKADDR_STORAGE) + C_SIZE_CONNECT_REPLY,
 	C_SIZE_HELLO_C = C_BANNER_LEN_MAX + 8 + C_SIZE_SOCKADDR_STORAGE + C_SIZE_CONNECT
 };
 
@@ -502,14 +505,124 @@ void c_tree_connect_render(proto_tree *root,
 	}
 }
 
+typedef struct _c_tree_connect_reply {
+	guint start;
+	
+	guint tag;
+	guint features;
+	guint seq_global;
+	guint seq;
+	guint proto_ver;
+	guint auth_len;
+	guint flags;
+} c_tree_connect_reply;
+
+static
+c_tree_connect_reply *c_tree_connect_reply_new(void)
+{
+	c_tree_connect_reply *r;
+	r = C_NEW_TREESCOPE(c_tree_connect_reply);
+	
+	r->start = 0;
+	
+	r->tag        = C_TREE_UNSET;
+	r->features   = C_TREE_UNSET;
+	r->seq_global = C_TREE_UNSET;
+	r->seq        = C_TREE_UNSET;
+	r->proto_ver  = C_TREE_UNSET;
+	r->auth_len   = C_TREE_UNSET;
+	r->flags      = C_TREE_UNSET;
+	
+	return r;
+}
+
+static
+void c_tree_connect_reply_render(proto_tree *root,
+                           tvbuff_t *tvb, c_tree_connect_reply *ct)
+{
+	proto_item *ti;
+	proto_tree *tree, *subtree;
+	
+	ti = proto_tree_add_item(root, hf_connect_reply, tvb,
+	                         ct->start, C_SIZE_CONNECT_REPLY,
+	                         ENC_NA);
+	tree = proto_item_add_subtree(ti, ett_connect_reply);
+	
+	
+	if (ct->features != C_TREE_UNSET)
+	{
+		ti = ADD(hf_connect_features, ct->features, 8);
+		subtree = proto_item_add_subtree(ti, hf_connect_features);
+		
+		/* Wireshark doesn't have support for 64 bit bitfields so dissect as
+		   two 32 bit ones. */
+		ADDS(hf_connect_feat0_uid,                  ct->features,   4);
+		ADDS(hf_connect_feat0_nosrcaddr,            ct->features,   4);
+		ADDS(hf_connect_feat0_monclockcheck,        ct->features,   4);
+		ADDS(hf_connect_feat0_flock,                ct->features,   4);
+		ADDS(hf_connect_feat0_subscribe2,           ct->features,   4);
+		ADDS(hf_connect_feat0_monnames,             ct->features,   4);
+		ADDS(hf_connect_feat0_reconnect_seq,        ct->features,   4);
+		ADDS(hf_connect_feat0_dirlayouthash,        ct->features,   4);
+		ADDS(hf_connect_feat0_objectlocator,        ct->features,   4);
+		ADDS(hf_connect_feat0_pgid64,               ct->features,   4);
+		ADDS(hf_connect_feat0_incsubosdmap,         ct->features,   4);
+		ADDS(hf_connect_feat0_pgpool3,              ct->features,   4);
+		ADDS(hf_connect_feat0_osdreplymux,          ct->features,   4);
+		ADDS(hf_connect_feat0_osdenc,               ct->features,   4);
+		ADDS(hf_connect_feat0_omap,                 ct->features,   4);
+		ADDS(hf_connect_feat0_monenc,               ct->features,   4);
+		ADDS(hf_connect_feat0_query_t,              ct->features,   4);
+		ADDS(hf_connect_feat0_indep_pg_map,         ct->features,   4);
+		ADDS(hf_connect_feat0_crush_tunables,       ct->features,   4);
+		ADDS(hf_connect_feat0_chunky_scrub,         ct->features,   4);
+		ADDS(hf_connect_feat0_mon_nullroute,        ct->features,   4);
+		ADDS(hf_connect_feat0_mon_gv,               ct->features,   4);
+		ADDS(hf_connect_feat0_backfill_reservation, ct->features,   4);
+		ADDS(hf_connect_feat0_msg_auth,             ct->features,   4);
+		ADDS(hf_connect_feat0_recovery_reservation, ct->features,   4);
+		ADDS(hf_connect_feat0_crush_tunables2,      ct->features,   4);
+		ADDS(hf_connect_feat0_createpoolid,         ct->features,   4);
+		ADDS(hf_connect_feat0_reply_create_inode,   ct->features,   4);
+		ADDS(hf_connect_feat0_osd_hbmsgs,           ct->features,   4);
+		ADDS(hf_connect_feat0_mdsenc,               ct->features,   4);
+		ADDS(hf_connect_feat0_osdhashpspool,        ct->features,   4);
+		ADDS(hf_connect_feat0_mon_single_paxos,     ct->features,   4);
+		ADDS(hf_connect_feat1_osd_snapmapper,       ct->features+4, 4);
+		ADDS(hf_connect_feat1_mon_scrub,            ct->features+4, 4);
+		ADDS(hf_connect_feat1_osd_packed_recovery,  ct->features+4, 4);
+		ADDS(hf_connect_feat1_osd_cachepool,        ct->features+4, 4);
+		ADDS(hf_connect_feat1_crush_v2,             ct->features+4, 4);
+		ADDS(hf_connect_feat1_export_peer,          ct->features+4, 4);
+		ADDS(hf_connect_feat1_osd_erasure_codes,    ct->features+4, 4);
+		ADDS(hf_connect_feat1_osd_tmap2omap,        ct->features+4, 4);
+		ADDS(hf_connect_feat1_osdmap_enc,           ct->features+4, 4);
+		ADDS(hf_connect_feat1_mds_inline_data,      ct->features+4, 4);
+		ADDS(hf_connect_feat1_crush_tunables3,      ct->features+4, 4);
+		ADDS(hf_connect_feat1_osd_primary_affinity, ct->features+4, 4);
+		ADDS(hf_connect_feat1_msgr_keepalive2,      ct->features+4, 4);
+		ADDS(hf_connect_feat1_reserved,             ct->features+4, 4);
+	}
+	ADD_IF_SET(ct->seq_global, hf_connect_seq_global, 4);
+	ADD_IF_SET(ct->seq, hf_connect_seq, 4);
+	ADD_IF_SET(ct->proto_ver, hf_connect_proto_ver, 4);
+	ADD_IF_SET(ct->auth_len, hf_connect_auth_len, 4);
+	if (ct->flags != C_TREE_UNSET) {
+		ti = ADD(hf_connect_flags, ct->flags, 1);
+		subtree = proto_item_add_subtree(ti, hf_connect_flags);
+		
+		ADDS(hf_connect_flags_lossy, ct->flags, 1);
+	}
+}
 typedef struct _c_tree {
 	int size;
 	const char *info;
 	
 	guint version;
-	c_tree_sockaddr *addr_client;
-	c_tree_sockaddr *addr_server;
-	c_tree_connect  *connect;
+	c_tree_sockaddr      *addr_client;
+	c_tree_sockaddr      *addr_server;
+	c_tree_connect       *connect;
+	c_tree_connect_reply *connect_reply;
 } c_tree;
 
 static
@@ -525,6 +638,7 @@ c_tree *c_tree_new(void)
 	r->version = C_TREE_UNSET;
 	r->addr_client = r->addr_server = NULL;
 	r->connect = NULL;
+	r->connect_reply = NULL;
 	
 	return r;
 }
@@ -548,6 +662,8 @@ int c_tree_render(proto_tree *root, tvbuff_t *tvb, packet_info *pinfo, c_tree *c
 		c_tree_sockaddr_render(tree, hf_sockaddr_server, tvb, ct->addr_server);
 	if (ct->connect)
 		c_tree_connect_render(tree, tvb, ct->connect);
+	if (ct->connect_reply)
+		c_tree_connect_reply_render(tree, tvb, ct->connect_reply);
 	
 	return ct->size;
 }
@@ -615,7 +731,7 @@ int c_dissect_connect(c_tree_connect *tree,
 		__le32 authorizer_protocol;
 		__le32 authorizer_len;
 		__u8  flags;
-	};
+	} __attribute__(packed);
 	*/
 	
 	tree->start = off;
@@ -626,6 +742,35 @@ int c_dissect_connect(c_tree_connect *tree,
 	tree->seq        = off; off += 4;
 	tree->proto_ver  = off; off += 4;
 	tree->auth_proto = off; off += 4;
+	tree->auth_len   = off; off += 4;
+	tree->flags      = off; off += 1;
+	
+	return off;
+}
+
+static
+int c_dissect_connect_reply(c_tree_connect_reply *tree,
+                            tvbuff_t *tvb _U_, guint off, c_pkt_data *data _U_)
+{
+	/* From ceph:/src/include/msgr.h
+	struct ceph_msg_connect_reply {
+		__u8 tag;
+		__le64 features;
+		__le32 global_seq;
+		__le32 connect_seq;
+		__le32 protocol_version;
+		__le32 authorizer_len;
+		__u8 flags;
+	} __attribute__ ((packed));
+	*/
+	
+	tree->start = off;
+	
+	tree->tag        = off; off += 1;
+	tree->features   = off; off += 8;
+	tree->seq_global = off; off += 4;
+	tree->seq        = off; off += 4;
+	tree->proto_ver  = off; off += 4;
 	tree->auth_len   = off; off += 4;
 	tree->flags      = off; off += 1;
 	
@@ -663,6 +808,11 @@ int c_dissect_new(c_tree *tree,
 	{
 		tree->connect = c_tree_connect_new();
 		off = c_dissect_connect(tree->connect, tvb, off, data);
+	}
+	else
+	{
+		tree->connect_reply = c_tree_connect_reply_new();
+		off = c_dissect_connect_reply(tree->connect_reply, tvb, off, data);
 	}
 	
 	data->src->state = C_STATE_OPEN;
@@ -1061,16 +1211,22 @@ proto_register_ceph(void)
 		} },
 		{ &hf_connect_flags_lossy, {
 			"Lossy", "ceph.connect.flags.lossy",
-			FT_BOOLEAN, 8, NULL, C_CONNECT_FLAG_LOSSY,
+			FT_BOOLEAN, 8, VALS(&tfs_enabled_disabled), C_CONNECT_FLAG_LOSSY,
 			"Messages may be safely dropped.", HFILL
-		} }
+		} },
+		{ &hf_connect_reply, {
+			"Connection Negotiation Reply", "ceph.connect_reply",
+			FT_NONE, BASE_NONE, NULL, 0,
+			NULL, HFILL
+		} },
 	};
 	
 	/* Setup protocol subtree array */
 	static gint *ett[] = {
 		&ett_ceph,
 		&ett_sockaddr,
-		&ett_connect
+		&ett_connect,
+		&ett_connect_reply,
 	};
 	
 	/* Register the protocol name and description */
