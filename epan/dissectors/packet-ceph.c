@@ -813,6 +813,8 @@ guint c_dissect_sockaddr(proto_tree *root, int hf,
 	};
 	*/
 	
+	//@TODO Build human-readable string for root node.
+	
 	ti = proto_tree_add_item(root, hf, tvb, off, C_SIZE_SOCKADDR_STORAGE, ENC_NA);
 	tree = proto_item_add_subtree(ti, ett_sockaddr);
 	
