@@ -55,6 +55,9 @@ static int hf_inet_family                  = -1;
 static int hf_port                         = -1;
 static int hf_addr_ipv4                    = -1;
 static int hf_addr_ipv6                    = -1;
+static int hf_time                         = -1;
+static int hf_time_sec                     = -1;
+static int hf_time_nsec                    = -1;
 static int hf_features                     = -1;
 static int hf_feature_uid                  = -1;
 static int hf_feature_nosrcaddr            = -1;
@@ -1013,7 +1016,7 @@ enum c_size_entity_name {
 
 static
 guint c_dissect_entity_name(proto_tree *root, packet_info *pinfo _U_,
-                          tvbuff_t *tvb, guint off, c_pkt_data *data _U_)
+                            tvbuff_t *tvb, guint off, c_pkt_data *data _U_)
 {
 	/* From ceph:/src/include/msgr.h
 	struct ceph_entity_name {
@@ -1032,6 +1035,28 @@ guint c_dissect_entity_name(proto_tree *root, packet_info *pinfo _U_,
 	
 	EAT(hf_node_type, 1);
 	EAT(hf_node_id,   8);
+	
+	return off;
+}
+
+enum c_size_timespec {
+	C_SIZE_TIMESPEC = 4 + 4
+};
+
+static
+guint c_dissect_timespec(proto_tree *root, packet_info *pinfo _U_,
+                         tvbuff_t *tvb, guint off, c_pkt_data *data _U_)
+{
+	proto_item *ti;
+	proto_tree *tree;
+	
+	ti = proto_tree_add_item(root, hf_time, tvb,
+	                         off, C_SIZE_TIMESPEC,
+	                         ENC_NA);
+	tree = proto_item_add_subtree(ti, hf_time);
+	
+	EAT(hf_time_sec,  4);
+	EAT(hf_time_nsec, 4);
 	
 	return off;
 }
@@ -1092,7 +1117,7 @@ guint c_dissect_new(proto_tree *tree, packet_info *pinfo,
 	return off;
 }
 
-enum c_size_msg{
+enum c_size_msg {
 	C_OFF_HEAD0  = 0,
 	C_SIZE_HEAD0 = (64+64+16+16+16)/8,
 	
@@ -1228,22 +1253,22 @@ guint c_dissect_msgr(proto_tree *tree, packet_info *pinfo,
 	switch (tag)
 	{
 	case C_TAG_READY:
+	case C_TAG_BADPROTOVER:
+	case C_TAG_FEATURES:
+	case C_TAG_BADAUTHORIZER:
+	case C_TAG_RETRY_GLOBAL:
+	case C_TAG_WAIT:
+	case C_TAG_RESETSESSION:
+	case C_TAG_RETRY_SESSION:
 		off = c_dissect_connect_reply(tree, tvb, off, data);
 		break;
-	case C_TAG_RESETSESSION:
-		//@TODO
-		break;
-	case C_TAG_WAIT:
-		//@TODO
-		break;
-	case C_TAG_RETRY_SESSION:
-		//@TODO
-		break;
-	case C_TAG_RETRY_GLOBAL:
-		//@TODO
+	case C_TAG_SEQ:
+		C_PACKET_SIZE(C_SIZE_CONNECT_REPLY + 8);
+		off = c_dissect_connect_reply(tree, tvb, off, data);
+		off += 8; //@TODO: Read sequence number.
 		break;
 	case C_TAG_CLOSE:
-		//@TODO
+		data->src->state = C_STATE_NEW;
 		break;
 	case C_TAG_MSG:
 		off = c_dissect_msg(tree, pinfo, tvb, off, data);
@@ -1255,23 +1280,10 @@ guint c_dissect_msgr(proto_tree *tree, packet_info *pinfo,
 	case C_TAG_KEEPALIVE:
 		/* No data. */
 		break;
-	case C_TAG_BADPROTOVER:
-		//@TODO
-		break;
-	case C_TAG_BADAUTHORIZER:
-		//@TODO
-		break;
-	case C_TAG_FEATURES:
-		//@TODO
-		break;
-	case C_TAG_SEQ:
-		//@TODO
-		break;
 	case C_TAG_KEEPALIVE2:
-		//@TODO
-		break;
 	case C_TAG_KEEPALIVE2_ACK:
-		//@TODO
+		C_PACKET_SIZE(C_SIZE_TIMESPEC);
+		off = c_dissect_timespec(tree, pinfo, tvb, off, data);
 		break;
 	default:
 		/*
@@ -1421,6 +1433,21 @@ proto_register_ceph(void)
 			"IPv6 Address", "ceph.client.ip",
 			FT_IPv6, BASE_NONE, NULL, 0,
 			"The IP address of the client as seen by the server.", HFILL
+		} },
+		{ &hf_time, {
+			"Timestamp", "ceph.time",
+			FT_NONE, BASE_NONE, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_time_sec, {
+			"Seconds", "ceph.seconds",
+			FT_UINT32, BASE_DEC, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_time_nsec, {
+			"Nanoseconds", "ceph.nanoseconds",
+			FT_UINT32, BASE_DEC, NULL, 0,
+			NULL, HFILL
 		} },
 		{ &hf_connect, {
 			"Connection Negotiation", "ceph.connect",
