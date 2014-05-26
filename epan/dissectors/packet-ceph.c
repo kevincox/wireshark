@@ -973,7 +973,7 @@ guint c_dissect_connect(proto_tree *root,
 }
 
 static
-guint c_dissect_connect_reply(proto_tree *root,
+guint c_dissect_connect_reply(proto_tree *root, packet_info *pinfo,
                               tvbuff_t *tvb, guint off, c_pkt_data *data _U_)
 {
 	/* From ceph:/src/include/msgr.h
@@ -992,6 +992,8 @@ guint c_dissect_connect_reply(proto_tree *root,
 	proto_tree *tree;
 	
 	C_PACKET_SIZE(C_SIZE_CONNECT_REPLY);
+	
+	col_append_str(pinfo->cinfo, COL_INFO, "[Connect Reply]");
 	
 	ti = proto_tree_add_item(root, hf_connect_reply, tvb,
 	                         off, C_SIZE_CONNECT_REPLY,
@@ -1092,7 +1094,7 @@ guint c_dissect_new(proto_tree *tree, packet_info *pinfo,
 	
 	C_PACKET_SIZE(c_from_server(data)? C_SIZE_HELLO_S : C_SIZE_HELLO_C);
 	
-	col_set_str(pinfo->cinfo, COL_INFO, "Hello");
+	col_append_str(pinfo->cinfo, COL_INFO, "[Connect]");
 	
 	if (c_from_server(data))
 	{
@@ -1152,6 +1154,8 @@ guint c_dissect_msg(proto_tree *tree, packet_info *pinfo,
 	data_len   = tvb_get_letoh64(tvb, off + C_OFF_HEAD1 + 8);
 	
 	C_PACKET_SIZE(C_SIZE_HEAD+front_len+middle_len+data_len+C_SIZE_FOOT);
+	
+	col_append_str(pinfo->cinfo, COL_INFO, "[MSG]");
 	
 	/*** Header ***/
 	
@@ -1260,29 +1264,33 @@ guint c_dissect_msgr(proto_tree *tree, packet_info *pinfo,
 	case C_TAG_WAIT:
 	case C_TAG_RESETSESSION:
 	case C_TAG_RETRY_SESSION:
-		off = c_dissect_connect_reply(tree, tvb, off, data);
+		off = c_dissect_connect_reply(tree, pinfo, tvb, off, data);
 		break;
 	case C_TAG_SEQ:
 		C_PACKET_SIZE(C_SIZE_CONNECT_REPLY + 8);
-		off = c_dissect_connect_reply(tree, tvb, off, data);
+		off = c_dissect_connect_reply(tree, pinfo, tvb, off, data);
 		off += 8; //@TODO: Read sequence number.
 		break;
 	case C_TAG_CLOSE:
+		col_append_str(pinfo->cinfo, COL_INFO, "[CLOSE]");
 		data->src->state = C_STATE_NEW;
 		break;
 	case C_TAG_MSG:
 		off = c_dissect_msg(tree, pinfo, tvb, off, data);
 		break;
 	case C_TAG_ACK:
+		col_append_str(pinfo->cinfo, COL_INFO, "[ACK]");
 		C_PACKET_SIZE(8);
 		EAT(hf_ack, 8);
 		break;
 	case C_TAG_KEEPALIVE:
+		col_append_str(pinfo->cinfo, COL_INFO, "[KEEPALIVE]");
 		/* No data. */
 		break;
 	case C_TAG_KEEPALIVE2:
 	case C_TAG_KEEPALIVE2_ACK:
 		C_PACKET_SIZE(C_SIZE_TIMESPEC);
+		col_append_str(pinfo->cinfo, COL_INFO, "[KEEPALIVE2]");
 		off = c_dissect_timespec(tree, pinfo, tvb, off, data);
 		break;
 	default:
@@ -1306,6 +1314,7 @@ guint c_dissect_msgr(proto_tree *tree, packet_info *pinfo,
 			lucky and find ourselves realigned.
 		*/
 		;
+		col_append_str(pinfo->cinfo, COL_INFO, "[UNKNOWN]");
 	}
 	
 	return off;
@@ -1320,7 +1329,6 @@ guint c_dissect_pdu(proto_tree *root, packet_info *pinfo,
 	proto_item *ti;
 	proto_tree *tree;
 	
-	col_set_str(pinfo->cinfo, COL_INFO, "Malformed");
 	ti = proto_tree_add_item(root, proto_ceph, tvb, off, -1, ENC_NA);
 	tree = proto_item_add_subtree(ti, ett_ceph);
 	
