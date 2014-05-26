@@ -138,6 +138,19 @@ static int hf_foot_signature               = -1;
 static int hf_front                        = -1;
 static int hf_middle                       = -1;
 static int hf_data                         = -1;
+static int hf_paxos                        = -1;
+static int hf_paxos_ver                    = -1;
+static int hf_paxos_mon                    = -1;
+static int hf_paxos_mon_tid                = -1;
+static int hf_msg_auth                     = -1;
+static int hf_msg_auth_proto               = -1;
+static int hf_msg_auth_payload             = -1;
+static int hf_msg_auth_payload_len         = -1;
+static int hf_msg_auth_monmap_epoch        = -1;
+static int hf_msg_mon_map        = -1;
+static int hf_msg_mon_map_data        = -1;
+static int hf_msg_mon_map_data_len        = -1;
+static int hf_msg_        = -1;
 
 static guint gPORT_PREF = 6789;
 
@@ -782,7 +795,7 @@ gboolean c_from_server(c_pkt_data *d)
  */
 #define EATS(hf, l) do{ ADDS(hf, off, l); off += l; }while(0)
 
-/*** Dissector Functions ***/
+/*** Data Structure Dissectors ***/
 
 enum c_size_sockaddr {
 	C_SIZE_SOCKADDR_STORAGE = 128
@@ -838,6 +851,35 @@ guint c_dissect_sockaddr(proto_tree *root, int hf,
 		printf("UNKNOWN INET %x!\n", af);
 	}
 	off += C_SIZE_SOCKADDR_STORAGE; // Skip over sockaddr_storage.
+	
+	return off;
+}
+
+enum c_size_entity_name {
+	C_SIZE_ENTITY_NAME = 9
+};
+
+static
+guint c_dissect_entity_name(proto_tree *root, packet_info *pinfo _U_,
+                            tvbuff_t *tvb, guint off, c_pkt_data *data _U_)
+{
+	/* From ceph:/src/include/msgr.h
+	struct ceph_entity_name {
+		__u8 type;      // CEPH_ENTITY_TYPE_*
+		__le64 num;
+	} __attribute__ ((packed));
+	*/
+	
+	proto_item *ti;
+	proto_tree *tree;
+	
+	ti = proto_tree_add_item(root, hf_node_name, tvb,
+	                         off, C_SIZE_ENTITY_NAME,
+	                         ENC_NA);
+	tree = proto_item_add_subtree(ti, hf_node_name);
+	
+	EAT(hf_node_type, 1);
+	EAT(hf_node_id,   8);
 	
 	return off;
 }
@@ -912,7 +954,7 @@ guint c_dissect_features(proto_tree *root,
 
 static
 guint c_dissect_flags(proto_tree *root,
-                    tvbuff_t *tvb, guint off, c_pkt_data *data _U_)
+                      tvbuff_t *tvb, guint off, c_pkt_data *data _U_)
 {
 	proto_item *ti;
 	proto_tree *tree;
@@ -925,6 +967,104 @@ guint c_dissect_flags(proto_tree *root,
 	
 	return off;
 }
+
+enum c_size_paxos {
+	C_SIZE_PAXOS = 18
+};
+
+static
+guint c_dissect_paxos(proto_tree *root,
+                      tvbuff_t *tvb, guint off, c_pkt_data *data _U_)
+{
+	proto_item *ti;
+	proto_tree *tree;
+	
+	ti = proto_tree_add_item(root, hf_paxos,
+	                         tvb, off, C_SIZE_PAXOS, ENC_NA);
+	tree = proto_item_add_subtree(ti, hf_paxos);
+	
+	EAT(hf_paxos_ver,     8);
+	EAT(hf_paxos_mon,     2);
+	EAT(hf_paxos_mon_tid, 8);
+	
+	return off;
+}
+
+
+/*** Message Dissectors ***/
+
+static
+void c_dissect_msg_unknown(proto_tree *tree, packet_info *pinfo,
+                          tvbuff_t *tvb, guint off,
+                          guint front_len, guint middle_len, guint data_len,
+                          c_pkt_data *data _U_)
+{
+	col_append_str(pinfo->cinfo, COL_INFO, "[MSG]");
+	
+	if (front_len)  EAT(hf_front,  front_len);
+	if (middle_len) EAT(hf_middle, middle_len);
+	if (data_len)   EAT(hf_data,   data_len);
+}
+
+static
+void c_dissect_msg_mon_map(proto_tree *root, packet_info *pinfo,
+                           tvbuff_t *tvb, guint off,
+                           guint front_len, guint middle_len _U_, guint data_len _U_,
+                           c_pkt_data *data _U_)
+{
+	proto_item *ti;
+	proto_tree *tree;
+	guint size;
+	
+	col_append_str(pinfo->cinfo, COL_INFO, "[MonMap]");
+	
+	ti = proto_tree_add_item(root, hf_msg_mon_map,
+	                         tvb, off, front_len, ENC_LITTLE_ENDIAN);
+	tree = proto_item_add_subtree(ti, hf_msg_mon_map);
+	
+	size = tvb_get_letohl(tvb, off); //@TODO: Check bounds.
+	EAT(hf_msg_mon_map_data_len, 4);
+	EAT(hf_msg_mon_map_data, size);
+	
+	//@TODO: Parse Mon Map.
+}
+
+static
+void c_dissect_msg_auth(proto_tree *root, packet_info *pinfo,
+                        tvbuff_t *tvb, guint off,
+                        guint front_len, guint middle_len _U_, guint data_len _U_,
+                        c_pkt_data *data _U_)
+{
+	proto_item *ti;
+	proto_tree *tree;
+	guint end;
+	guint len;
+	
+	end = off + front_len;
+	
+	col_append_str(pinfo->cinfo, COL_INFO, "[Auth]");
+	
+	c_dissect_paxos(root, tvb, off, data);
+	off       += C_SIZE_PAXOS;
+	front_len -= C_SIZE_PAXOS;
+	
+	ti = proto_tree_add_item(root, hf_msg_auth,
+	                         tvb, off, front_len, ENC_LITTLE_ENDIAN);
+	tree = proto_item_add_subtree(ti, hf_msg_auth);
+	
+	EAT(hf_msg_auth_proto, 4);
+	
+	len = tvb_get_letohl(tvb, off); //@TODO: Check is in bounds.
+	EAT(hf_msg_auth_payload_len, 4);
+	EAT(hf_msg_auth_payload, len);
+	
+	//@TODO: Parse auth.
+	
+	if (off+4 == end) /* If there is an epoch. */
+		EAT(hf_msg_auth_monmap_epoch, 4);
+}
+
+/*** MSGR Dissectors ***/
 
 enum c_sizes_connect {
 	C_SIZE_CONNECT = 33,
@@ -1008,35 +1148,6 @@ guint c_dissect_connect_reply(proto_tree *root, packet_info *pinfo,
 	EAT(hf_connect_auth_len,   4);
 	
 	off = c_dissect_flags(tree, tvb, off, data);
-	
-	return off;
-}
-
-enum c_size_entity_name {
-	C_SIZE_ENTITY_NAME = 9
-};
-
-static
-guint c_dissect_entity_name(proto_tree *root, packet_info *pinfo _U_,
-                            tvbuff_t *tvb, guint off, c_pkt_data *data _U_)
-{
-	/* From ceph:/src/include/msgr.h
-	struct ceph_entity_name {
-		__u8 type;      // CEPH_ENTITY_TYPE_*
-		__le64 num;
-	} __attribute__ ((packed));
-	*/
-	
-	proto_item *ti;
-	proto_tree *tree;
-	
-	ti = proto_tree_add_item(root, hf_node_name, tvb,
-	                         off, C_SIZE_ENTITY_NAME,
-	                         ENC_NA);
-	tree = proto_item_add_subtree(ti, hf_node_name);
-	
-	EAT(hf_node_type, 1);
-	EAT(hf_node_id,   8);
 	
 	return off;
 }
@@ -1145,6 +1256,7 @@ guint c_dissect_msg(proto_tree *tree, packet_info *pinfo,
 {
 	proto_item *ti;
 	proto_tree *subtree;
+	guint16 type;
 	guint32 front_len, middle_len, data_len;
 	
 	C_HEADER_SIZE(C_OFF_HEAD1 + C_SIZE_HEAD1);
@@ -1154,8 +1266,6 @@ guint c_dissect_msg(proto_tree *tree, packet_info *pinfo,
 	data_len   = tvb_get_letoh64(tvb, off + C_OFF_HEAD1 + 8);
 	
 	C_PACKET_SIZE(C_SIZE_HEAD+front_len+middle_len+data_len+C_SIZE_FOOT);
-	
-	col_append_str(pinfo->cinfo, COL_INFO, "[MSG]");
 	
 	/*** Header ***/
 	
@@ -1189,7 +1299,10 @@ guint c_dissect_msg(proto_tree *tree, packet_info *pinfo,
 	
 	EATS(hf_head_seq,      8);
 	EATS(hf_head_tid,      8);
+	
+	type = tvb_get_letohs(tvb, off);
 	EATS(hf_head_type,     2);
+	
 	EATS(hf_head_priority, 2);
 	EATS(hf_head_version,  2);
 	
@@ -1206,9 +1319,21 @@ guint c_dissect_msg(proto_tree *tree, packet_info *pinfo,
 	
 	/*** Body ***/
 	
-	EAT(hf_front, front_len);
-	EAT(hf_middle, middle_len);
-	EAT(hf_data, data_len);
+	switch (type)
+	{
+#define CALL_MSG(name) name(tree, pinfo, \
+                            tvb, off, front_len, middle_len, data_len, data)
+#define HANDLE_MSG(tag, name) case tag: CALL_MSG(name); break;
+	
+	HANDLE_MSG(C_CEPH_MSG_AUTH, c_dissect_msg_auth)
+	HANDLE_MSG(C_CEPH_MSG_MON_MAP, c_dissect_msg_mon_map)
+	
+	default:
+		CALL_MSG(c_dissect_msg_unknown);
+#undef CALL_MSG
+#undef HANDLE_MSG
+	}
+	off += front_len + middle_len + data_len;
 	
 	/*** Footer ***/
 	
@@ -1855,6 +1980,66 @@ proto_register_ceph(void)
 		{ &hf_data, {
 			"Data", "ceph.data",
 			FT_BYTES, BASE_NONE, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_paxos, {
+			"Paxos Message", "ceph.paxos",
+			FT_NONE, BASE_NONE, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_paxos_ver, {
+			"Paxos Version", "ceph.data",
+			FT_UINT64, BASE_DEC, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_paxos_mon, {
+			"Mon", "ceph.paxos.mon",
+			FT_INT16, BASE_DEC, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_paxos_mon_tid, {
+			"Mon Transaction ID", "ceph.paxos.tid",
+			FT_UINT64, BASE_DEC, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_auth, {
+			"Auth Message", "ceph.msg.auth",
+			FT_NONE, BASE_NONE, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_auth_proto, {
+			"Protocol", "ceph.msg.auth.proto",
+			FT_UINT32, BASE_HEX, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_auth_payload, {
+			"Payload", "ceph.msg.auth.data",
+			FT_BYTES, BASE_NONE, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_auth_payload_len, {
+			"Payload Length", "ceph.msg.auth.data_len",
+			FT_INT32, BASE_DEC, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_auth_monmap_epoch, {
+			"Monmap epoch", "ceph.msg.auth.monmap_epoch",
+			FT_UINT32, BASE_DEC, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_mon_map, {
+			"Mon Map Message", "ceph.msg.mon_map",
+			FT_NONE, BASE_NONE, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_mon_map_data, {
+			"Payload", "ceph.msg.mon_map.data",
+			FT_BYTES, BASE_NONE, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_mon_map_data_len, {
+			"Payload Length", "ceph.msg.mon_map.data_len",
+			FT_INT32, BASE_DEC, NULL, 0,
 			NULL, HFILL
 		} },
 	};
