@@ -149,6 +149,14 @@ static int hf_msg_auth_proto               = -1;
 static int hf_msg_auth_payload             = -1;
 static int hf_msg_auth_payload_len         = -1;
 static int hf_msg_auth_monmap_epoch        = -1;
+static int hf_msg_auth_reply        = -1;
+static int hf_msg_auth_reply_proto        = -1;
+static int hf_msg_auth_reply_result        = -1;
+static int hf_msg_auth_reply_global_id        = -1;
+static int hf_msg_auth_reply_data_len        = -1;
+static int hf_msg_auth_reply_data        = -1;
+static int hf_msg_auth_reply_message        = -1;
+static int hf_msg_auth_reply_message_len        = -1;
 static int hf_msg_mon_map        = -1;
 static int hf_msg_mon_map_data        = -1;
 static int hf_msg_mon_map_data_len        = -1;
@@ -968,6 +976,43 @@ guint c_dissect_flags(proto_tree *root,
 	return off;
 }
 
+/** Dissect a length-delimited binary blob.
+ */
+static
+guint c_dissect_blob(proto_tree *tree, int hf_data, int hf_len,
+                     tvbuff_t *tvb, guint off)
+{
+	guint32 size;
+	
+	size = tvb_get_letohl(tvb, off);
+	EAT(hf_len, 4);
+	EAT(hf_data, size);
+	
+	return off;
+}
+
+enum c_size_timespec {
+	C_SIZE_TIMESPEC = 4 + 4
+};
+
+static
+guint c_dissect_timespec(proto_tree *root, packet_info *pinfo _U_,
+                         tvbuff_t *tvb, guint off, c_pkt_data *data _U_)
+{
+	proto_item *ti;
+	proto_tree *tree;
+	
+	ti = proto_tree_add_item(root, hf_time, tvb,
+	                         off, C_SIZE_TIMESPEC,
+	                         ENC_NA);
+	tree = proto_item_add_subtree(ti, hf_time);
+	
+	EAT(hf_time_sec,  4);
+	EAT(hf_time_nsec, 4);
+	
+	return off;
+}
+
 enum c_size_paxos {
 	C_SIZE_PAXOS = 18
 };
@@ -995,10 +1040,12 @@ guint c_dissect_paxos(proto_tree *root,
 
 static
 void c_dissect_msg_unknown(proto_tree *tree, packet_info *pinfo,
-                          tvbuff_t *tvb, guint off,
+                          tvbuff_t *tvb,
                           guint front_len, guint middle_len, guint data_len,
                           c_pkt_data *data _U_)
 {
+	guint off = 0;
+	
 	col_append_str(pinfo->cinfo, COL_INFO, "[MSG]");
 	
 	if (front_len)  EAT(hf_front,  front_len);
@@ -1008,7 +1055,7 @@ void c_dissect_msg_unknown(proto_tree *tree, packet_info *pinfo,
 
 static
 void c_dissect_msg_mon_map(proto_tree *root, packet_info *pinfo,
-                           tvbuff_t *tvb, guint off,
+                           tvbuff_t *tvb,
                            guint front_len, guint middle_len _U_, guint data_len _U_,
                            c_pkt_data *data _U_)
 {
@@ -1019,52 +1066,198 @@ void c_dissect_msg_mon_map(proto_tree *root, packet_info *pinfo,
 	col_append_str(pinfo->cinfo, COL_INFO, "[MonMap]");
 	
 	ti = proto_tree_add_item(root, hf_msg_mon_map,
-	                         tvb, off, front_len, ENC_LITTLE_ENDIAN);
+	                         tvb, 0, front_len, ENC_LITTLE_ENDIAN);
 	tree = proto_item_add_subtree(ti, hf_msg_mon_map);
 	
-	size = tvb_get_letohl(tvb, off); //@TODO: Check bounds.
-	EAT(hf_msg_mon_map_data_len, 4);
-	EAT(hf_msg_mon_map_data, size);
+	c_dissect_blob(tree, hf_msg_mon_map_data, hf_msg_mon_map_data_len,
+	               tvb, 0);
 	
 	//@TODO: Parse Mon Map.
 }
 
 static
 void c_dissect_msg_auth(proto_tree *root, packet_info *pinfo,
-                        tvbuff_t *tvb, guint off,
+                        tvbuff_t *tvb,
                         guint front_len, guint middle_len _U_, guint data_len _U_,
                         c_pkt_data *data _U_)
 {
 	proto_item *ti;
 	proto_tree *tree;
-	guint end;
-	guint len;
-	
-	end = off + front_len;
+	guint off = 0;
 	
 	col_append_str(pinfo->cinfo, COL_INFO, "[Auth]");
 	
-	c_dissect_paxos(root, tvb, off, data);
-	off       += C_SIZE_PAXOS;
-	front_len -= C_SIZE_PAXOS;
+	off = c_dissect_paxos(root, tvb, off, data);
 	
 	ti = proto_tree_add_item(root, hf_msg_auth,
-	                         tvb, off, front_len, ENC_LITTLE_ENDIAN);
+	                         tvb, off, front_len-off, ENC_LITTLE_ENDIAN);
 	tree = proto_item_add_subtree(ti, hf_msg_auth);
 	
 	EAT(hf_msg_auth_proto, 4);
 	
-	len = tvb_get_letohl(tvb, off); //@TODO: Check is in bounds.
-	EAT(hf_msg_auth_payload_len, 4);
-	EAT(hf_msg_auth_payload, len);
+	off = c_dissect_blob(tree, hf_msg_auth_payload, hf_msg_auth_payload_len,
+	                     tvb, off);
 	
 	//@TODO: Parse auth.
 	
-	if (off+4 == end) /* If there is an epoch. */
+	if (off+4 == front_len) /* If there is an epoch. */
 		EAT(hf_msg_auth_monmap_epoch, 4);
+}
+static
+void c_dissect_msg_auth_reply(proto_tree *root, packet_info *pinfo,
+                              tvbuff_t *tvb,
+                              guint front_len, guint middle_len _U_, guint data_len _U_,
+                              c_pkt_data *data _U_)
+{
+	proto_item *ti;
+	proto_tree *tree;
+	
+	col_append_str(pinfo->cinfo, COL_INFO, "[Auth Reply]");
+	
+	ti = proto_tree_add_item(root, hf_msg_auth,
+	                         tvb, 0, front_len, ENC_LITTLE_ENDIAN);
+	tree = proto_item_add_subtree(ti, hf_msg_auth);
+	
 }
 
 /*** MSGR Dissectors ***/
+
+enum c_size_msg {
+	C_OFF_HEAD0  = 0,
+	C_SIZE_HEAD0 = (64+64+16+16+16)/8,
+	
+	C_OFF_HEAD1  = C_SIZE_HEAD0,
+	C_SIZE_HEAD1 = (32+32+32+16)/8,
+	
+	C_OFF_HEAD2  = C_OFF_HEAD1 + C_SIZE_HEAD1 + C_SIZE_ENTITY_NAME,
+	C_SIZE_HEAD2 = (16+16+32)/8,
+	
+	C_SIZE_HEAD = C_OFF_HEAD2 + C_SIZE_HEAD2,
+	
+	C_SIZE_FOOT = (32+32+32+64+8)/8
+};
+
+/** Dissect a MSG message.
+ * 
+ * These are Ceph's business messages and are generally sent to specific
+ * node types.
+ */
+static
+guint c_dissect_msg(proto_tree *tree, packet_info *pinfo,
+                  tvbuff_t *tvb, guint off, c_pkt_data *data)
+{
+	tvbuff_t *subtvb;
+	proto_item *ti;
+	proto_tree *subtree;
+	guint16 type;
+	guint32 front_len, middle_len, data_len;
+	
+	C_HEADER_SIZE(C_OFF_HEAD1 + C_SIZE_HEAD1);
+	
+	front_len  = tvb_get_letoh64(tvb, off + C_OFF_HEAD1 + 0);
+	middle_len = tvb_get_letoh64(tvb, off + C_OFF_HEAD1 + 4);
+	data_len   = tvb_get_letoh64(tvb, off + C_OFF_HEAD1 + 8);
+	
+	C_PACKET_SIZE(C_SIZE_HEAD+front_len+middle_len+data_len+C_SIZE_FOOT);
+	
+	/*** Header ***/
+	
+	/* @TODO: Old Header. */
+	
+	/* From ceph:/src/include/msgr.h
+	struct ceph_msg_header {
+		__le64 seq;       // message seq# for this session
+		__le64 tid;       // transaction id
+		__le16 type;      // message type
+		__le16 priority;  // priority.  higher value == higher priority
+		__le16 version;   // version of message encoding
+		
+		__le32 front_len; // bytes in main payload
+		__le32 middle_len;// bytes in middle payload
+		__le32 data_len;  // bytes of data payload
+		__le16 data_off;  // sender: include full offset; receiver: mask against ~PAGE_MASK
+		
+		struct ceph_entity_name src;
+		
+		// oldest code we think can decode this.  unknown if zero.
+		__le16 compat_version;
+		__le16 reserved;
+		__le32 crc; // header crc32c
+	} __attribute__ ((packed));
+	*/
+	ti = proto_tree_add_item(tree, hf_head, tvb,
+	                         off, C_SIZE_HEAD,
+	                         ENC_NA);
+	subtree = proto_item_add_subtree(ti, hf_head);
+	
+	EATS(hf_head_seq,      8);
+	EATS(hf_head_tid,      8);
+	
+	type = tvb_get_letohs(tvb, off);
+	EATS(hf_head_type,     2);
+	
+	EATS(hf_head_priority, 2);
+	EATS(hf_head_version,  2);
+	
+	EATS(hf_head_front_len,  4);
+	EATS(hf_head_middle_len, 4);
+	EATS(hf_head_data_len,   4);
+	EATS(hf_head_data_off,   2);
+	
+	off = c_dissect_entity_name(subtree, pinfo, tvb, off, data);
+	
+	EATS(hf_head_compat_version, 2);
+	EATS(hf_head_reserved,       2);
+	EATS(hf_head_crc,            4);
+	
+	/*** Body ***/
+	
+	subtvb = tvb_new_subset_length(tvb, off, front_len+middle_len+data_len);
+	
+	switch (type)
+	{
+#define CALL_MSG(name) name(tree, pinfo, \
+                            subtvb, front_len, middle_len, data_len, data)
+#define HANDLE_MSG(tag, name) case tag: CALL_MSG(name); break;
+	
+	HANDLE_MSG(C_CEPH_MSG_AUTH, c_dissect_msg_auth)
+	HANDLE_MSG(C_CEPH_MSG_AUTH_REPLY, c_dissect_msg_auth_reply)
+	HANDLE_MSG(C_CEPH_MSG_MON_MAP, c_dissect_msg_mon_map)
+	
+	default:
+		CALL_MSG(c_dissect_msg_unknown);
+#undef CALL_MSG
+#undef HANDLE_MSG
+	}
+	off += front_len + middle_len + data_len;
+	
+	/*** Footer ***/
+	
+	/* @TODO: Old Footer. */
+	
+	/* From ceph:/src/include/msgr.h
+	struct ceph_msg_footer {
+		__le32 front_crc, middle_crc, data_crc;
+		// sig holds the 64 bits of the digital signature for the message PLR
+		__le64  sig;
+		__u8 flags;
+	} __attribute__ ((packed));
+	*/
+	
+	ti = proto_tree_add_item(tree, hf_foot, tvb,
+	                         off, C_SIZE_FOOT,
+	                         ENC_NA);
+	subtree = proto_item_add_subtree(ti, hf_foot);
+	
+	EATS(hf_foot_front_crc,  4);
+	EATS(hf_foot_middle_crc, 4);
+	EATS(hf_foot_data_crc,   4);
+	
+	EATS(hf_foot_signature,  8);
+	off = c_dissect_flags(subtree, tvb, off, data); /* @HELP: Can we do this? */
+	
+	return off;
+}
 
 enum c_sizes_connect {
 	C_SIZE_CONNECT = 33,
@@ -1152,28 +1345,6 @@ guint c_dissect_connect_reply(proto_tree *root, packet_info *pinfo,
 	return off;
 }
 
-enum c_size_timespec {
-	C_SIZE_TIMESPEC = 4 + 4
-};
-
-static
-guint c_dissect_timespec(proto_tree *root, packet_info *pinfo _U_,
-                         tvbuff_t *tvb, guint off, c_pkt_data *data _U_)
-{
-	proto_item *ti;
-	proto_tree *tree;
-	
-	ti = proto_tree_add_item(root, hf_time, tvb,
-	                         off, C_SIZE_TIMESPEC,
-	                         ENC_NA);
-	tree = proto_item_add_subtree(ti, hf_time);
-	
-	EAT(hf_time_sec,  4);
-	EAT(hf_time_nsec, 4);
-	
-	return off;
-}
-
 /** Do the connection initiation dance.
  * 
  * This handles the data is sent before the protocol is actually started.
@@ -1193,12 +1364,12 @@ guint c_dissect_new(proto_tree *tree, packet_info *pinfo,
 	
 	C_HEADER_SIZE(C_BANNER_LEN_MAX+1);
 	
-	if (tvb_memeql(tvb, off, C_BANNER, C_BANNER_LEN_MIN) != 0)
-		return 0; // Invalid banner.
-	
+	//if (tvb_memeql(tvb, off, C_BANNER, C_BANNER_LEN_MIN) != 0)
+	//	return 0; // Invalid banner.
+	//
 	banlen = tvb_strnlen(tvb, off, C_BANNER_LEN_MAX+1);
-	if (banlen == -1)
-		return 0; // Invalid banner.
+	//if (banlen == -1)
+	//	return 0; // Invalid banner.
 	
 	proto_tree_add_item(tree, hf_version, tvb, off, banlen, ENC_NA);
 	off += banlen;
@@ -1226,139 +1397,6 @@ guint c_dissect_new(proto_tree *tree, packet_info *pinfo,
 	}
 	
 	data->src->state = C_STATE_OPEN;
-	
-	return off;
-}
-
-enum c_size_msg {
-	C_OFF_HEAD0  = 0,
-	C_SIZE_HEAD0 = (64+64+16+16+16)/8,
-	
-	C_OFF_HEAD1  = C_SIZE_HEAD0,
-	C_SIZE_HEAD1 = (32+32+32+16)/8,
-	
-	C_OFF_HEAD2  = C_OFF_HEAD1 + C_SIZE_HEAD1 + C_SIZE_ENTITY_NAME,
-	C_SIZE_HEAD2 = (16+16+32)/8,
-	
-	C_SIZE_HEAD = C_OFF_HEAD2 + C_SIZE_HEAD2,
-	
-	C_SIZE_FOOT = (32+32+32+64+8)/8
-};
-
-/** Dissect a MSG message.
- * 
- * These are Ceph's business messages and are generally sent to specific
- * node types.
- */
-static
-guint c_dissect_msg(proto_tree *tree, packet_info *pinfo,
-                  tvbuff_t *tvb, guint off, c_pkt_data *data)
-{
-	proto_item *ti;
-	proto_tree *subtree;
-	guint16 type;
-	guint32 front_len, middle_len, data_len;
-	
-	C_HEADER_SIZE(C_OFF_HEAD1 + C_SIZE_HEAD1);
-	
-	front_len  = tvb_get_letoh64(tvb, off + C_OFF_HEAD1 + 0);
-	middle_len = tvb_get_letoh64(tvb, off + C_OFF_HEAD1 + 4);
-	data_len   = tvb_get_letoh64(tvb, off + C_OFF_HEAD1 + 8);
-	
-	C_PACKET_SIZE(C_SIZE_HEAD+front_len+middle_len+data_len+C_SIZE_FOOT);
-	
-	/*** Header ***/
-	
-	/* @TODO: Old Header. */
-	
-	/* From ceph:/src/include/msgr.h
-	struct ceph_msg_header {
-		__le64 seq;       // message seq# for this session
-		__le64 tid;       // transaction id
-		__le16 type;      // message type
-		__le16 priority;  // priority.  higher value == higher priority
-		__le16 version;   // version of message encoding
-		
-		__le32 front_len; // bytes in main payload
-		__le32 middle_len;// bytes in middle payload
-		__le32 data_len;  // bytes of data payload
-		__le16 data_off;  // sender: include full offset; receiver: mask against ~PAGE_MASK
-		
-		struct ceph_entity_name src;
-		
-		// oldest code we think can decode this.  unknown if zero.
-		__le16 compat_version;
-		__le16 reserved;
-		__le32 crc; // header crc32c
-	} __attribute__ ((packed));
-	*/
-	ti = proto_tree_add_item(tree, hf_head, tvb,
-	                         off, C_SIZE_HEAD,
-	                         ENC_NA);
-	subtree = proto_item_add_subtree(ti, hf_head);
-	
-	EATS(hf_head_seq,      8);
-	EATS(hf_head_tid,      8);
-	
-	type = tvb_get_letohs(tvb, off);
-	EATS(hf_head_type,     2);
-	
-	EATS(hf_head_priority, 2);
-	EATS(hf_head_version,  2);
-	
-	EATS(hf_head_front_len,  4);
-	EATS(hf_head_middle_len, 4);
-	EATS(hf_head_data_len,   4);
-	EATS(hf_head_data_off,   2);
-	
-	off = c_dissect_entity_name(subtree, pinfo, tvb, off, data);
-	
-	EATS(hf_head_compat_version, 2);
-	EATS(hf_head_reserved,       2);
-	EATS(hf_head_crc,            4);
-	
-	/*** Body ***/
-	
-	switch (type)
-	{
-#define CALL_MSG(name) name(tree, pinfo, \
-                            tvb, off, front_len, middle_len, data_len, data)
-#define HANDLE_MSG(tag, name) case tag: CALL_MSG(name); break;
-	
-	HANDLE_MSG(C_CEPH_MSG_AUTH, c_dissect_msg_auth)
-	HANDLE_MSG(C_CEPH_MSG_MON_MAP, c_dissect_msg_mon_map)
-	
-	default:
-		CALL_MSG(c_dissect_msg_unknown);
-#undef CALL_MSG
-#undef HANDLE_MSG
-	}
-	off += front_len + middle_len + data_len;
-	
-	/*** Footer ***/
-	
-	/* @TODO: Old Footer. */
-	
-	/* From ceph:/src/include/msgr.h
-	struct ceph_msg_footer {
-		__le32 front_crc, middle_crc, data_crc;
-		// sig holds the 64 bits of the digital signature for the message PLR
-		__le64  sig;
-		__u8 flags;
-	} __attribute__ ((packed));
-	*/
-	
-	ti = proto_tree_add_item(tree, hf_foot, tvb,
-	                         off, C_SIZE_FOOT,
-	                         ENC_NA);
-	subtree = proto_item_add_subtree(ti, hf_foot);
-	
-	EATS(hf_foot_front_crc,  4);
-	EATS(hf_foot_middle_crc, 4);
-	EATS(hf_foot_data_crc,   4);
-	
-	EATS(hf_foot_signature,  8);
-	off = c_dissect_flags(subtree, tvb, off, data); /* @HELP: Can we do this? */
 	
 	return off;
 }
@@ -2054,6 +2092,46 @@ proto_register_ceph(void)
 		} },
 		{ &hf_msg_auth_monmap_epoch, {
 			"Monmap epoch", "ceph.msg.auth.monmap_epoch",
+			FT_UINT32, BASE_DEC, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_auth_reply, {
+			"Auth Reply Message", "ceph.msg.auth_reply",
+			FT_NONE, BASE_NONE, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_auth_reply_proto, {
+			"Protocol", "ceph.msg.auth_reply.proto",
+			FT_UINT32, BASE_HEX, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_auth_reply_result, {
+			"Result", "ceph.msg.auth_reply.result",
+			FT_INT32, BASE_DEC, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_auth_reply_global_id, {
+			"Global ID", "ceph.msg.auth_reply.id",
+			FT_UINT64, BASE_HEX, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_auth_reply_data, {
+			"Data Length", "ceph.msg.auth_reply.data",
+			FT_BYTES, BASE_NONE, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_auth_reply_data_len, {
+			"Data Length", "ceph.msg.auth_reply.data_len",
+			FT_INT32, BASE_DEC, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_auth_reply_message, {
+			"Message", "ceph.msg.auth_reply.msg",
+			FT_STRING, BASE_NONE, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_auth_reply_message_len, {
+			"Message", "ceph.msg.auth_reply.msg_len",
 			FT_UINT32, BASE_DEC, NULL, 0,
 			NULL, HFILL
 		} },
