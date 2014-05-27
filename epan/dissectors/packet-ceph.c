@@ -42,6 +42,8 @@
 void proto_reg_handoff_ceph(void);
 void proto_register_ceph(void);
 
+static dissector_handle_t ceph_handle;
+
 /* Initialize the protocol and registered fields */
 static int proto_ceph                      = -1;
 static int hf_type                         = -1;
@@ -151,8 +153,6 @@ static int hf_msg_mon_map        = -1;
 static int hf_msg_mon_map_data        = -1;
 static int hf_msg_mon_map_data_len        = -1;
 static int hf_msg_        = -1;
-
-static guint gPORT_PREF = 6789;
 
 #define C_NEW_FILESCOPE(klass) ((klass*)wmem_alloc(wmem_file_scope(),   sizeof(klass)))
 #define C_NEW_PKTSCOPE(klass)  ((klass*)wmem_alloc(wmem_packet_scope(), sizeof(klass)))
@@ -1466,8 +1466,9 @@ guint c_dissect_pdu(proto_tree *root, packet_info *pinfo,
 	return off;
 }
 
-static int
-dissect_ceph(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, void *pdata _U_)
+static
+int dissect_ceph(tvbuff_t *tvb, packet_info *pinfo,
+                 proto_tree *tree, void *pdata _U_)
 {
 	guint off, offt;
 	c_pkt_data data;
@@ -1500,6 +1501,35 @@ dissect_ceph(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, void *pdata _U
 	return off; // Perfect Fit.
 }
 
+/** An old style dissector proxy.
+ * 
+ * Proxies the old style dissector interface to the new style.
+ */
+static
+void dissect_ceph_old(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree)
+{
+	dissect_ceph(tvb, pinfo, tree, NULL);
+}
+
+static
+gboolean dissect_ceph_heur(tvbuff_t *tvb, packet_info *pinfo,
+                           proto_tree *tree, void *data _U_)
+{
+	conversation_t *conv;
+	
+	if (tvb_reported_length(tvb) < C_BANNER_LEN_MIN)         return 0;
+	if (tvb_memeql(tvb, 0, C_BANNER, C_BANNER_LEN_MIN) != 0) return 0;
+	
+	/* It's ours! */
+	
+	conv = find_or_create_conversation(pinfo);
+	/* Mark it as ours. */
+	conversation_set_dissector(conv, ceph_handle);
+	
+	dissect_ceph(tvb, pinfo, tree, data);
+	return 1;
+}
+
 /* Register the protocol with Wireshark.
  *
  * This format is require because a script is used to build the C function that
@@ -1508,7 +1538,7 @@ dissect_ceph(tvbuff_t *tvb, packet_info *pinfo, proto_tree *tree, void *pdata _U
 void
 proto_register_ceph(void)
 {
-	module_t *ceph_module;
+	//module_t *ceph_module;
 	//expert_module_t* expert_ceph;
 	
 	static hf_register_info hf[] = {
@@ -2060,13 +2090,7 @@ proto_register_ceph(void)
 	proto_register_subtree_array(ett, array_length(ett));
 	
 	/*** Preferences ***/
-	ceph_module = prefs_register_protocol(proto_ceph, proto_reg_handoff_ceph);
-	
-	prefs_register_uint_preference(ceph_module,
-		"tcp.port", "Ceph TCP Port",
-		" Ceph TCP port if other than the default",
-		10, &gPORT_PREF
-	);
+	//ceph_module = prefs_register_protocol(proto_ceph, proto_reg_handoff_ceph);
 }
 
 /* If this dissector uses sub-dissector registration add a registration routine.
@@ -2087,33 +2111,11 @@ proto_register_ceph(void)
 void
 proto_reg_handoff_ceph(void)
 {
-	static gboolean initialized = FALSE;
-	static dissector_handle_t ceph_handle;
-	static int currentPort;
+	ceph_handle = create_dissector_handle(dissect_ceph_old, proto_ceph);
 	
-	if (!initialized) {
-		/* Use new_create_dissector_handle() to indicate that
-		 * dissect_ceph() returns the number of bytes it dissected (or 0
-		 * if it thinks the packet does not belong to PROTONAME).
-		 */
-		ceph_handle = new_create_dissector_handle(dissect_ceph, proto_ceph);
-		initialized = TRUE;
+	heur_dissector_add("tcp", dissect_ceph_heur, proto_ceph);
 	
-	} else {
-		/* If you perform registration functions which are dependent upon
-		 * prefs then you should de-register everything which was associated
-		 * with the previous settings and re-register using the new prefs
-		 * settings here. In general this means you need to keep track of
-		 * the ceph_handle and the value the preference had at the time
-		 * you registered.	The ceph_handle value and the value of the
-		 * preference can be saved using local statics in this
-		 * function (proto_reg_handoff).
-		 */
-		dissector_delete_uint("tcp.port", currentPort, ceph_handle);
-	}
-	
-	currentPort = gPORT_PREF;
-	dissector_add_uint("tcp.port", currentPort, ceph_handle);
+	//dissector_add_uint("tcp.port", 6789, ceph_handle);
 }
 
 /*
