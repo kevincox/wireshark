@@ -155,8 +155,8 @@ static int hf_msg_auth_reply_result        = -1;
 static int hf_msg_auth_reply_global_id        = -1;
 static int hf_msg_auth_reply_data_len        = -1;
 static int hf_msg_auth_reply_data        = -1;
-static int hf_msg_auth_reply_message        = -1;
-static int hf_msg_auth_reply_message_len        = -1;
+static int hf_msg_auth_reply_msg        = -1;
+static int hf_msg_auth_reply_msg_len        = -1;
 static int hf_msg_mon_map        = -1;
 static int hf_msg_mon_map_data        = -1;
 static int hf_msg_mon_map_data_len        = -1;
@@ -1111,13 +1111,22 @@ void c_dissect_msg_auth_reply(proto_tree *root, packet_info *pinfo,
 {
 	proto_item *ti;
 	proto_tree *tree;
+	guint off = 0;
 	
 	col_append_str(pinfo->cinfo, COL_INFO, "[Auth Reply]");
 	
-	ti = proto_tree_add_item(root, hf_msg_auth,
-	                         tvb, 0, front_len, ENC_LITTLE_ENDIAN);
-	tree = proto_item_add_subtree(ti, hf_msg_auth);
+	ti = proto_tree_add_item(root, hf_msg_auth_reply,
+	                         tvb, off, front_len, ENC_LITTLE_ENDIAN);
+	tree = proto_item_add_subtree(ti, hf_msg_auth_reply);
 	
+	EAT(hf_msg_auth_reply_proto, 4);
+	EAT(hf_msg_auth_reply_result, 4);
+	EAT(hf_msg_auth_reply_global_id, 8);
+	
+	off = c_dissect_blob(tree, hf_msg_auth_reply_data, hf_msg_auth_reply_data_len,
+	                     tvb, off);
+	off = c_dissect_blob(tree, hf_msg_auth_reply_msg, hf_msg_auth_reply_msg_len,
+	                     tvb, off);
 }
 
 /*** MSGR Dissectors ***/
@@ -2125,13 +2134,13 @@ proto_register_ceph(void)
 			FT_INT32, BASE_DEC, NULL, 0,
 			NULL, HFILL
 		} },
-		{ &hf_msg_auth_reply_message, {
+		{ &hf_msg_auth_reply_msg, {
 			"Message", "ceph.msg.auth_reply.msg",
 			FT_STRING, BASE_NONE, NULL, 0,
 			NULL, HFILL
 		} },
-		{ &hf_msg_auth_reply_message_len, {
-			"Message", "ceph.msg.auth_reply.msg_len",
+		{ &hf_msg_auth_reply_msg_len, {
+			"Message Length", "ceph.msg.auth_reply.msg_len",
 			FT_UINT32, BASE_DEC, NULL, 0,
 			NULL, HFILL
 		} },
