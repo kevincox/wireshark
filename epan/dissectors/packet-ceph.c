@@ -137,9 +137,9 @@ static int hf_foot_front_crc               = -1;
 static int hf_foot_middle_crc              = -1;
 static int hf_foot_data_crc                = -1;
 static int hf_foot_signature               = -1;
-static int hf_front                        = -1;
-static int hf_middle                       = -1;
-static int hf_data                         = -1;
+static int hf_msg_front                        = -1;
+static int hf_msg_middle                       = -1;
+static int hf_msg_data                         = -1;
 static int hf_paxos                        = -1;
 static int hf_paxos_ver                    = -1;
 static int hf_paxos_mon                    = -1;
@@ -182,6 +182,12 @@ static int hf_msg_osd_map_data                         = -1;
 static int hf_msg_osd_map_data_len                         = -1;
 static int hf_msg_osd_map_oldest                         = -1;
 static int hf_msg_osd_map_newest                         = -1;
+static int hf_msg_mon_cmd                         = -1;
+static int hf_msg_mon_cmd_fsid                         = -1;
+static int hf_msg_mon_cmd_arg                         = -1;
+static int hf_msg_mon_cmd_arg_len                         = -1;
+static int hf_msg_mon_cmd_str                         = -1;
+static int hf_msg_mon_cmd_str_len                         = -1;
 
 static int hf_msg_                         = -1;
 
@@ -1066,6 +1072,7 @@ enum c_size_uuid {
 	C_SIZE_UUID = 16
 };
 
+#define C_UUID_SIG FT_BYTES, BASE_NONE, NULL, 0
 
 static
 guint c_dissect_uuid(proto_tree *tree, int hf, tvbuff_t *tvb, guint off)
@@ -1110,9 +1117,9 @@ void c_dissect_msg_unknown(proto_tree *tree, packet_info *pinfo,
 	
 	col_append_str(pinfo->cinfo, COL_INFO, "[MSG]");
 	
-	if (front_len)  EAT(hf_front,  front_len);
-	if (middle_len) EAT(hf_middle, middle_len);
-	if (data_len)   EAT(hf_data,   data_len);
+	if (front_len)  EAT(hf_msg_front,  front_len);
+	if (middle_len) EAT(hf_msg_middle, middle_len);
+	if (data_len)   EAT(hf_msg_data,   data_len);
 }
 
 static
@@ -1200,7 +1207,7 @@ void c_dissect_msg_mon_sub_ack(proto_tree *root, packet_info *pinfo,
                                guint front_len, guint middle_len _U_, guint data_len _U_,
                                c_pkt_data *data _U_)
 {
-	proto_item *ti, *ti2;
+	proto_item *ti;
 	proto_tree *tree;
 	guint off = 0;
 	
@@ -1331,6 +1338,44 @@ void c_dissect_msg_osd_map(proto_tree *root, packet_info *pinfo,
 	}
 }
 
+static
+void c_dissect_msg_mon_cmd(proto_tree *root, packet_info *pinfo,
+                          tvbuff_t *tvb,
+                          guint front_len, guint middle_len _U_, guint data_len _U_,
+                          c_pkt_data *data _U_)
+{
+	proto_item *ti;
+	proto_tree *tree, *subtree;
+	guint off = 0, offs;
+	guint i;
+	
+	col_append_str(pinfo->cinfo, COL_INFO, "[Mon Command]");
+	
+	off = c_dissect_paxos(root, tvb, off, data);
+	
+	ti = proto_tree_add_item(root, hf_msg_mon_cmd,
+	                         tvb, off, front_len, ENC_NA);
+	tree = proto_item_add_subtree(ti, hf_msg_mon_cmd);
+	
+	off = c_dissect_uuid(tree, hf_msg_mon_cmd_fsid, tvb, off);
+	
+	i = tvb_get_letohl(tvb, off);
+	EAT(hf_msg_mon_cmd_arg_len, 4);
+	while (i--)
+	{
+		offs = off;
+		
+		ti = proto_tree_add_item(tree, hf_msg_mon_cmd_arg,
+		                         tvb, off, -1, ENC_NA);
+		subtree = proto_item_add_subtree(ti, hf_msg_mon_cmd_arg);
+		
+		off = c_dissect_blob(subtree, hf_msg_mon_cmd_str, hf_msg_mon_cmd_str_len,
+		                     tvb, off);
+		
+		proto_item_set_len(ti, off-offs);
+	}
+}
+
 /*** MSGR Dissectors ***/
 
 enum c_size_msg {
@@ -1443,6 +1488,7 @@ guint c_dissect_msg(proto_tree *tree, packet_info *pinfo,
 	HANDLE_MSG(C_CEPH_MSG_AUTH,              c_dissect_msg_auth)
 	HANDLE_MSG(C_CEPH_MSG_AUTH_REPLY,        c_dissect_msg_auth_reply)
 	HANDLE_MSG(C_CEPH_MSG_OSD_MAP,           c_dissect_msg_osd_map)
+	HANDLE_MSG(C_MSG_MON_COMMAND,            c_dissect_msg_mon_cmd)
 	
 	default:
 		CALL_MSG(c_dissect_msg_unknown);
@@ -2255,17 +2301,17 @@ proto_register_ceph(void)
 			FT_UINT64, BASE_HEX, NULL, 0,
 			NULL, HFILL
 		} },
-		{ &hf_front, {
+		{ &hf_msg_front, {
 			"Front", "ceph.front",
 			FT_BYTES, BASE_NONE, NULL, 0,
 			NULL, HFILL
 		} },
-		{ &hf_middle, {
+		{ &hf_msg_middle, {
 			"Middle", "ceph.mid",
 			FT_BYTES, BASE_NONE, NULL, 0,
 			NULL, HFILL
 		} },
-		{ &hf_data, {
+		{ &hf_msg_data, {
 			"Data", "ceph.data",
 			FT_BYTES, BASE_NONE, NULL, 0,
 			NULL, HFILL
@@ -2357,7 +2403,7 @@ proto_register_ceph(void)
 		} },
 		{ &hf_msg_mon_sub_ack_fsid, {
 			"FSID", "ceph.msg.mon_sub_ack.fsid",
-			FT_BYTES, BASE_NONE, NULL, 0,
+			C_UUID_SIG,
 			NULL, HFILL
 		} },
 		{ &hf_msg_auth, {
@@ -2432,7 +2478,7 @@ proto_register_ceph(void)
 		} },
 		{ &hf_msg_osd_map_fsid, {
 			"FSID", "ceph.msg.osd_map.fsid",
-			FT_BYTES, BASE_NONE, NULL, 0,
+			C_UUID_SIG,
 			NULL, HFILL
 		} },
 		{ &hf_msg_osd_map_inc, {
@@ -2477,6 +2523,36 @@ proto_register_ceph(void)
 		} },
 		{ &hf_msg_osd_map_newest, {
 			"Newest Map", "ceph.msg.osd_map.newest",
+			FT_UINT32, BASE_DEC, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_mon_cmd, {
+			"Mon Command", "ceph.msg.mon_cmd",
+			FT_NONE, BASE_NONE, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_mon_cmd_fsid, {
+			"FSID", "ceph.msg.mon_cmd.fsid",
+			C_UUID_SIG,
+			NULL, HFILL
+		} },
+		{ &hf_msg_mon_cmd_arg, {
+			"Argument", "ceph.msg.mon_cmd.arg",
+			FT_NONE, BASE_NONE, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_mon_cmd_arg_len, {
+			"Argument Count", "ceph.msg.mon_cmd.arg_len",
+			FT_UINT32, BASE_DEC, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_mon_cmd_str, {
+			"String", "ceph.msg.mon_cmd.str",
+			FT_STRING, BASE_NONE, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_mon_cmd_str_len, {
+			"String Length", "ceph.msg.mon_cmd.str_len",
 			FT_UINT32, BASE_DEC, NULL, 0,
 			NULL, HFILL
 		} },
