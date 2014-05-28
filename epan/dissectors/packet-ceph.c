@@ -155,6 +155,9 @@ static int hf_msg_mon_sub_what_len         = -1;
 static int hf_msg_mon_sub_start            = -1;
 static int hf_msg_mon_sub_flags            = -1;
 static int hf_msg_mon_sub_flags_onetime    = -1;
+static int hf_msg_mon_sub_ack                  = -1;
+static int hf_msg_mon_sub_ack_interval                  = -1;
+static int hf_msg_mon_sub_ack_fsid                  = -1;
 static int hf_msg_auth                     = -1;
 static int hf_msg_auth_proto               = -1;
 static int hf_msg_auth_payload             = -1;
@@ -1025,6 +1028,19 @@ guint c_dissect_timespec(proto_tree *root, packet_info *pinfo _U_,
 	return off;
 }
 
+enum c_size_uuid {
+	C_SIZE_UUID = 16
+};
+
+
+static
+guint c_dissect_uuid(proto_tree *tree, int hf, tvbuff_t *tvb, guint off)
+{
+	EAT(hf, 16); //@TODO: Format properly.
+	
+	return off;
+}
+
 enum c_size_paxos {
 	C_SIZE_PAXOS = 18
 };
@@ -1142,6 +1158,26 @@ void c_dissect_msg_mon_sub(proto_tree *root, packet_info *pinfo,
 		
 		proto_item_set_len(ti, off-offs);
 	}
+}
+
+static
+void c_dissect_msg_mon_sub_ack(proto_tree *root, packet_info *pinfo,
+                               tvbuff_t *tvb,
+                               guint front_len, guint middle_len _U_, guint data_len _U_,
+                               c_pkt_data *data _U_)
+{
+	proto_item *ti, *ti2;
+	proto_tree *tree;
+	guint off = 0;
+	
+	col_append_str(pinfo->cinfo, COL_INFO, "[Mon Subscribe Ack]");
+	
+	ti = proto_tree_add_item(root, hf_msg_mon_sub_ack,
+	                         tvb, off, front_len, ENC_NA);
+	tree = proto_item_add_subtree(ti, hf_msg_mon_sub_ack);
+	
+	EAT(hf_msg_mon_sub_ack_interval,  4);
+	off = c_dissect_uuid(tree, hf_msg_mon_sub_ack_fsid, tvb, off);
 }
 
 static
@@ -1298,10 +1334,11 @@ guint c_dissect_msg(proto_tree *tree, packet_info *pinfo,
                             subtvb, front_len, middle_len, data_len, data)
 #define HANDLE_MSG(tag, name) case tag: CALL_MSG(name); break;
 	
-	HANDLE_MSG(C_CEPH_MSG_MON_MAP, c_dissect_msg_mon_map)
-	HANDLE_MSG(C_CEPH_MSG_MON_SUBSCRIBE, c_dissect_msg_mon_sub)
-	HANDLE_MSG(C_CEPH_MSG_AUTH, c_dissect_msg_auth)
-	HANDLE_MSG(C_CEPH_MSG_AUTH_REPLY, c_dissect_msg_auth_reply)
+	HANDLE_MSG(C_CEPH_MSG_MON_MAP,           c_dissect_msg_mon_map)
+	HANDLE_MSG(C_CEPH_MSG_MON_SUBSCRIBE,     c_dissect_msg_mon_sub)
+	HANDLE_MSG(C_CEPH_MSG_MON_SUBSCRIBE_ACK, c_dissect_msg_mon_sub_ack)
+	HANDLE_MSG(C_CEPH_MSG_AUTH,              c_dissect_msg_auth)
+	HANDLE_MSG(C_CEPH_MSG_AUTH_REPLY,        c_dissect_msg_auth_reply)
 	
 	default:
 		CALL_MSG(c_dissect_msg_unknown);
@@ -2202,6 +2239,21 @@ proto_register_ceph(void)
 		{ &hf_msg_mon_sub_flags_onetime, {
 			"One Time", "ceph.msg.mon_sub.flags.onetime",
 			FT_BOOLEAN, 8, TFS(&tfs_yes_no), C_MON_SUB_FLAG_ONETIME,
+			NULL, HFILL
+		} },
+		{ &hf_msg_mon_sub_ack, {
+			"Subscription Acknowledgment", "ceph.msg.mon_sub_ack",
+			FT_NONE, BASE_NONE, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_mon_sub_ack_interval, {
+			"Interval", "ceph.msg.mon_sub_ack.interval",
+			FT_UINT32, BASE_DEC, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_mon_sub_ack_fsid, {
+			"FSID", "ceph.msg.mon_sub_ack.fsid",
+			FT_BYTES, BASE_NONE, NULL, 0,
 			NULL, HFILL
 		} },
 		{ &hf_msg_auth, {
