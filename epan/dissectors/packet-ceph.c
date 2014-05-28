@@ -188,6 +188,15 @@ static int hf_msg_mon_cmd_arg                         = -1;
 static int hf_msg_mon_cmd_arg_len                         = -1;
 static int hf_msg_mon_cmd_str                         = -1;
 static int hf_msg_mon_cmd_str_len                         = -1;
+static int hf_msg_mon_cmd_ack                         = -1;
+static int hf_msg_mon_cmd_ack_code                         = -1;
+static int hf_msg_mon_cmd_ack_res                         = -1;
+static int hf_msg_mon_cmd_ack_res_len                         = -1;
+static int hf_msg_mon_cmd_ack_arg                         = -1;
+static int hf_msg_mon_cmd_ack_arg_len                         = -1;
+static int hf_msg_mon_cmd_ack_arg_str                         = -1;
+static int hf_msg_mon_cmd_ack_arg_str_len                         = -1;
+static int hf_msg_mon_cmd_ack_data                         = -1;
 
 static int hf_msg_                         = -1;
 
@@ -1068,20 +1077,6 @@ guint c_dissect_timespec(proto_tree *root, packet_info *pinfo _U_,
 	return off;
 }
 
-enum c_size_uuid {
-	C_SIZE_UUID = 16
-};
-
-#define C_UUID_SIG FT_BYTES, BASE_NONE, NULL, 0
-
-static
-guint c_dissect_uuid(proto_tree *tree, int hf, tvbuff_t *tvb, guint off)
-{
-	EAT(hf, 16); //@TODO: Format properly.
-	
-	return off;
-}
-
 enum c_size_paxos {
 	C_SIZE_PAXOS = 18
 };
@@ -1115,7 +1110,7 @@ void c_dissect_msg_unknown(proto_tree *tree, packet_info *pinfo,
 {
 	guint off = 0;
 	
-	col_append_str(pinfo->cinfo, COL_INFO, "[MSG]");
+	col_set_str(pinfo->cinfo, COL_INFO, "MSG");
 	
 	if (front_len)  EAT(hf_msg_front,  front_len);
 	if (middle_len) EAT(hf_msg_middle, middle_len);
@@ -1131,7 +1126,7 @@ void c_dissect_msg_mon_map(proto_tree *root, packet_info *pinfo,
 	proto_item *ti;
 	proto_tree *tree;
 	
-	col_append_str(pinfo->cinfo, COL_INFO, "[MonMap]");
+	col_set_str(pinfo->cinfo, COL_INFO, "Mon Map");
 	
 	ti = proto_tree_add_item(root, hf_msg_mon_map,
 	                         tvb, 0, front_len, ENC_NA);
@@ -1154,7 +1149,7 @@ void c_dissect_msg_mon_sub(proto_tree *root, packet_info *pinfo,
 	guint off = 0, offs;
 	guint len;
 	
-	col_append_str(pinfo->cinfo, COL_INFO, "[Mon Subscribe]");
+	col_set_str(pinfo->cinfo, COL_INFO, "Mon Subscribe");
 	
 	ti = proto_tree_add_item(root, hf_msg_mon_sub,
 	                         tvb, off, front_len, ENC_NA);
@@ -1211,14 +1206,14 @@ void c_dissect_msg_mon_sub_ack(proto_tree *root, packet_info *pinfo,
 	proto_tree *tree;
 	guint off = 0;
 	
-	col_append_str(pinfo->cinfo, COL_INFO, "[Mon Subscribe Ack]");
+	col_set_str(pinfo->cinfo, COL_INFO, "Mon Subscribe Ack");
 	
 	ti = proto_tree_add_item(root, hf_msg_mon_sub_ack,
 	                         tvb, off, front_len, ENC_NA);
 	tree = proto_item_add_subtree(ti, hf_msg_mon_sub_ack);
 	
 	EAT(hf_msg_mon_sub_ack_interval,  4);
-	off = c_dissect_uuid(tree, hf_msg_mon_sub_ack_fsid, tvb, off);
+	EAT(hf_msg_mon_sub_ack_fsid,     16);
 }
 
 static
@@ -1231,7 +1226,7 @@ void c_dissect_msg_auth(proto_tree *root, packet_info *pinfo,
 	proto_tree *tree;
 	guint off = 0;
 	
-	col_append_str(pinfo->cinfo, COL_INFO, "[Auth]");
+	col_set_str(pinfo->cinfo, COL_INFO, "Auth");
 	
 	off = c_dissect_paxos(root, tvb, off, data);
 	
@@ -1260,7 +1255,7 @@ void c_dissect_msg_auth_reply(proto_tree *root, packet_info *pinfo,
 	proto_tree *tree;
 	guint off = 0;
 	
-	col_append_str(pinfo->cinfo, COL_INFO, "[Auth Reply]");
+	col_set_str(pinfo->cinfo, COL_INFO, "Auth Reply");
 	
 	ti = proto_tree_add_item(root, hf_msg_auth_reply,
 	                         tvb, off, front_len, ENC_NA);
@@ -1289,13 +1284,13 @@ void c_dissect_msg_osd_map(proto_tree *root, packet_info *pinfo,
 	
 	//@TODO: Dissect map data.
 	
-	col_append_str(pinfo->cinfo, COL_INFO, "[OSD Map]");
+	col_set_str(pinfo->cinfo, COL_INFO, "OSD Map");
 	
-	ti = proto_tree_add_item(root, hf_msg_auth_reply,
+	ti = proto_tree_add_item(root, hf_msg_osd_map,
 	                         tvb, off, front_len, ENC_NA);
-	tree = proto_item_add_subtree(ti, hf_msg_auth_reply);
+	tree = proto_item_add_subtree(ti, hf_msg_osd_map);
 	
-	off = c_dissect_uuid(tree, hf_msg_osd_map_fsid, tvb, off);
+	EAT(hf_msg_osd_map_fsid, 16);
 	
 	i = tvb_get_letohl(tvb, off);
 	EAT(hf_msg_osd_map_inc_len, 4);
@@ -1349,7 +1344,7 @@ void c_dissect_msg_mon_cmd(proto_tree *root, packet_info *pinfo,
 	guint off = 0, offs;
 	guint i;
 	
-	col_append_str(pinfo->cinfo, COL_INFO, "[Mon Command]");
+	col_set_str(pinfo->cinfo, COL_INFO, "Mon Command");
 	
 	off = c_dissect_paxos(root, tvb, off, data);
 	
@@ -1357,7 +1352,7 @@ void c_dissect_msg_mon_cmd(proto_tree *root, packet_info *pinfo,
 	                         tvb, off, front_len, ENC_NA);
 	tree = proto_item_add_subtree(ti, hf_msg_mon_cmd);
 	
-	off = c_dissect_uuid(tree, hf_msg_mon_cmd_fsid, tvb, off);
+	EAT(hf_msg_mon_cmd_fsid, 16);
 	
 	i = tvb_get_letohl(tvb, off);
 	EAT(hf_msg_mon_cmd_arg_len, 4);
@@ -1374,6 +1369,49 @@ void c_dissect_msg_mon_cmd(proto_tree *root, packet_info *pinfo,
 		
 		proto_item_set_len(ti, off-offs);
 	}
+}
+
+static
+void c_dissect_msg_mon_cmd_ack(proto_tree *root, packet_info *pinfo,
+                               tvbuff_t *tvb,
+                               guint front_len, guint middle_len _U_, guint data_len,
+                               c_pkt_data *data _U_)
+{
+	proto_item *ti;
+	proto_tree *tree, *subtree;
+	guint off = 0, offs;
+	guint i;
+	
+	col_set_str(pinfo->cinfo, COL_INFO, "Mon Command Result");
+	
+	off = c_dissect_paxos(root, tvb, off, data);
+	
+	ti = proto_tree_add_item(root, hf_msg_mon_cmd_ack,
+	                         tvb, off, front_len, ENC_NA);
+	tree = proto_item_add_subtree(ti, hf_msg_mon_cmd_ack);
+	
+	EAT(hf_msg_mon_cmd_ack_code, 4);
+	off = c_dissect_blob(tree, hf_msg_mon_cmd_ack_res, hf_msg_mon_cmd_ack_res_len,
+	                     tvb, off);
+	
+	i = tvb_get_letohl(tvb, off);
+	EAT(hf_msg_mon_cmd_ack_arg_len, 4);
+	while (i--)
+	{
+		offs = off;
+		
+		ti = proto_tree_add_item(tree, hf_msg_mon_cmd_ack_arg,
+		                         tvb, off, -1, ENC_NA);
+		subtree = proto_item_add_subtree(ti, hf_msg_mon_cmd_ack_arg);
+		
+		off = c_dissect_blob(subtree, hf_msg_mon_cmd_ack_arg_str,
+		                     hf_msg_mon_cmd_ack_arg_str_len,
+		                     tvb, off);
+		
+		proto_item_set_len(ti, off-offs);
+	}
+	
+	ADD(hf_msg_mon_cmd_ack_data, front_len, data_len);
 }
 
 /*** MSGR Dissectors ***/
@@ -1489,6 +1527,7 @@ guint c_dissect_msg(proto_tree *tree, packet_info *pinfo,
 	HANDLE_MSG(C_CEPH_MSG_AUTH_REPLY,        c_dissect_msg_auth_reply)
 	HANDLE_MSG(C_CEPH_MSG_OSD_MAP,           c_dissect_msg_osd_map)
 	HANDLE_MSG(C_MSG_MON_COMMAND,            c_dissect_msg_mon_cmd)
+	HANDLE_MSG(C_MSG_MON_COMMAND_ACK,        c_dissect_msg_mon_cmd_ack)
 	
 	default:
 		CALL_MSG(c_dissect_msg_unknown);
@@ -1592,7 +1631,7 @@ guint c_dissect_connect_reply(proto_tree *root, packet_info *pinfo,
 	
 	C_PACKET_SIZE(C_SIZE_CONNECT_REPLY);
 	
-	col_append_str(pinfo->cinfo, COL_INFO, "[Connect Reply]");
+	col_set_str(pinfo->cinfo, COL_INFO, "Connect Reply");
 	
 	ti = proto_tree_add_item(root, hf_connect_reply, tvb,
 	                         off, C_SIZE_CONNECT_REPLY,
@@ -1642,7 +1681,7 @@ guint c_dissect_new(proto_tree *tree, packet_info *pinfo,
 	
 	C_PACKET_SIZE(c_from_server(data)? C_SIZE_HELLO_S : C_SIZE_HELLO_C);
 	
-	col_append_str(pinfo->cinfo, COL_INFO, "[Connect]");
+	col_set_str(pinfo->cinfo, COL_INFO, "Connect");
 	
 	if (c_from_server(data))
 	{
@@ -1701,25 +1740,25 @@ guint c_dissect_msgr(proto_tree *tree, packet_info *pinfo,
 		off += 8; //@TODO: Read sequence number.
 		break;
 	case C_TAG_CLOSE:
-		col_append_str(pinfo->cinfo, COL_INFO, "[CLOSE]");
+		col_set_str(pinfo->cinfo, COL_INFO, "CLOSE");
 		data->src->state = C_STATE_NEW;
 		break;
 	case C_TAG_MSG:
 		off = c_dissect_msg(tree, pinfo, tvb, off, data);
 		break;
 	case C_TAG_ACK:
-		col_append_str(pinfo->cinfo, COL_INFO, "[ACK]");
+		col_set_str(pinfo->cinfo, COL_INFO, "ACK");
 		C_PACKET_SIZE(8);
 		EAT(hf_ack, 8);
 		break;
 	case C_TAG_KEEPALIVE:
-		col_append_str(pinfo->cinfo, COL_INFO, "[KEEPALIVE]");
+		col_set_str(pinfo->cinfo, COL_INFO, "KEEPALIVE");
 		/* No data. */
 		break;
 	case C_TAG_KEEPALIVE2:
 	case C_TAG_KEEPALIVE2_ACK:
 		C_PACKET_SIZE(C_SIZE_TIMESPEC);
-		col_append_str(pinfo->cinfo, COL_INFO, "[KEEPALIVE2]");
+		col_set_str(pinfo->cinfo, COL_INFO, "KEEPALIVE2");
 		off = c_dissect_timespec(tree, pinfo, tvb, off, data);
 		break;
 	default:
@@ -1743,7 +1782,7 @@ guint c_dissect_msgr(proto_tree *tree, packet_info *pinfo,
 			lucky and find ourselves realigned.
 		*/
 		;
-		col_append_str(pinfo->cinfo, COL_INFO, "[UNKNOWN]");
+		col_set_str(pinfo->cinfo, COL_INFO, "UNKNOWN");
 	}
 	
 	return off;
@@ -1777,12 +1816,14 @@ int dissect_ceph(tvbuff_t *tvb, packet_info *pinfo,
 	guint off, offt;
 	c_pkt_data data;
 	
-	col_set_str(pinfo->cinfo, COL_PROTOCOL, "ceph");
+	col_set_str(pinfo->cinfo, COL_PROTOCOL, "Ceph");
 	col_clear(pinfo->cinfo, COL_INFO);
 	
 	off = 0;
 	while (off < tvb_reported_length(tvb))
 	{
+		col_append_sep_str(pinfo->cinfo, COL_INFO, " | ", "");
+		col_set_fence(pinfo->cinfo, COL_INFO);
 		c_pkt_data_init(&data, pinfo, off);
 		
 		offt = c_dissect_pdu(tree, pinfo, tvb, off, &data);
@@ -2403,7 +2444,7 @@ proto_register_ceph(void)
 		} },
 		{ &hf_msg_mon_sub_ack_fsid, {
 			"FSID", "ceph.msg.mon_sub_ack.fsid",
-			C_UUID_SIG,
+			FT_GUID, BASE_NONE, NULL, 0,
 			NULL, HFILL
 		} },
 		{ &hf_msg_auth, {
@@ -2478,7 +2519,7 @@ proto_register_ceph(void)
 		} },
 		{ &hf_msg_osd_map_fsid, {
 			"FSID", "ceph.msg.osd_map.fsid",
-			C_UUID_SIG,
+			FT_GUID, BASE_NONE, NULL, 0,
 			NULL, HFILL
 		} },
 		{ &hf_msg_osd_map_inc, {
@@ -2533,7 +2574,7 @@ proto_register_ceph(void)
 		} },
 		{ &hf_msg_mon_cmd_fsid, {
 			"FSID", "ceph.msg.mon_cmd.fsid",
-			C_UUID_SIG,
+			FT_GUID, BASE_NONE, NULL, 0,
 			NULL, HFILL
 		} },
 		{ &hf_msg_mon_cmd_arg, {
@@ -2554,6 +2595,51 @@ proto_register_ceph(void)
 		{ &hf_msg_mon_cmd_str_len, {
 			"String Length", "ceph.msg.mon_cmd.str_len",
 			FT_UINT32, BASE_DEC, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_mon_cmd_ack, {
+			"Mon Command Result", "ceph.msg.mon_cmd_ack",
+			FT_NONE, BASE_NONE, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_mon_cmd_ack_code, {
+			"Result Code", "ceph.msg.mon_cmd_ack.code",
+			FT_INT32, BASE_DEC, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_mon_cmd_ack_res, {
+			"Result String", "ceph.msg.mon_cmd_ack.result",
+			FT_STRING, BASE_NONE, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_mon_cmd_ack_res_len, {
+			"String Length", "ceph.msg.mon_cmd_ack.result_len",
+			FT_UINT32, BASE_DEC, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_mon_cmd_ack_arg, {
+			"Argument", "ceph.msg.mon_cmd_ack.arg",
+			FT_NONE, BASE_NONE, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_mon_cmd_ack_arg_len, {
+			"Argument Count", "ceph.msg.mon_cmd_ack.arg_len",
+			FT_UINT32, BASE_DEC, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_mon_cmd_ack_arg_str, {
+			"String", "ceph.msg.mon_cmd_ack.str",
+			FT_STRING, BASE_NONE, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_mon_cmd_ack_arg_str_len, {
+			"String Length", "ceph.msg.mon_cmd_ack.str_len",
+			FT_UINT32, BASE_DEC, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_mon_cmd_ack_data, {
+			"Data", "ceph.msg.mon_cmd_ack.data",
+			FT_STRING, BASE_NONE, NULL, 0,
 			NULL, HFILL
 		} },
 	};
