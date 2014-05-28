@@ -144,23 +144,31 @@ static int hf_paxos                        = -1;
 static int hf_paxos_ver                    = -1;
 static int hf_paxos_mon                    = -1;
 static int hf_paxos_mon_tid                = -1;
+static int hf_msg_mon_map                  = -1;
+static int hf_msg_mon_map_data             = -1;
+static int hf_msg_mon_map_data_len         = -1;
+static int hf_msg_mon_sub                  = -1;
+static int hf_msg_mon_sub_item             = -1;
+static int hf_msg_mon_sub_item_len         = -1;
+static int hf_msg_mon_sub_what             = -1;
+static int hf_msg_mon_sub_what_len         = -1;
+static int hf_msg_mon_sub_start            = -1;
+static int hf_msg_mon_sub_flags            = -1;
+static int hf_msg_mon_sub_flags_onetime    = -1;
 static int hf_msg_auth                     = -1;
 static int hf_msg_auth_proto               = -1;
 static int hf_msg_auth_payload             = -1;
 static int hf_msg_auth_payload_len         = -1;
 static int hf_msg_auth_monmap_epoch        = -1;
-static int hf_msg_auth_reply        = -1;
-static int hf_msg_auth_reply_proto        = -1;
+static int hf_msg_auth_reply               = -1;
+static int hf_msg_auth_reply_proto         = -1;
 static int hf_msg_auth_reply_result        = -1;
-static int hf_msg_auth_reply_global_id        = -1;
-static int hf_msg_auth_reply_data_len        = -1;
-static int hf_msg_auth_reply_data        = -1;
-static int hf_msg_auth_reply_msg        = -1;
-static int hf_msg_auth_reply_msg_len        = -1;
-static int hf_msg_mon_map        = -1;
-static int hf_msg_mon_map_data        = -1;
-static int hf_msg_mon_map_data_len        = -1;
-static int hf_msg_        = -1;
+static int hf_msg_auth_reply_global_id     = -1;
+static int hf_msg_auth_reply_data_len      = -1;
+static int hf_msg_auth_reply_data          = -1;
+static int hf_msg_auth_reply_msg           = -1;
+static int hf_msg_auth_reply_msg_len       = -1;
+static int hf_msg_                         = -1;
 
 #define C_NEW_FILESCOPE(klass) ((klass*)wmem_alloc(wmem_file_scope(),   sizeof(klass)))
 #define C_NEW_PKTSCOPE(klass)  ((klass*)wmem_alloc(wmem_packet_scope(), sizeof(klass)))
@@ -565,6 +573,10 @@ static const value_string c_node_type_strings[] = {
 	{C_NODE_TYPE_AUTH,    "Authentication Server"}
 };
 
+enum c_mon_sub_flags {
+	C_MON_SUB_FLAG_ONETIME = 0x01
+};
+
 typedef enum _c_state {
 	C_STATE_NEW,
 	C_STATE_OPEN
@@ -759,7 +771,7 @@ gboolean c_from_server(c_pkt_data *d)
  * This macro ensures that there is enough data remaining in the buffer and if
  * not it returns, requesting the exact amount of data required.
  */
-#define C_PACKET_SIZE(n) do{          \
+#define C_PACKET_SIZE(n) do{               \
 		if (!tvb_bytes_exist(tvb, off, n)) \
 			return off+(n);                \
 	}while(0)
@@ -770,7 +782,7 @@ gboolean c_from_server(c_pkt_data *d)
  * request the exact amount of data required but instead just asks for another
  * "chunk".
  */
-#define C_HEADER_SIZE(n) do{          \
+#define C_HEADER_SIZE(n) do{               \
 		if (!tvb_bytes_exist(tvb, off, n)) \
 			return 0;                      \
 	}while(0)
@@ -780,7 +792,7 @@ gboolean c_from_server(c_pkt_data *d)
  * Adds an item hf found at offset o of size l to the proto tree.  This
  * assumes little endian encoding.
  */
-#define  ADD(hf, o, l) proto_tree_add_item(tree   , hf, tvb, o, l, ENC_LITTLE_ENDIAN)
+#define  ADD(hf, o, l) proto_tree_add_item(tree, hf, tvb, o, l, ENC_LITTLE_ENDIAN)
 
 /* Add an item to a subtree.
  * 
@@ -1061,18 +1073,75 @@ void c_dissect_msg_mon_map(proto_tree *root, packet_info *pinfo,
 {
 	proto_item *ti;
 	proto_tree *tree;
-	guint size;
 	
 	col_append_str(pinfo->cinfo, COL_INFO, "[MonMap]");
 	
 	ti = proto_tree_add_item(root, hf_msg_mon_map,
-	                         tvb, 0, front_len, ENC_LITTLE_ENDIAN);
+	                         tvb, 0, front_len, ENC_NA);
 	tree = proto_item_add_subtree(ti, hf_msg_mon_map);
 	
 	c_dissect_blob(tree, hf_msg_mon_map_data, hf_msg_mon_map_data_len,
 	               tvb, 0);
 	
 	//@TODO: Parse Mon Map.
+}
+
+static
+void c_dissect_msg_mon_sub(proto_tree *root, packet_info *pinfo,
+                           tvbuff_t *tvb,
+                           guint front_len, guint middle_len _U_, guint data_len _U_,
+                           c_pkt_data *data _U_)
+{
+	proto_item *ti, *ti2;
+	proto_tree *tree, *subtree;
+	guint off = 0, offs;
+	guint len;
+	
+	col_append_str(pinfo->cinfo, COL_INFO, "[Mon Subscribe]");
+	
+	ti = proto_tree_add_item(root, hf_msg_mon_sub,
+	                         tvb, off, front_len, ENC_NA);
+	tree = proto_item_add_subtree(ti, hf_msg_mon_sub);
+	
+	len = tvb_get_letohl(tvb, off);
+	EAT(hf_msg_mon_sub_item_len, 4);
+	while (len--)
+	{
+		offs = off;
+		
+		/* From ceph:/src/include/ceph_fs.h
+		struct ceph_mon_subscribe_item {
+			__le64 start;
+			__u8 flags;
+		} __attribute__ ((packed))
+		
+		//@TODO: Old subscription item.
+		From ceph:/src/messages/MMonSubscribe.h
+		struct ceph_mon_subscribe_item_old {
+			__le64 unused;
+			__le64 have;
+			__u8 onetime;
+		} __attribute__ ((packed));
+		*/
+		
+		ti = proto_tree_add_item(tree, hf_msg_mon_sub_item,
+		                         tvb, off, -1, ENC_NA);
+		subtree = proto_item_add_subtree(ti, hf_msg_mon_sub_item);
+		
+		off = c_dissect_blob(subtree, hf_msg_mon_sub_what, hf_msg_mon_sub_what_len,
+		                     tvb, off);
+		
+		EATS(hf_msg_mon_sub_start, 8);
+		
+		/* Flags */
+		ti2 = ADDS(hf_msg_mon_sub_flags, off, 1);
+		/* Reuse subtree variable for flags. */
+		subtree = proto_item_add_subtree(ti2, hf_msg_mon_sub_flags);
+		ADDS(hf_msg_mon_sub_flags_onetime, off, 1);
+		off += 1;
+		
+		proto_item_set_len(ti, off-offs);
+	}
 }
 
 static
@@ -1090,7 +1159,7 @@ void c_dissect_msg_auth(proto_tree *root, packet_info *pinfo,
 	off = c_dissect_paxos(root, tvb, off, data);
 	
 	ti = proto_tree_add_item(root, hf_msg_auth,
-	                         tvb, off, front_len-off, ENC_LITTLE_ENDIAN);
+	                         tvb, off, front_len-off, ENC_NA);
 	tree = proto_item_add_subtree(ti, hf_msg_auth);
 	
 	EAT(hf_msg_auth_proto, 4);
@@ -1116,7 +1185,7 @@ void c_dissect_msg_auth_reply(proto_tree *root, packet_info *pinfo,
 	col_append_str(pinfo->cinfo, COL_INFO, "[Auth Reply]");
 	
 	ti = proto_tree_add_item(root, hf_msg_auth_reply,
-	                         tvb, off, front_len, ENC_LITTLE_ENDIAN);
+	                         tvb, off, front_len, ENC_NA);
 	tree = proto_item_add_subtree(ti, hf_msg_auth_reply);
 	
 	EAT(hf_msg_auth_reply_proto, 4);
@@ -1229,9 +1298,10 @@ guint c_dissect_msg(proto_tree *tree, packet_info *pinfo,
                             subtvb, front_len, middle_len, data_len, data)
 #define HANDLE_MSG(tag, name) case tag: CALL_MSG(name); break;
 	
+	HANDLE_MSG(C_CEPH_MSG_MON_MAP, c_dissect_msg_mon_map)
+	HANDLE_MSG(C_CEPH_MSG_MON_SUBSCRIBE, c_dissect_msg_mon_sub)
 	HANDLE_MSG(C_CEPH_MSG_AUTH, c_dissect_msg_auth)
 	HANDLE_MSG(C_CEPH_MSG_AUTH_REPLY, c_dissect_msg_auth_reply)
-	HANDLE_MSG(C_CEPH_MSG_MON_MAP, c_dissect_msg_mon_map)
 	
 	default:
 		CALL_MSG(c_dissect_msg_unknown);
@@ -2079,6 +2149,61 @@ proto_register_ceph(void)
 			FT_UINT64, BASE_DEC, NULL, 0,
 			NULL, HFILL
 		} },
+		{ &hf_msg_mon_map, {
+			"Mon Map Message", "ceph.msg.mon_map",
+			FT_NONE, BASE_NONE, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_mon_map_data, {
+			"Payload", "ceph.msg.mon_map.data",
+			FT_BYTES, BASE_NONE, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_mon_map_data_len, {
+			"Payload Length", "ceph.msg.mon_map.data_len",
+			FT_UINT32, BASE_DEC, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_mon_sub, {
+			"Mon Subscribe Message", "ceph.msg.mon_sub",
+			FT_NONE, BASE_NONE, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_mon_sub_item, {
+			"Subscription Item", "ceph.msg.mon_sub.item",
+			FT_NONE, BASE_NONE, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_mon_sub_item_len, {
+			"Number of items", "ceph.msg.mon_sub.item_len",
+			FT_UINT32, BASE_DEC, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_mon_sub_what, {
+			"What", "ceph.msg.mon_sub.what",
+			FT_STRING, BASE_NONE, NULL, 0,
+			"What to subscribe to.", HFILL
+		} },
+		{ &hf_msg_mon_sub_what_len, {
+			"What Length", "ceph.msg.mon_sub.what_len",
+			FT_UINT32, BASE_DEC, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_mon_sub_start, {
+			"Start Time", "ceph.msg.mon_sub.start",
+			FT_UINT64, BASE_DEC, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_mon_sub_flags, {
+			"Flags", "ceph.msg.mon_sub.flags",
+			FT_UINT8, BASE_HEX, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_mon_sub_flags_onetime, {
+			"One Time", "ceph.msg.mon_sub.flags.onetime",
+			FT_BOOLEAN, 8, TFS(&tfs_yes_no), C_MON_SUB_FLAG_ONETIME,
+			NULL, HFILL
+		} },
 		{ &hf_msg_auth, {
 			"Auth Message", "ceph.msg.auth",
 			FT_NONE, BASE_NONE, NULL, 0,
@@ -2096,7 +2221,7 @@ proto_register_ceph(void)
 		} },
 		{ &hf_msg_auth_payload_len, {
 			"Payload Length", "ceph.msg.auth.data_len",
-			FT_INT32, BASE_DEC, NULL, 0,
+			FT_UINT32, BASE_DEC, NULL, 0,
 			NULL, HFILL
 		} },
 		{ &hf_msg_auth_monmap_epoch, {
@@ -2131,7 +2256,7 @@ proto_register_ceph(void)
 		} },
 		{ &hf_msg_auth_reply_data_len, {
 			"Data Length", "ceph.msg.auth_reply.data_len",
-			FT_INT32, BASE_DEC, NULL, 0,
+			FT_UINT32, BASE_DEC, NULL, 0,
 			NULL, HFILL
 		} },
 		{ &hf_msg_auth_reply_msg, {
@@ -2142,21 +2267,6 @@ proto_register_ceph(void)
 		{ &hf_msg_auth_reply_msg_len, {
 			"Message Length", "ceph.msg.auth_reply.msg_len",
 			FT_UINT32, BASE_DEC, NULL, 0,
-			NULL, HFILL
-		} },
-		{ &hf_msg_mon_map, {
-			"Mon Map Message", "ceph.msg.mon_map",
-			FT_NONE, BASE_NONE, NULL, 0,
-			NULL, HFILL
-		} },
-		{ &hf_msg_mon_map_data, {
-			"Payload", "ceph.msg.mon_map.data",
-			FT_BYTES, BASE_NONE, NULL, 0,
-			NULL, HFILL
-		} },
-		{ &hf_msg_mon_map_data_len, {
-			"Payload Length", "ceph.msg.mon_map.data_len",
-			FT_INT32, BASE_DEC, NULL, 0,
 			NULL, HFILL
 		} },
 	};
