@@ -171,6 +171,18 @@ static int hf_msg_auth_reply_data_len      = -1;
 static int hf_msg_auth_reply_data          = -1;
 static int hf_msg_auth_reply_msg           = -1;
 static int hf_msg_auth_reply_msg_len       = -1;
+static int hf_msg_osd_map                         = -1;
+static int hf_msg_osd_map_fsid                         = -1;
+static int hf_msg_osd_map_inc                         = -1;
+static int hf_msg_osd_map_inc_len                         = -1;
+static int hf_msg_osd_map_map                         = -1;
+static int hf_msg_osd_map_map_len                         = -1;
+static int hf_msg_osd_map_epoch                         = -1;
+static int hf_msg_osd_map_data                         = -1;
+static int hf_msg_osd_map_data_len                         = -1;
+static int hf_msg_osd_map_oldest                         = -1;
+static int hf_msg_osd_map_newest                         = -1;
+
 static int hf_msg_                         = -1;
 
 #define C_NEW_FILESCOPE(klass) ((klass*)wmem_alloc(wmem_file_scope(),   sizeof(klass)))
@@ -648,11 +660,31 @@ c_conv_data* c_conv_data_new(void)
 	return r;
 }
 
+typedef struct _c_header {
+	guint64 seq;
+	guint64 tid;
+	guint16 type;
+	guint8  priority;
+	guint16 ver;
+} c_header;
+
+static
+void c_header_init(c_header *h)
+{
+	h->seq      = 0;
+	h->tid      = 0;
+	h->type     = 0;
+	h->priority = 0;
+	h->ver      = 0;
+}
+
 typedef struct _c_pkt_data {
 	conversation_t *conv; /* The wireshark conversation. */
 	c_conv_data *convd;   /* The Ceph conversation data. */
 	c_node *src;          /* The node in convd that sent this message. */
 	c_node *dst;          /* The node in convd that is receiving this message. */
+	
+	c_header header;      /* The MSG header. */
 } c_pkt_data;
 
 /** Initialize the packet data.
@@ -734,6 +766,8 @@ c_pkt_data_init(c_pkt_data *d, packet_info *pinfo, guint offset)
 	}
 	g_assert(d->src);
 	g_assert(d->dst);
+	
+	c_header_init(&d->header);
 }
 
 /** Check if packet is from the client.
@@ -1208,6 +1242,7 @@ void c_dissect_msg_auth(proto_tree *root, packet_info *pinfo,
 	if (off+4 == front_len) /* If there is an epoch. */
 		EAT(hf_msg_auth_monmap_epoch, 4);
 }
+
 static
 void c_dissect_msg_auth_reply(proto_tree *root, packet_info *pinfo,
                               tvbuff_t *tvb,
@@ -1232,6 +1267,68 @@ void c_dissect_msg_auth_reply(proto_tree *root, packet_info *pinfo,
 	                     tvb, off);
 	off = c_dissect_blob(tree, hf_msg_auth_reply_msg, hf_msg_auth_reply_msg_len,
 	                     tvb, off);
+}
+
+static
+void c_dissect_msg_osd_map(proto_tree *root, packet_info *pinfo,
+                           tvbuff_t *tvb,
+                           guint front_len, guint middle_len _U_, guint data_len _U_,
+                           c_pkt_data *data _U_)
+{
+	proto_item *ti;
+	proto_tree *tree, *subtree;
+	guint off = 0, offs;
+	guint32 i;
+	
+	//@TODO: Dissect map data.
+	
+	col_append_str(pinfo->cinfo, COL_INFO, "[OSD Map]");
+	
+	ti = proto_tree_add_item(root, hf_msg_auth_reply,
+	                         tvb, off, front_len, ENC_NA);
+	tree = proto_item_add_subtree(ti, hf_msg_auth_reply);
+	
+	off = c_dissect_uuid(tree, hf_msg_osd_map_fsid, tvb, off);
+	
+	i = tvb_get_letohl(tvb, off);
+	EAT(hf_msg_osd_map_inc_len, 4);
+	while (i--)
+	{
+		offs = off;
+		
+		ti = proto_tree_add_item(tree, hf_msg_osd_map_inc,
+		                         tvb, off, -1, ENC_NA);
+		subtree = proto_item_add_subtree(ti, hf_msg_osd_map_inc);
+		
+		EATS(hf_msg_osd_map_epoch, 4);
+		off = c_dissect_blob(subtree, hf_msg_osd_map_data, hf_msg_osd_map_data_len,
+		                     tvb, off);
+		
+		proto_item_set_len(ti, off-offs);
+	}
+	
+	i = tvb_get_letohl(tvb, off);
+	EAT(hf_msg_osd_map_map_len, 4);
+	while (i--)
+	{
+		offs = off;
+		
+		ti = proto_tree_add_item(tree, hf_msg_osd_map_map,
+		                         tvb, off, -1, ENC_NA);
+		subtree = proto_item_add_subtree(ti, hf_msg_osd_map_map);
+		
+		EATS(hf_msg_osd_map_epoch, 4);
+		off = c_dissect_blob(subtree, hf_msg_osd_map_data, hf_msg_osd_map_data_len,
+		                     tvb, off);
+		
+		proto_item_set_len(ti, off-offs);
+	}
+	
+	if (data->header.ver >= 2)
+	{
+		EAT(hf_msg_osd_map_oldest, 4);
+		EAT(hf_msg_osd_map_newest, 4);
+	}
 }
 
 /*** MSGR Dissectors ***/
@@ -1304,13 +1401,19 @@ guint c_dissect_msg(proto_tree *tree, packet_info *pinfo,
 	                         ENC_NA);
 	subtree = proto_item_add_subtree(ti, hf_head);
 	
+	data->header.seq = tvb_get_letoh64(tvb, off);
 	EATS(hf_head_seq,      8);
+	data->header.tid = tvb_get_letoh64(tvb, off);
 	EATS(hf_head_tid,      8);
 	
 	type = tvb_get_letohs(tvb, off);
+	data->header.type = type;
 	EATS(hf_head_type,     2);
 	
+	
+	data->header.priority = tvb_get_letohs(tvb, off);
 	EATS(hf_head_priority, 2);
+	data->header.ver = tvb_get_letohs(tvb, off);
 	EATS(hf_head_version,  2);
 	
 	EATS(hf_head_front_len,  4);
@@ -1339,6 +1442,7 @@ guint c_dissect_msg(proto_tree *tree, packet_info *pinfo,
 	HANDLE_MSG(C_CEPH_MSG_MON_SUBSCRIBE_ACK, c_dissect_msg_mon_sub_ack)
 	HANDLE_MSG(C_CEPH_MSG_AUTH,              c_dissect_msg_auth)
 	HANDLE_MSG(C_CEPH_MSG_AUTH_REPLY,        c_dissect_msg_auth_reply)
+	HANDLE_MSG(C_CEPH_MSG_OSD_MAP,           c_dissect_msg_osd_map)
 	
 	default:
 		CALL_MSG(c_dissect_msg_unknown);
@@ -2318,6 +2422,61 @@ proto_register_ceph(void)
 		} },
 		{ &hf_msg_auth_reply_msg_len, {
 			"Message Length", "ceph.msg.auth_reply.msg_len",
+			FT_UINT32, BASE_DEC, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_osd_map, {
+			"OSD Map Message", "ceph.msg.osd_map",
+			FT_NONE, BASE_NONE, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_osd_map_fsid, {
+			"FSID", "ceph.msg.osd_map.fsid",
+			FT_BYTES, BASE_NONE, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_osd_map_inc, {
+			"Incremental Map", "ceph.msg.osd_map.inc",
+			FT_NONE, BASE_NONE, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_osd_map_inc_len, {
+			"Incremental Map Count", "ceph.msg.osd_map.inc_len",
+			FT_UINT32, BASE_DEC, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_osd_map_map, {
+			"Map", "ceph.msg.osd_map.map",
+			FT_NONE, BASE_NONE, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_osd_map_map_len, {
+			"Map Count", "ceph.msg.osd_map.map_len",
+			FT_UINT32, BASE_DEC, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_osd_map_epoch, {
+			"Epoch", "ceph.msg.osd_map.epoch",
+			FT_UINT32, BASE_DEC, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_osd_map_data, {
+			"Map Data", "ceph.msg.osd_map.data",
+			FT_BYTES, BASE_NONE, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_osd_map_data_len, {
+			"Data Length", "ceph.msg.osd_map.data_len",
+			FT_UINT32, BASE_DEC, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_osd_map_oldest, {
+			"Oldest Map", "ceph.msg.osd_map.oldest",
+			FT_UINT32, BASE_DEC, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_osd_map_newest, {
+			"Newest Map", "ceph.msg.osd_map.newest",
 			FT_UINT32, BASE_DEC, NULL, 0,
 			NULL, HFILL
 		} },
