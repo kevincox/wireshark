@@ -34,8 +34,6 @@
 #include <epan/prefs.h>
 #include <epan/conversation.h>
 
-#include "packet-tcp.h"
-
 /* Forward declaration that is needed below if using the
  * proto_reg_handoff_ceph function as a callback for when protocol
  * preferences get changed. */
@@ -46,13 +44,15 @@ static dissector_handle_t ceph_handle;
 
 /* Initialize the protocol and registered fields */
 static int proto_ceph                      = -1;
-static int hf_type                         = -1;
 static int hf_node_id                      = -1;
 static int hf_node_type                    = -1;
+static int hf_node_nonce                   = -1;
 static int hf_node_name                    = -1;
+static int hf_node_addr                    = -1;
 static int hf_version                      = -1;
-static int hf_sockaddr_client              = -1;
-static int hf_sockaddr_server              = -1;
+static int hf_client_info                  = -1;
+static int hf_server_info                  = -1;
+static int hf_sockaddr                     = -1;
 static int hf_inet_family                  = -1;
 static int hf_port                         = -1;
 static int hf_addr_ipv4                    = -1;
@@ -137,9 +137,9 @@ static int hf_foot_front_crc               = -1;
 static int hf_foot_middle_crc              = -1;
 static int hf_foot_data_crc                = -1;
 static int hf_foot_signature               = -1;
-static int hf_msg_front                        = -1;
-static int hf_msg_middle                       = -1;
-static int hf_msg_data                         = -1;
+static int hf_msg_front                    = -1;
+static int hf_msg_middle                   = -1;
+static int hf_msg_data                     = -1;
 static int hf_paxos                        = -1;
 static int hf_paxos_ver                    = -1;
 static int hf_paxos_mon                    = -1;
@@ -155,9 +155,9 @@ static int hf_msg_mon_sub_what_len         = -1;
 static int hf_msg_mon_sub_start            = -1;
 static int hf_msg_mon_sub_flags            = -1;
 static int hf_msg_mon_sub_flags_onetime    = -1;
-static int hf_msg_mon_sub_ack                  = -1;
-static int hf_msg_mon_sub_ack_interval                  = -1;
-static int hf_msg_mon_sub_ack_fsid                  = -1;
+static int hf_msg_mon_sub_ack              = -1;
+static int hf_msg_mon_sub_ack_interval     = -1;
+static int hf_msg_mon_sub_ack_fsid         = -1;
 static int hf_msg_auth                     = -1;
 static int hf_msg_auth_proto               = -1;
 static int hf_msg_auth_payload             = -1;
@@ -171,43 +171,42 @@ static int hf_msg_auth_reply_data_len      = -1;
 static int hf_msg_auth_reply_data          = -1;
 static int hf_msg_auth_reply_msg           = -1;
 static int hf_msg_auth_reply_msg_len       = -1;
-static int hf_msg_osd_map                         = -1;
-static int hf_msg_osd_map_fsid                         = -1;
-static int hf_msg_osd_map_inc                         = -1;
-static int hf_msg_osd_map_inc_len                         = -1;
-static int hf_msg_osd_map_map                         = -1;
-static int hf_msg_osd_map_map_len                         = -1;
-static int hf_msg_osd_map_epoch                         = -1;
-static int hf_msg_osd_map_data                         = -1;
-static int hf_msg_osd_map_data_len                         = -1;
-static int hf_msg_osd_map_oldest                         = -1;
-static int hf_msg_osd_map_newest                         = -1;
-static int hf_msg_mon_cmd                         = -1;
-static int hf_msg_mon_cmd_fsid                         = -1;
-static int hf_msg_mon_cmd_arg                         = -1;
-static int hf_msg_mon_cmd_arg_len                         = -1;
-static int hf_msg_mon_cmd_str                         = -1;
-static int hf_msg_mon_cmd_str_len                         = -1;
-static int hf_msg_mon_cmd_ack                         = -1;
-static int hf_msg_mon_cmd_ack_code                         = -1;
-static int hf_msg_mon_cmd_ack_res                         = -1;
-static int hf_msg_mon_cmd_ack_res_len                         = -1;
-static int hf_msg_mon_cmd_ack_arg                         = -1;
-static int hf_msg_mon_cmd_ack_arg_len                         = -1;
-static int hf_msg_mon_cmd_ack_arg_str                         = -1;
-static int hf_msg_mon_cmd_ack_arg_str_len                         = -1;
-static int hf_msg_mon_cmd_ack_data                         = -1;
+static int hf_msg_osd_map                  = -1;
+static int hf_msg_osd_map_fsid             = -1;
+static int hf_msg_osd_map_inc              = -1;
+static int hf_msg_osd_map_inc_len          = -1;
+static int hf_msg_osd_map_map              = -1;
+static int hf_msg_osd_map_map_len          = -1;
+static int hf_msg_osd_map_epoch            = -1;
+static int hf_msg_osd_map_data             = -1;
+static int hf_msg_osd_map_data_len         = -1;
+static int hf_msg_osd_map_oldest           = -1;
+static int hf_msg_osd_map_newest           = -1;
+static int hf_msg_mon_cmd                  = -1;
+static int hf_msg_mon_cmd_fsid             = -1;
+static int hf_msg_mon_cmd_arg              = -1;
+static int hf_msg_mon_cmd_arg_len          = -1;
+static int hf_msg_mon_cmd_str              = -1;
+static int hf_msg_mon_cmd_str_len          = -1;
+static int hf_msg_mon_cmd_ack              = -1;
+static int hf_msg_mon_cmd_ack_code         = -1;
+static int hf_msg_mon_cmd_ack_res          = -1;
+static int hf_msg_mon_cmd_ack_res_len      = -1;
+static int hf_msg_mon_cmd_ack_arg          = -1;
+static int hf_msg_mon_cmd_ack_arg_len      = -1;
+static int hf_msg_mon_cmd_ack_arg_str      = -1;
+static int hf_msg_mon_cmd_ack_arg_str_len  = -1;
+static int hf_msg_mon_cmd_ack_data         = -1;
 
+/* @TODO: Remove before release.  Just for copying convenience.
 static int hf_msg_                         = -1;
+*/
 
 #define C_NEW_FILESCOPE(klass) ((klass*)wmem_alloc(wmem_file_scope(),   sizeof(klass)))
 #define C_NEW_PKTSCOPE(klass)  ((klass*)wmem_alloc(wmem_packet_scope(), sizeof(klass)))
 
 /* Initialize the subtree pointers */
 static gint ett_ceph = -1;
-static gint ett_sockaddr = -1;
-static gint ett_connect = -1;
-static gint ett_connect_reply = -1;
 
 static const char *C_BANNER = "ceph";
 enum c_banner {
@@ -216,8 +215,8 @@ enum c_banner {
 };
 
 enum c_inet {
-	C_IPv4 = 0x02,
-	C_IPv6 = 0x0A
+	C_IPv4 = 0x0002,
+	C_IPv6 = 0x000A
 };
 
 static const value_string c_inet_strings[] = {
@@ -623,7 +622,7 @@ static
 void c_node_init(c_node *n)
 {
 	n->type = C_NODE_TYPE_UNKNOWN;
-	//n->addr;
+	/* @HELP: n->addr is there a sane way to initialize this? */
 	n->port = 0xFFFF;
 	n->state = C_STATE_NEW;
 }
@@ -730,8 +729,8 @@ c_pkt_data_init(c_pkt_data *d, packet_info *pinfo, guint offset)
 	if (d->convd)
 	{
 		/*
-			We have dissected this packet before, copy the saved state so
-			that we don't mess up the saved state.
+			We have dissected this packet before, make a copy the saved state
+			and use that so we don't mess up the original.
 		*/
 		d->convd = c_conv_data_copy(d->convd, C_NEW_PKTSCOPE(c_conv_data));
 	}
@@ -821,7 +820,8 @@ gboolean c_from_server(c_pkt_data *d)
  * is needed to determine the size of the PDU C_HEADER_SIZE() can be used.
  * 
  * This macro ensures that there is enough data remaining in the buffer and if
- * not it returns, requesting the exact amount of data required.
+ * not it returns from the calling function, requesting the exact amount of
+ * data required.
  */
 #define C_PACKET_SIZE(n) do{               \
 		if (!tvb_bytes_exist(tvb, off, n)) \
@@ -874,7 +874,7 @@ enum c_size_sockaddr {
 };
 
 static
-guint c_dissect_sockaddr(proto_tree *root, int hf,
+guint c_dissect_sockaddr(proto_tree *root,
                          tvbuff_t *tvb, guint off, c_pkt_data *data _U_)
 {
 	guint16 af;
@@ -903,8 +903,8 @@ guint c_dissect_sockaddr(proto_tree *root, int hf,
 	
 	//@TODO Build human-readable string for root node.
 	
-	ti = proto_tree_add_item(root, hf, tvb, off, C_SIZE_SOCKADDR_STORAGE, ENC_NA);
-	tree = proto_item_add_subtree(ti, ett_sockaddr);
+	ti = proto_tree_add_item(root, hf_sockaddr, tvb, off, C_SIZE_SOCKADDR_STORAGE, ENC_NA);
+	tree = proto_item_add_subtree(ti, hf_sockaddr);
 	
 	af = tvb_get_ntohs(tvb, off);
 	
@@ -923,6 +923,27 @@ guint c_dissect_sockaddr(proto_tree *root, int hf,
 		printf("UNKNOWN INET %x!\n", af);
 	}
 	off += C_SIZE_SOCKADDR_STORAGE; // Skip over sockaddr_storage.
+	
+	return off;
+}
+
+enum c_size_entity_addr {
+	C_SIZE_ENTITY_ADDR = 4 + 4 + C_SIZE_SOCKADDR_STORAGE
+};
+
+static
+guint c_dissect_entity_addr(proto_tree *root, int hf,
+                            tvbuff_t *tvb, guint off, c_pkt_data *data)
+{
+	proto_item *ti;
+	proto_tree *tree;
+	
+	ti = proto_tree_add_item(root, hf, tvb, off, C_SIZE_ENTITY_ADDR, ENC_NA);
+	tree = proto_item_add_subtree(ti, hf);
+	
+	EAT(hf_node_type, 4);
+	EAT(hf_node_nonce, 4);
+	off = c_dissect_sockaddr(tree, tvb, off, data);
 	
 	return off;
 }
@@ -1102,6 +1123,10 @@ guint c_dissect_paxos(proto_tree *root,
 
 /*** Message Dissectors ***/
 
+/** Used to handle unknown messages.
+ * 
+ * Simply displays the front, middle and data portions as binary strings.
+ */
 static
 void c_dissect_msg_unknown(proto_tree *tree, packet_info *pinfo,
                           tvbuff_t *tvb,
@@ -1126,6 +1151,8 @@ void c_dissect_msg_mon_map(proto_tree *root, packet_info *pinfo,
 	proto_item *ti;
 	proto_tree *tree;
 	
+	/* ceph:/src/messages/MMonMap.h */
+	
 	col_set_str(pinfo->cinfo, COL_INFO, "Mon Map");
 	
 	ti = proto_tree_add_item(root, hf_msg_mon_map,
@@ -1148,6 +1175,8 @@ void c_dissect_msg_mon_sub(proto_tree *root, packet_info *pinfo,
 	proto_tree *tree, *subtree;
 	guint off = 0, offs;
 	guint len;
+	
+	/* ceph:/src/messages/MMonSubscribe.h */
 	
 	col_set_str(pinfo->cinfo, COL_INFO, "Mon Subscribe");
 	
@@ -1206,6 +1235,8 @@ void c_dissect_msg_mon_sub_ack(proto_tree *root, packet_info *pinfo,
 	proto_tree *tree;
 	guint off = 0;
 	
+	/* ceph:/src/messages/MMonSubscribeAck.h */
+	
 	col_set_str(pinfo->cinfo, COL_INFO, "Mon Subscribe Ack");
 	
 	ti = proto_tree_add_item(root, hf_msg_mon_sub_ack,
@@ -1225,6 +1256,8 @@ void c_dissect_msg_auth(proto_tree *root, packet_info *pinfo,
 	proto_item *ti;
 	proto_tree *tree;
 	guint off = 0;
+	
+	/* ceph:/src/messages/MAuth.h */
 	
 	col_set_str(pinfo->cinfo, COL_INFO, "Auth");
 	
@@ -1255,6 +1288,8 @@ void c_dissect_msg_auth_reply(proto_tree *root, packet_info *pinfo,
 	proto_tree *tree;
 	guint off = 0;
 	
+	/* ceph:/src/messages/MAuthReply.h */
+	
 	col_set_str(pinfo->cinfo, COL_INFO, "Auth Reply");
 	
 	ti = proto_tree_add_item(root, hf_msg_auth_reply,
@@ -1281,6 +1316,8 @@ void c_dissect_msg_osd_map(proto_tree *root, packet_info *pinfo,
 	proto_tree *tree, *subtree;
 	guint off = 0, offs;
 	guint32 i;
+	
+	/* ceph:/src/messages/MOSDMap.h */
 	
 	//@TODO: Dissect map data.
 	
@@ -1344,6 +1381,8 @@ void c_dissect_msg_mon_cmd(proto_tree *root, packet_info *pinfo,
 	guint off = 0, offs;
 	guint i;
 	
+	/* ceph:/src/messages/MMonCommand.h */
+	
 	col_set_str(pinfo->cinfo, COL_INFO, "Mon Command");
 	
 	off = c_dissect_paxos(root, tvb, off, data);
@@ -1381,6 +1420,8 @@ void c_dissect_msg_mon_cmd_ack(proto_tree *root, packet_info *pinfo,
 	proto_tree *tree, *subtree;
 	guint off = 0, offs;
 	guint i;
+	
+	/* ceph:/src/messages/MMonCommandAck.h */
 	
 	col_set_str(pinfo->cinfo, COL_INFO, "Mon Command Result");
 	
@@ -1479,6 +1520,7 @@ guint c_dissect_msg(proto_tree *tree, packet_info *pinfo,
 		__le32 crc; // header crc32c
 	} __attribute__ ((packed));
 	*/
+	
 	ti = proto_tree_add_item(tree, hf_head, tvb,
 	                         off, C_SIZE_HEAD,
 	                         ENC_NA);
@@ -1492,7 +1534,6 @@ guint c_dissect_msg(proto_tree *tree, packet_info *pinfo,
 	type = tvb_get_letohs(tvb, off);
 	data->header.type = type;
 	EATS(hf_head_type,     2);
-	
 	
 	data->header.priority = tvb_get_letohs(tvb, off);
 	EATS(hf_head_priority, 2);
@@ -1567,8 +1608,8 @@ guint c_dissect_msg(proto_tree *tree, packet_info *pinfo,
 enum c_sizes_connect {
 	C_SIZE_CONNECT = 33,
 	C_SIZE_CONNECT_REPLY = 25,
-	C_SIZE_HELLO_S = 2*(8+C_SIZE_SOCKADDR_STORAGE),
-	C_SIZE_HELLO_C = 8 + C_SIZE_SOCKADDR_STORAGE + C_SIZE_CONNECT
+	C_SIZE_HELLO_S = 2*C_SIZE_ENTITY_ADDR,
+	C_SIZE_HELLO_C = C_SIZE_ENTITY_ADDR + C_SIZE_CONNECT
 };
 
 static
@@ -1594,7 +1635,7 @@ guint c_dissect_connect(proto_tree *root,
 	ti = proto_tree_add_item(root, hf_connect, tvb,
 	                         off, C_SIZE_CONNECT,
 	                         ENC_NA);
-	tree = proto_item_add_subtree(ti, ett_connect);
+	tree = proto_item_add_subtree(ti, hf_connect);
 	
 	off = c_dissect_features(tree, tvb, off, data);
 	
@@ -1636,7 +1677,7 @@ guint c_dissect_connect_reply(proto_tree *root, packet_info *pinfo,
 	ti = proto_tree_add_item(root, hf_connect_reply, tvb,
 	                         off, C_SIZE_CONNECT_REPLY,
 	                         ENC_NA);
-	tree = proto_item_add_subtree(ti, ett_connect_reply);
+	tree = proto_item_add_subtree(ti, hf_connect_reply);
 	
 	off = c_dissect_features(tree, tvb, off, data);
 	
@@ -1652,7 +1693,7 @@ guint c_dissect_connect_reply(proto_tree *root, packet_info *pinfo,
 
 /** Do the connection initiation dance.
  * 
- * This handles the data is sent before the protocol is actually started.
+ * This handles the data that is sent before the protocol is actually started.
  */
 static
 guint c_dissect_new(proto_tree *tree, packet_info *pinfo,
@@ -1669,12 +1710,16 @@ guint c_dissect_new(proto_tree *tree, packet_info *pinfo,
 	
 	C_HEADER_SIZE(C_BANNER_LEN_MAX+1);
 	
-	//if (tvb_memeql(tvb, off, C_BANNER, C_BANNER_LEN_MIN) != 0)
-	//	return 0; // Invalid banner.
-	//
+	/* @TODO: handle invalid banners.
+	if (tvb_memeql(tvb, off, C_BANNER, C_BANNER_LEN_MIN) != 0)
+		return 0; // Invalid banner.
+	*/
+	
 	banlen = tvb_strnlen(tvb, off, C_BANNER_LEN_MAX+1);
-	//if (banlen == -1)
-	//	return 0; // Invalid banner.
+	/*
+	if (banlen == -1)
+		return 0; // Invalid banner.
+	*/
 	
 	proto_tree_add_item(tree, hf_version, tvb, off, banlen, ENC_NA);
 	off += banlen;
@@ -1684,22 +1729,12 @@ guint c_dissect_new(proto_tree *tree, packet_info *pinfo,
 	col_set_str(pinfo->cinfo, COL_INFO, "Connect");
 	
 	if (c_from_server(data))
-	{
-		//@TODO: Why is there an 8-byte offset?
-		off += 8;
-		
-		off = c_dissect_sockaddr(tree, hf_sockaddr_server, tvb, off, data);
-	}
+		off = c_dissect_entity_addr(tree, hf_server_info, tvb, off, data);
 	
-	//@TODO: Why this offset?
-	off += 8;
-	
-	off = c_dissect_sockaddr(tree, hf_sockaddr_client, tvb, off, data);
+	off = c_dissect_entity_addr(tree, hf_client_info, tvb, off, data);
 	
 	if (c_from_client(data))
-	{
 		off = c_dissect_connect(tree, tvb, off, data);
-	}
 	
 	data->src->state = C_STATE_OPEN;
 	
@@ -1725,13 +1760,13 @@ guint c_dissect_msgr(proto_tree *tree, packet_info *pinfo,
 	switch (tag)
 	{
 	case C_TAG_READY:
-	case C_TAG_BADPROTOVER:
-	case C_TAG_FEATURES:
-	case C_TAG_BADAUTHORIZER:
-	case C_TAG_RETRY_GLOBAL:
-	case C_TAG_WAIT:
 	case C_TAG_RESETSESSION:
+	case C_TAG_WAIT:
 	case C_TAG_RETRY_SESSION:
+	case C_TAG_RETRY_GLOBAL:
+	case C_TAG_BADPROTOVER:
+	case C_TAG_BADAUTHORIZER:
+	case C_TAG_FEATURES:
 		off = c_dissect_connect_reply(tree, pinfo, tvb, off, data);
 		break;
 	case C_TAG_SEQ:
@@ -1781,7 +1816,6 @@ guint c_dissect_msgr(proto_tree *tree, packet_info *pinfo,
 			"dissect" that "PDU" we go back to the start and hope we get
 			lucky and find ourselves realigned.
 		*/
-		;
 		col_set_str(pinfo->cinfo, COL_INFO, "UNKNOWN");
 	}
 	
@@ -1827,16 +1861,16 @@ int dissect_ceph(tvbuff_t *tvb, packet_info *pinfo,
 		c_pkt_data_init(&data, pinfo, off);
 		
 		offt = c_dissect_pdu(tree, pinfo, tvb, off, &data);
-		if (offt == 0)
+		if (offt == 0) /* Need more data to determine PDU length. */
 		{
 			pinfo->desegment_offset = off;
 			pinfo->desegment_len    = DESEGMENT_ONE_MORE_SEGMENT;
 			return 1;
 		}
-		if (offt > tvb_reported_length(tvb))
+		if (offt > tvb_reported_length(tvb)) /* Know PDU length, get rest */
 		{
 			pinfo->desegment_offset = off;
-			pinfo->desegment_len    = offt - off - tvb_reported_length(tvb);
+			pinfo->desegment_len    = offt - tvb_reported_length(tvb);
 			return 1;
 		}
 		
@@ -1865,7 +1899,7 @@ gboolean dissect_ceph_heur(tvbuff_t *tvb, packet_info *pinfo,
 	if (tvb_reported_length(tvb) < C_BANNER_LEN_MIN)         return 0;
 	if (tvb_memeql(tvb, 0, C_BANNER, C_BANNER_LEN_MIN) != 0) return 0;
 	
-	/* It's ours! */
+	/*** It's ours! ***/
 	
 	conv = find_or_create_conversation(pinfo);
 	/* Mark it as ours. */
@@ -1876,9 +1910,6 @@ gboolean dissect_ceph_heur(tvbuff_t *tvb, packet_info *pinfo,
 }
 
 /* Register the protocol with Wireshark.
- *
- * This format is require because a script is used to build the C function that
- * calls all the protocol registration.
  */
 void
 proto_register_ceph(void)
@@ -1887,11 +1918,6 @@ proto_register_ceph(void)
 	//expert_module_t* expert_ceph;
 	
 	static hf_register_info hf[] = {
-		{ &hf_type, {
-			"Type", "ceph.type",
-			FT_UINT8, BASE_HEX, NULL, 0,
-			"The message type.", HFILL
-		} },
 		{ &hf_node_id, {
 			"ID", "ceph.node_id",
 			FT_UINT64, BASE_DEC, NULL, 0,
@@ -1902,8 +1928,18 @@ proto_register_ceph(void)
 			FT_UINT8, BASE_HEX, VALS(&c_node_type_strings), 0,
 			"The type of source node.", HFILL
 		} },
+		{ &hf_node_nonce, {
+			"Nonce", "ceph.node_nonce",
+			FT_UINT32, BASE_HEX, NULL, 0,
+			"Meaningless number to differentiate between nodes on the same system.", HFILL
+		} },
 		{ &hf_node_name, {
 			"Source Name", "ceph.node",
+			FT_NONE, BASE_NONE, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_node_addr, {
+			"Source Address", "ceph.addr",
 			FT_NONE, BASE_NONE, NULL, 0,
 			NULL, HFILL
 		} },
@@ -1912,15 +1948,20 @@ proto_register_ceph(void)
 			FT_STRINGZ, BASE_NONE, NULL, 0,
 			"The protocol version string.", HFILL
 		} },
-		{ &hf_sockaddr_server, {
-			"Server's Network Address", "ceph.server.sockaddr",
+		{ &hf_client_info, {
+			"Client's Identity", "ceph.client_info",
 			FT_NONE, BASE_NONE, NULL, 0,
-			"The address of the server according to itself.", HFILL
+			NULL, HFILL
 		} },
-		{ &hf_sockaddr_client, {
-			"Client's Network Address", "ceph.client.sockaddr",
+		{ &hf_server_info, {
+			"Server's Identity", "ceph.server_info",
 			FT_NONE, BASE_NONE, NULL, 0,
-			"The address of the client as seen by the server.", HFILL
+			NULL, HFILL
+		} },
+		{ &hf_sockaddr, {
+			"Network Address", "ceph.sockaddr",
+			FT_NONE, BASE_NONE, NULL, 0,
+			NULL, HFILL
 		} },
 		{ &hf_inet_family, {
 			"Address Family", "ceph.af",
@@ -2647,9 +2688,6 @@ proto_register_ceph(void)
 	/* Setup protocol subtree array */
 	static gint *ett[] = {
 		&ett_ceph,
-		&ett_sockaddr,
-		&ett_connect,
-		&ett_connect_reply,
 	};
 	
 	/* Register the protocol name and description */
@@ -2692,11 +2730,9 @@ proto_reg_handoff_ceph(void)
  * Editor modelines  -  http://www.wireshark.org/tools/modelines.html
  *
  * Local variables:
- * c-basic-offset: 4
- * tab-width: 4
  * indent-tabs-mode: t
  * End:
  *
- * vi: set shiftwidth=4 tabstop=4 noexpandtab:
- * :indentSize=4:tabSize=4:noTabs=false:
+ * vi: set noexpandtab:
+ * :noTabs=false:
  */
