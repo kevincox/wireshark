@@ -845,34 +845,6 @@ gboolean c_from_server(c_pkt_data *d)
 			return 0;                      \
 	}while(0)
 
-/* Add an item to the proto tree.
- * 
- * Adds an item hf found at offset o of size l to the proto tree.  This
- * assumes little endian encoding.
- */
-#define  ADD(hf, o, l) proto_tree_add_item(tree, hf, tvb, o, l, ENC_LITTLE_ENDIAN)
-
-/* Add an item to a subtree.
- * 
- * Like ADD() but instead of using the tree named `tree` use `subtree`.
- */
-#define ADDS(hf, o, l) proto_tree_add_item(subtree, hf, tvb, o, l, ENC_LITTLE_ENDIAN)
-
-/* Add an item to the proto tree and advance the offset.
- * 
- * This function is like ADD() except that it uses the current offset and
- * advances the offset by `l` afterwards.
- */
-#define  EAT(hf, l) do{ ADD (hf, off, l); off += l; }while(0)
-
-/* Add an item to a subtree and advance the offset.
- * 
- * The same as EAT() except for a subtree.
- * 
- * This function is to EAT() what ADDS() is to ADD();
- */
-#define EATS(hf, l) do{ ADDS(hf, off, l); off += l; }while(0)
-
 /*** Data Structure Dissectors ***/
 
 enum c_size_sockaddr {
@@ -909,7 +881,8 @@ guint c_dissect_sockaddr(proto_tree *root,
 	
 	//@TODO Build human-readable string for root node.
 	
-	ti = proto_tree_add_item(root, hf_sockaddr, tvb, off, C_SIZE_SOCKADDR_STORAGE, ENC_NA);
+	ti = proto_tree_add_item(root, hf_sockaddr,
+	                         tvb, off, C_SIZE_SOCKADDR_STORAGE, ENC_NA);
 	tree = proto_item_add_subtree(ti, hf_sockaddr);
 	
 	af = tvb_get_ntohs(tvb, off);
@@ -947,8 +920,12 @@ guint c_dissect_entity_addr(proto_tree *root, int hf,
 	ti = proto_tree_add_item(root, hf, tvb, off, C_SIZE_ENTITY_ADDR, ENC_NA);
 	tree = proto_item_add_subtree(ti, hf);
 	
-	EAT(hf_node_type, 4);
-	EAT(hf_node_nonce, 4);
+	proto_tree_add_item(tree, hf_node_type,
+	                    tvb, off, 4, ENC_LITTLE_ENDIAN);
+	off += 4;
+	proto_tree_add_item(tree, hf_node_nonce,
+	                    tvb, off, 4, ENC_LITTLE_ENDIAN);
+	off += 4;
 	off = c_dissect_sockaddr(tree, tvb, off, data);
 	
 	return off;
@@ -977,8 +954,12 @@ guint c_dissect_entity_name(proto_tree *root, packet_info *pinfo _U_,
 	                         ENC_NA);
 	tree = proto_item_add_subtree(ti, hf_node_name);
 	
-	EAT(hf_node_type, 1);
-	EAT(hf_node_id,   8);
+	proto_tree_add_item(tree, hf_node_type,
+	                    tvb, off, 1, ENC_LITTLE_ENDIAN);
+	off += 1;
+	proto_tree_add_item(tree, hf_node_id,
+	                    tvb, off, 8, ENC_LITTLE_ENDIAN);
+	off += 8;
 	
 	return off;
 }
@@ -1078,8 +1059,12 @@ guint c_dissect_blob(proto_tree *tree, int hf_data, int hf_len,
 	guint32 size;
 	
 	size = tvb_get_letohl(tvb, off);
-	EAT(hf_len, 4);
-	EAT(hf_data, size);
+	proto_tree_add_item(tree, hf_len,
+	                    tvb, off, 4, ENC_LITTLE_ENDIAN);
+	off += 4;
+	proto_tree_add_item(tree, hf_data,
+	                    tvb, off, size, ENC_LITTLE_ENDIAN);
+	off += size;
 	
 	return off;
 }
@@ -1100,8 +1085,12 @@ guint c_dissect_timespec(proto_tree *root, packet_info *pinfo _U_,
 	                         ENC_NA);
 	tree = proto_item_add_subtree(ti, hf_time);
 	
-	EAT(hf_time_sec,  4);
-	EAT(hf_time_nsec, 4);
+	proto_tree_add_item(tree, hf_time_sec,
+	                    tvb, off, 4, ENC_LITTLE_ENDIAN);
+	off += 4;
+	proto_tree_add_item(tree, hf_time_nsec,
+	                    tvb, off, 4, ENC_LITTLE_ENDIAN);
+	off += 4;
 	
 	return off;
 }
@@ -1121,9 +1110,15 @@ guint c_dissect_paxos(proto_tree *root,
 	                         tvb, off, C_SIZE_PAXOS, ENC_NA);
 	tree = proto_item_add_subtree(ti, hf_paxos);
 	
-	EAT(hf_paxos_ver,     8);
-	EAT(hf_paxos_mon,     2);
-	EAT(hf_paxos_mon_tid, 8);
+	proto_tree_add_item(tree, hf_paxos_ver,
+	                    tvb, off, 8, ENC_LITTLE_ENDIAN);
+	off += 8;
+	proto_tree_add_item(tree, hf_paxos_mon,
+	                    tvb, off, 2, ENC_LITTLE_ENDIAN);
+	off += 2;
+	proto_tree_add_item(tree, hf_paxos_mon_tid,
+	                    tvb, off, 8, ENC_LITTLE_ENDIAN);
+	off += 8;
 	
 	return off;
 }
@@ -1145,9 +1140,21 @@ void c_dissect_msg_unknown(proto_tree *tree, packet_info *pinfo,
 	
 	col_set_str(pinfo->cinfo, COL_INFO, "MSG");
 	
-	if (front_len)  EAT(hf_msg_front,  front_len);
-	if (middle_len) EAT(hf_msg_middle, middle_len);
-	if (data_len)   EAT(hf_msg_data,   data_len);
+	if (front_len) {
+		proto_tree_add_item(tree, hf_msg_front,
+		                    tvb, off, front_len, ENC_LITTLE_ENDIAN);
+		off += front_len;
+	}
+	if (middle_len) {
+		proto_tree_add_item(tree, hf_msg_middle,
+		                    tvb, off, middle_len, ENC_LITTLE_ENDIAN);
+		off += middle_len;
+	}
+	if (data_len) {
+		proto_tree_add_item(tree, hf_msg_data,
+		                    tvb, off, data_len, ENC_LITTLE_ENDIAN);
+		off += data_len;
+	}
 }
 
 static
@@ -1193,7 +1200,9 @@ void c_dissect_msg_mon_sub(proto_tree *root, packet_info *pinfo,
 	tree = proto_item_add_subtree(ti, hf_msg_mon_sub);
 	
 	len = tvb_get_letohl(tvb, off);
-	EAT(hf_msg_mon_sub_item_len, 4);
+	proto_tree_add_item(tree, hf_msg_mon_sub_item_len,
+	                    tvb, off, 4, ENC_LITTLE_ENDIAN);
+	off += 4;
 	while (len--)
 	{
 		offs = off;
@@ -1220,13 +1229,17 @@ void c_dissect_msg_mon_sub(proto_tree *root, packet_info *pinfo,
 		off = c_dissect_blob(subtree, hf_msg_mon_sub_what, hf_msg_mon_sub_what_len,
 		                     tvb, off);
 		
-		EATS(hf_msg_mon_sub_start, 8);
+		proto_tree_add_item(subtree, hf_msg_mon_sub_start,
+	                    tvb, off, 8, ENC_LITTLE_ENDIAN);
+	off += 8;
 		
 		/* Flags */
-		ti2 = ADDS(hf_msg_mon_sub_flags, off, 1);
+		ti2 = proto_tree_add_item(subtree, hf_msg_mon_sub_flags,
+		                          tvb, off, 1, ENC_LITTLE_ENDIAN);
 		/* Reuse subtree variable for flags. */
 		subtree = proto_item_add_subtree(ti2, hf_msg_mon_sub_flags);
-		ADDS(hf_msg_mon_sub_flags_onetime, off, 1);
+		proto_tree_add_item(subtree, hf_msg_mon_sub_flags_onetime,
+		                    tvb, off, 1, ENC_LITTLE_ENDIAN);
 		off += 1;
 		
 		proto_item_set_len(ti, off-offs);
@@ -1251,8 +1264,12 @@ void c_dissect_msg_mon_sub_ack(proto_tree *root, packet_info *pinfo,
 	                         tvb, off, front_len, ENC_NA);
 	tree = proto_item_add_subtree(ti, hf_msg_mon_sub_ack);
 	
-	EAT(hf_msg_mon_sub_ack_interval,  4);
-	EAT(hf_msg_mon_sub_ack_fsid,     16);
+	proto_tree_add_item(tree, hf_msg_mon_sub_ack_interval,
+	                    tvb, off, 4, ENC_LITTLE_ENDIAN);
+	off += 4;
+	proto_tree_add_item(tree, hf_msg_mon_sub_ack_fsid,
+	                    tvb, off, 16, ENC_LITTLE_ENDIAN);
+	off += 16;
 }
 
 static
@@ -1275,15 +1292,20 @@ void c_dissect_msg_auth(proto_tree *root, packet_info *pinfo,
 	                         tvb, off, front_len-off, ENC_NA);
 	tree = proto_item_add_subtree(ti, hf_msg_auth);
 	
-	EAT(hf_msg_auth_proto, 4);
+	proto_tree_add_item(tree, hf_msg_auth_proto,
+	                    tvb, off, 4, ENC_LITTLE_ENDIAN);
+	off += 4;
 	
 	off = c_dissect_blob(tree, hf_msg_auth_payload, hf_msg_auth_payload_len,
 	                     tvb, off);
 	
 	//@TODO: Parse auth.
 	
-	if (off+4 == front_len) /* If there is an epoch. */
-		EAT(hf_msg_auth_monmap_epoch, 4);
+	if (off+4 == front_len) { /* If there is an epoch. */
+		proto_tree_add_item(tree, hf_msg_auth_monmap_epoch,
+		                    tvb, off, 4, ENC_LITTLE_ENDIAN);
+		off += 4;
+	}
 }
 
 static
@@ -1304,9 +1326,15 @@ void c_dissect_msg_auth_reply(proto_tree *root, packet_info *pinfo,
 	                         tvb, off, front_len, ENC_NA);
 	tree = proto_item_add_subtree(ti, hf_msg_auth_reply);
 	
-	EAT(hf_msg_auth_reply_proto, 4);
-	EAT(hf_msg_auth_reply_result, 4);
-	EAT(hf_msg_auth_reply_global_id, 8);
+	proto_tree_add_item(tree, hf_msg_auth_reply_proto,
+	                    tvb, off, 4, ENC_LITTLE_ENDIAN);
+	off += 4;
+	proto_tree_add_item(tree, hf_msg_auth_reply_result,
+	                    tvb, off, 4, ENC_LITTLE_ENDIAN);
+	off += 4;
+	proto_tree_add_item(tree, hf_msg_auth_reply_global_id,
+	                    tvb, off, 8, ENC_LITTLE_ENDIAN);
+	off += 8;
 	
 	off = c_dissect_blob(tree, hf_msg_auth_reply_data, hf_msg_auth_reply_data_len,
 	                     tvb, off);
@@ -1335,10 +1363,14 @@ void c_dissect_msg_osd_map(proto_tree *root, packet_info *pinfo,
 	                         tvb, off, front_len, ENC_NA);
 	tree = proto_item_add_subtree(ti, hf_msg_osd_map);
 	
-	EAT(hf_msg_osd_map_fsid, 16);
+	proto_tree_add_item(tree, hf_msg_osd_map_fsid,
+	                    tvb, off, 16, ENC_LITTLE_ENDIAN);
+	off += 16;
 	
 	i = tvb_get_letohl(tvb, off);
-	EAT(hf_msg_osd_map_inc_len, 4);
+	proto_tree_add_item(tree, hf_msg_osd_map_inc_len,
+	                    tvb, off, 4, ENC_LITTLE_ENDIAN);
+	off += 4;
 	while (i--)
 	{
 		offs = off;
@@ -1347,7 +1379,9 @@ void c_dissect_msg_osd_map(proto_tree *root, packet_info *pinfo,
 		                         tvb, off, -1, ENC_NA);
 		subtree = proto_item_add_subtree(ti, hf_msg_osd_map_inc);
 		
-		EATS(hf_msg_osd_map_epoch, 4);
+		proto_tree_add_item(subtree, hf_msg_osd_map_epoch,
+	                    tvb, off, 4, ENC_LITTLE_ENDIAN);
+	off += 4;
 		off = c_dissect_blob(subtree, hf_msg_osd_map_data, hf_msg_osd_map_data_len,
 		                     tvb, off);
 		
@@ -1355,7 +1389,9 @@ void c_dissect_msg_osd_map(proto_tree *root, packet_info *pinfo,
 	}
 	
 	i = tvb_get_letohl(tvb, off);
-	EAT(hf_msg_osd_map_map_len, 4);
+	proto_tree_add_item(tree, hf_msg_osd_map_map_len,
+	                    tvb, off, 4, ENC_LITTLE_ENDIAN);
+	off += 4;
 	while (i--)
 	{
 		offs = off;
@@ -1364,7 +1400,9 @@ void c_dissect_msg_osd_map(proto_tree *root, packet_info *pinfo,
 		                         tvb, off, -1, ENC_NA);
 		subtree = proto_item_add_subtree(ti, hf_msg_osd_map_map);
 		
-		EATS(hf_msg_osd_map_epoch, 4);
+		proto_tree_add_item(subtree, hf_msg_osd_map_epoch,
+	                    tvb, off, 4, ENC_LITTLE_ENDIAN);
+	off += 4;
 		off = c_dissect_blob(subtree, hf_msg_osd_map_data, hf_msg_osd_map_data_len,
 		                     tvb, off);
 		
@@ -1373,8 +1411,12 @@ void c_dissect_msg_osd_map(proto_tree *root, packet_info *pinfo,
 	
 	if (data->header.ver >= 2)
 	{
-		EAT(hf_msg_osd_map_oldest, 4);
-		EAT(hf_msg_osd_map_newest, 4);
+		proto_tree_add_item(tree, hf_msg_osd_map_oldest,
+	                    tvb, off, 4, ENC_LITTLE_ENDIAN);
+	off += 4;
+		proto_tree_add_item(tree, hf_msg_osd_map_newest,
+	                    tvb, off, 4, ENC_LITTLE_ENDIAN);
+	off += 4;
 	}
 }
 
@@ -1399,10 +1441,14 @@ void c_dissect_msg_mon_cmd(proto_tree *root, packet_info *pinfo,
 	                         tvb, off, front_len, ENC_NA);
 	tree = proto_item_add_subtree(ti, hf_msg_mon_cmd);
 	
-	EAT(hf_msg_mon_cmd_fsid, 16);
+	proto_tree_add_item(tree, hf_msg_mon_cmd_fsid,
+	                    tvb, off, 16, ENC_LITTLE_ENDIAN);
+	off += 16;
 	
 	i = tvb_get_letohl(tvb, off);
-	EAT(hf_msg_mon_cmd_arg_len, 4);
+	proto_tree_add_item(tree, hf_msg_mon_cmd_arg_len,
+	                    tvb, off, 4, ENC_LITTLE_ENDIAN);
+	off += 4;
 	while (i--)
 	{
 		offs = off;
@@ -1439,12 +1485,16 @@ void c_dissect_msg_mon_cmd_ack(proto_tree *root, packet_info *pinfo,
 	                         tvb, off, front_len, ENC_NA);
 	tree = proto_item_add_subtree(ti, hf_msg_mon_cmd_ack);
 	
-	EAT(hf_msg_mon_cmd_ack_code, 4);
+	proto_tree_add_item(tree, hf_msg_mon_cmd_ack_code,
+	                    tvb, off, 4, ENC_LITTLE_ENDIAN);
+	off += 4;
 	off = c_dissect_blob(tree, hf_msg_mon_cmd_ack_res, hf_msg_mon_cmd_ack_res_len,
 	                     tvb, off);
 	
 	i = tvb_get_letohl(tvb, off);
-	EAT(hf_msg_mon_cmd_ack_arg_len, 4);
+	proto_tree_add_item(tree, hf_msg_mon_cmd_ack_arg_len,
+	                    tvb, off, 4, ENC_LITTLE_ENDIAN);
+	off += 4;
 	while (i--)
 	{
 		offs = off;
@@ -1460,7 +1510,8 @@ void c_dissect_msg_mon_cmd_ack(proto_tree *root, packet_info *pinfo,
 		proto_item_set_len(ti, off-offs);
 	}
 	
-	ADD(hf_msg_mon_cmd_ack_data, front_len, data_len);
+	proto_tree_add_item(tree, hf_msg_mon_cmd_ack_data,
+	                    tvb, front_len, data_len, ENC_LITTLE_ENDIAN);
 }
 
 /*** MSGR Dissectors ***/
@@ -1535,29 +1586,53 @@ guint c_dissect_msg(proto_tree *tree, packet_info *pinfo,
 	subtree = proto_item_add_subtree(ti, hf_head);
 	
 	data->header.seq = tvb_get_letoh64(tvb, off);
-	EATS(hf_head_seq,      8);
+	proto_tree_add_item(subtree, hf_head_seq,
+	                    tvb, off, 8, ENC_LITTLE_ENDIAN);
+	off += 8;
 	data->header.tid = tvb_get_letoh64(tvb, off);
-	EATS(hf_head_tid,      8);
+	proto_tree_add_item(subtree, hf_head_tid,
+	                    tvb, off, 8, ENC_LITTLE_ENDIAN);
+	off += 8;
 	
 	type = tvb_get_letohs(tvb, off);
 	data->header.type = type;
-	EATS(hf_head_type,     2);
+	proto_tree_add_item(subtree, hf_head_type,
+	                    tvb, off, 2, ENC_LITTLE_ENDIAN);
+	off += 2;
 	
 	data->header.priority = tvb_get_letohs(tvb, off);
-	EATS(hf_head_priority, 2);
+	proto_tree_add_item(subtree, hf_head_priority,
+	                    tvb, off, 2, ENC_LITTLE_ENDIAN);
+	off += 2;
 	data->header.ver = tvb_get_letohs(tvb, off);
-	EATS(hf_head_version,  2);
+	proto_tree_add_item(subtree, hf_head_version,
+	                    tvb, off, 2, ENC_LITTLE_ENDIAN);
+	off += 2;
 	
-	EATS(hf_head_front_len,  4);
-	EATS(hf_head_middle_len, 4);
-	EATS(hf_head_data_len,   4);
-	EATS(hf_head_data_off,   2);
+	proto_tree_add_item(subtree, hf_head_front_len,
+	                    tvb, off, 4, ENC_LITTLE_ENDIAN);
+	off += 4;
+	proto_tree_add_item(subtree, hf_head_middle_len,
+	                    tvb, off, 4, ENC_LITTLE_ENDIAN);
+	off += 4;
+	proto_tree_add_item(subtree, hf_head_data_len,
+	                    tvb, off, 4, ENC_LITTLE_ENDIAN);
+	off += 4;
+	proto_tree_add_item(subtree, hf_head_data_off,
+	                    tvb, off, 2, ENC_LITTLE_ENDIAN);
+	off += 2;
 	
 	off = c_dissect_entity_name(subtree, pinfo, tvb, off, data);
 	
-	EATS(hf_head_compat_version, 2);
-	EATS(hf_head_reserved,       2);
-	EATS(hf_head_crc,            4);
+	proto_tree_add_item(subtree, hf_head_compat_version,
+	                    tvb, off, 2, ENC_LITTLE_ENDIAN);
+	off += 2;
+	proto_tree_add_item(subtree, hf_head_reserved,
+	                    tvb, off, 2, ENC_LITTLE_ENDIAN);
+	off += 2;
+	proto_tree_add_item(subtree, hf_head_crc,
+	                    tvb, off, 4, ENC_LITTLE_ENDIAN);
+	off += 4;
 	
 	/*** Body ***/
 	
@@ -1603,11 +1678,19 @@ guint c_dissect_msg(proto_tree *tree, packet_info *pinfo,
 	                         ENC_NA);
 	subtree = proto_item_add_subtree(ti, hf_foot);
 	
-	EATS(hf_foot_front_crc,  4);
-	EATS(hf_foot_middle_crc, 4);
-	EATS(hf_foot_data_crc,   4);
+	proto_tree_add_item(subtree, hf_foot_front_crc,
+	                    tvb, off, 4, ENC_LITTLE_ENDIAN);
+	off += 4;
+	proto_tree_add_item(subtree, hf_foot_middle_crc,
+	                    tvb, off, 4, ENC_LITTLE_ENDIAN);
+	off += 4;
+	proto_tree_add_item(subtree, hf_foot_data_crc,
+	                    tvb, off, 4, ENC_LITTLE_ENDIAN);
+	off += 4;
 	
-	EATS(hf_foot_signature,  8);
+	proto_tree_add_item(subtree, hf_foot_signature,
+	                    tvb, off, 8, ENC_LITTLE_ENDIAN);
+	off += 8;
 	off = c_dissect_flags(subtree, tvb, off, data); /* @HELP: Can we do this? */
 	
 	return off;
@@ -1647,12 +1730,24 @@ guint c_dissect_connect(proto_tree *root,
 	
 	off = c_dissect_features(tree, tvb, off, data);
 	
-	EAT(hf_connect_host_type,  4);
-	EAT(hf_connect_seq_global, 4);
-	EAT(hf_connect_seq,        4);
-	EAT(hf_connect_proto_ver,  4);
-	EAT(hf_connect_auth_proto, 4);
-	EAT(hf_connect_auth_len,   4);
+	proto_tree_add_item(tree, hf_connect_host_type,
+	                    tvb, off, 4, ENC_LITTLE_ENDIAN);
+	off += 4;
+	proto_tree_add_item(tree, hf_connect_seq_global,
+	                    tvb, off, 4, ENC_LITTLE_ENDIAN);
+	off += 4;
+	proto_tree_add_item(tree, hf_connect_seq,
+	                    tvb, off, 4, ENC_LITTLE_ENDIAN);
+	off += 4;
+	proto_tree_add_item(tree, hf_connect_proto_ver,
+	                    tvb, off, 4, ENC_LITTLE_ENDIAN);
+	off += 4;
+	proto_tree_add_item(tree, hf_connect_auth_proto,
+	                    tvb, off, 4, ENC_LITTLE_ENDIAN);
+	off += 4;
+	proto_tree_add_item(tree, hf_connect_auth_len,
+	                    tvb, off, 4, ENC_LITTLE_ENDIAN);
+	off += 4;
 	
 	off = c_dissect_flags(tree, tvb, off, data);
 	
@@ -1689,10 +1784,18 @@ guint c_dissect_connect_reply(proto_tree *root, packet_info *pinfo,
 	
 	off = c_dissect_features(tree, tvb, off, data);
 	
-	EAT(hf_connect_seq_global, 4);
-	EAT(hf_connect_seq,        4);
-	EAT(hf_connect_proto_ver,  4);
-	EAT(hf_connect_auth_len,   4);
+	proto_tree_add_item(tree, hf_connect_seq_global,
+	                    tvb, off, 4, ENC_LITTLE_ENDIAN);
+	off += 4;
+	proto_tree_add_item(tree, hf_connect_seq,
+	                    tvb, off, 4, ENC_LITTLE_ENDIAN);
+	off += 4;
+	proto_tree_add_item(tree, hf_connect_proto_ver,
+	                    tvb, off, 4, ENC_LITTLE_ENDIAN);
+	off += 4;
+	proto_tree_add_item(tree, hf_connect_auth_len,
+	                    tvb, off, 4, ENC_LITTLE_ENDIAN);
+	off += 4;
 	
 	off = c_dissect_flags(tree, tvb, off, data);
 	
@@ -1762,7 +1865,7 @@ guint c_dissect_msgr(proto_tree *tree, packet_info *pinfo,
 	C_HEADER_SIZE(1);
 	
 	tag = tvb_get_guint8(tvb, off);
-	ADD(hf_tag, off, 1);
+	proto_tree_add_item(tree, hf_tag, tvb, off, 1, ENC_LITTLE_ENDIAN);
 	off += 1;
 	
 	switch (tag)
@@ -1792,7 +1895,9 @@ guint c_dissect_msgr(proto_tree *tree, packet_info *pinfo,
 	case C_TAG_ACK:
 		col_set_str(pinfo->cinfo, COL_INFO, "ACK");
 		C_PACKET_SIZE(8);
-		EAT(hf_ack, 8);
+		proto_tree_add_item(tree, hf_ack,
+		                    tvb, off, 8, ENC_LITTLE_ENDIAN);
+		off += 8;
 		break;
 	case C_TAG_KEEPALIVE:
 		col_set_str(pinfo->cinfo, COL_INFO, "KEEPALIVE");
