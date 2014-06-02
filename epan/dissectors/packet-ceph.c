@@ -48,7 +48,6 @@ static int hf_node_id                      = -1;
 static int hf_node_type                    = -1;
 static int hf_node_nonce                   = -1;
 static int hf_node_name                    = -1;
-static int hf_node_addr                    = -1;
 static int hf_version                      = -1;
 static int hf_client_info                  = -1;
 static int hf_server_info                  = -1;
@@ -896,7 +895,7 @@ guint c_dissect_sockaddr(proto_tree *root,
 		break;
 	case C_IPv6: //@UNTESTED
 		proto_tree_add_item(tree, hf_port, tvb, off+2, 2, ENC_BIG_ENDIAN);
-		proto_tree_add_item(tree, hf_addr_ipv6, tvb, off+8, 16, ENC_BIG_ENDIAN);
+		proto_tree_add_item(tree, hf_addr_ipv6, tvb, off+8, 16, ENC_NA);
 		break;
 	default:
 		printf("UNKNOWN INET %x!\n", af);
@@ -1142,17 +1141,17 @@ void c_dissect_msg_unknown(proto_tree *tree, packet_info *pinfo,
 	
 	if (front_len) {
 		proto_tree_add_item(tree, hf_msg_front,
-		                    tvb, off, front_len, ENC_LITTLE_ENDIAN);
+		                    tvb, off, front_len, ENC_NA);
 		off += front_len;
 	}
 	if (middle_len) {
 		proto_tree_add_item(tree, hf_msg_middle,
-		                    tvb, off, middle_len, ENC_LITTLE_ENDIAN);
+		                    tvb, off, middle_len, ENC_NA);
 		off += middle_len;
 	}
 	if (data_len) {
 		proto_tree_add_item(tree, hf_msg_data,
-		                    tvb, off, data_len, ENC_LITTLE_ENDIAN);
+		                    tvb, off, data_len, ENC_NA);
 		off += data_len;
 	}
 }
@@ -1511,7 +1510,7 @@ void c_dissect_msg_mon_cmd_ack(proto_tree *root, packet_info *pinfo,
 	}
 	
 	proto_tree_add_item(tree, hf_msg_mon_cmd_ack_data,
-	                    tvb, front_len, data_len, ENC_LITTLE_ENDIAN);
+	                    tvb, front_len, data_len, ENC_NA);
 }
 
 /*** MSGR Dissectors ***/
@@ -2039,7 +2038,7 @@ proto_register_ceph(void)
 		} },
 		{ &hf_node_type, {
 			"Source Node Type", "ceph.node_type",
-			FT_UINT8, BASE_HEX, VALS(&c_node_type_strings), 0,
+			FT_UINT8, BASE_HEX, VALS(c_node_type_strings), 0,
 			"The type of source node.", HFILL
 		} },
 		{ &hf_node_nonce, {
@@ -2049,11 +2048,6 @@ proto_register_ceph(void)
 		} },
 		{ &hf_node_name, {
 			"Source Name", "ceph.node",
-			FT_NONE, BASE_NONE, NULL, 0,
-			NULL, HFILL
-		} },
-		{ &hf_node_addr, {
-			"Source Address", "ceph.addr",
 			FT_NONE, BASE_NONE, NULL, 0,
 			NULL, HFILL
 		} },
@@ -2364,7 +2358,7 @@ proto_register_ceph(void)
 		} },
 		{ &hf_connect_host_type, {
 			"Host Type", "ceph.connect.host",
-			FT_UINT32, BASE_HEX, VALS(&c_node_type_strings), 0,
+			FT_UINT32, BASE_HEX, VALS(c_node_type_strings), 0,
 			"The type of host.", HFILL
 		} },
 		{ &hf_connect_seq_global, {
