@@ -727,22 +727,15 @@ typedef struct _c_pkt_data {
 static void
 c_pkt_data_init(c_pkt_data *d, packet_info *pinfo, guint offset)
 {
-	gboolean visited;
-	
 	/* Get conversation to store/retrieve connection data. */
 	d->conv = find_or_create_conversation(pinfo);
 	g_assert(d->conv);
 	
-	/* If we have dissected this packet before get saved state. */
-	d->convd = (c_conv_data*)p_get_proto_data(wmem_file_scope(), pinfo, proto_ceph, offset);
-	visited = !!d->convd;
-	
-	if (d->convd)
+	if (pinfo->fd->flags.visited)
 	{
-		/*
-			We have dissected this packet before, make a copy the saved state
-			and use that so we don't mess up the original.
-		*/
+		/* Retrieve the saved state. */
+		d->convd = (c_conv_data*)p_get_proto_data(wmem_file_scope(), pinfo, proto_ceph, offset);
+		/* Make a copy and use that so we don't mess up the original. */
 		d->convd = c_conv_data_copy(d->convd, C_NEW_PKTSCOPE(c_conv_data));
 	}
 	else
@@ -768,7 +761,7 @@ c_pkt_data_init(c_pkt_data *d, packet_info *pinfo, guint offset)
 	}
 	g_assert(d->convd);
 	
-	if (!visited)
+	if (!pinfo->fd->flags.visited)
 	{
 		/*
 			Save a copy of the state for next time we dissect this packet.
