@@ -61,6 +61,8 @@ static int hf_time                         = -1;
 static int hf_time_sec                     = -1;
 static int hf_time_nsec                    = -1;
 static int hf_features                     = -1;
+static int hf_features_high                = -1;
+static int hf_features_low                 = -1;
 static int hf_feature_uid                  = -1;
 static int hf_feature_nosrcaddr            = -1;
 static int hf_feature_monclockcheck        = -1;
@@ -982,87 +984,89 @@ guint c_dissect_entity_name(proto_tree *root, packet_info *pinfo _U_,
 }
 
 static
-guint c_dissect_features(proto_tree *root,
+guint c_dissect_features(proto_tree *tree,
                       tvbuff_t *tvb, guint off, c_pkt_data *data _U_)
 {
-	proto_item *ti;
-	proto_tree *tree;
-	
-	ti = proto_tree_add_item(root, hf_features,
-	                         tvb, off, 8, ENC_LITTLE_ENDIAN);
-	tree = proto_item_add_subtree(ti, hf_features);
+	static const int *lowword[] = {
+		&hf_feature_uid,
+		&hf_feature_nosrcaddr,
+		&hf_feature_monclockcheck,
+		&hf_feature_flock,
+		&hf_feature_subscribe2,
+		&hf_feature_monnames,
+		&hf_feature_reconnect_seq,
+		&hf_feature_dirlayouthash,
+		&hf_feature_objectlocator,
+		&hf_feature_pgid64,
+		&hf_feature_incsubosdmap,
+		&hf_feature_pgpool3,
+		&hf_feature_osdreplymux,
+		&hf_feature_osdenc,
+		&hf_feature_omap,
+		&hf_feature_monenc,
+		&hf_feature_query_t,
+		&hf_feature_indep_pg_map,
+		&hf_feature_crush_tunables,
+		&hf_feature_chunky_scrub,
+		&hf_feature_mon_nullroute,
+		&hf_feature_mon_gv,
+		&hf_feature_backfill_reservation,
+		&hf_feature_msg_auth,
+		&hf_feature_recovery_reservation,
+		&hf_feature_crush_tunables2,
+		&hf_feature_createpoolid,
+		&hf_feature_reply_create_inode,
+		&hf_feature_osd_hbmsgs,
+		&hf_feature_mdsenc,
+		&hf_feature_osdhashpspool,
+		&hf_feature_mon_single_paxos,
+		NULL
+	};
+	static const int *highword[] = {
+		&hf_feature_osd_snapmapper,
+		&hf_feature_mon_scrub,
+		&hf_feature_osd_packed_recovery,
+		&hf_feature_osd_cachepool,
+		&hf_feature_crush_v2,
+		&hf_feature_export_peer,
+		&hf_feature_osd_erasure_codes,
+		&hf_feature_osd_tmap2omap,
+		&hf_feature_osdmap_enc,
+		&hf_feature_mds_inline_data,
+		&hf_feature_crush_tunables3,
+		&hf_feature_osd_primary_affinity,
+		&hf_feature_msgr_keepalive2,
+		&hf_feature_reserved,
+		NULL
+	};
 	
 	/* Wireshark doesn't have support for 64 bit bitfields so dissect as
 	   two 32 bit ones. */
-	ADD(hf_feature_uid,                  off, 4);
-	ADD(hf_feature_nosrcaddr,            off, 4);
-	ADD(hf_feature_monclockcheck,        off, 4);
-	ADD(hf_feature_flock,                off, 4);
-	ADD(hf_feature_subscribe2,           off, 4);
-	ADD(hf_feature_monnames,             off, 4);
-	ADD(hf_feature_reconnect_seq,        off, 4);
-	ADD(hf_feature_dirlayouthash,        off, 4);
-	ADD(hf_feature_objectlocator,        off, 4);
-	ADD(hf_feature_pgid64,               off, 4);
-	ADD(hf_feature_incsubosdmap,         off, 4);
-	ADD(hf_feature_pgpool3,              off, 4);
-	ADD(hf_feature_osdreplymux,          off, 4);
-	ADD(hf_feature_osdenc,               off, 4);
-	ADD(hf_feature_omap,                 off, 4);
-	ADD(hf_feature_monenc,               off, 4);
-	ADD(hf_feature_query_t,              off, 4);
-	ADD(hf_feature_indep_pg_map,         off, 4);
-	ADD(hf_feature_crush_tunables,       off, 4);
-	ADD(hf_feature_chunky_scrub,         off, 4);
-	ADD(hf_feature_mon_nullroute,        off, 4);
-	ADD(hf_feature_mon_gv,               off, 4);
-	ADD(hf_feature_backfill_reservation, off, 4);
-	ADD(hf_feature_msg_auth,             off, 4);
-	ADD(hf_feature_recovery_reservation, off, 4);
-	ADD(hf_feature_crush_tunables2,      off, 4);
-	ADD(hf_feature_createpoolid,         off, 4);
-	ADD(hf_feature_reply_create_inode,   off, 4);
-	ADD(hf_feature_osd_hbmsgs,           off, 4);
-	ADD(hf_feature_mdsenc,               off, 4);
-	ADD(hf_feature_osdhashpspool,        off, 4);
-	ADD(hf_feature_mon_single_paxos,     off, 4);
 	
-	off += 4; /* Next 32 bits. */
+	proto_tree_add_bitmask(tree, tvb, off, hf_features_low, hf_features_low,
+	                       lowword, ENC_LITTLE_ENDIAN);
+	off += 4;
 	
-	ADD(hf_feature_osd_snapmapper,       off, 4);
-	ADD(hf_feature_mon_scrub,            off, 4);
-	ADD(hf_feature_osd_packed_recovery,  off, 4);
-	ADD(hf_feature_osd_cachepool,        off, 4);
-	ADD(hf_feature_crush_v2,             off, 4);
-	ADD(hf_feature_export_peer,          off, 4);
-	ADD(hf_feature_osd_erasure_codes,    off, 4);
-	ADD(hf_feature_osd_tmap2omap,        off, 4);
-	ADD(hf_feature_osdmap_enc,           off, 4);
-	ADD(hf_feature_mds_inline_data,      off, 4);
-	ADD(hf_feature_crush_tunables3,      off, 4);
-	ADD(hf_feature_osd_primary_affinity, off, 4);
-	ADD(hf_feature_msgr_keepalive2,      off, 4);
-	ADD(hf_feature_reserved,             off, 4);
-	
+	proto_tree_add_bitmask(tree, tvb, off, hf_features_high, hf_features_high,
+	                       highword, ENC_LITTLE_ENDIAN);
 	off += 4;
 	
 	return off;
 }
 
 static
-guint c_dissect_flags(proto_tree *root,
+guint c_dissect_flags(proto_tree *tree,
                       tvbuff_t *tvb, guint off, c_pkt_data *data _U_)
 {
-	proto_item *ti;
-	proto_tree *tree;
+	static const int *flags[] = {
+		&hf_flag_lossy,
+		NULL
+	};
 	
-	ti = proto_tree_add_item(root, hf_flags,
-	                         tvb, off, 1, ENC_LITTLE_ENDIAN);
-	tree = proto_item_add_subtree(ti, hf_flags);
+	proto_tree_add_bitmask(tree, tvb, off, hf_flags, hf_flags,
+	                       flags, ENC_LITTLE_ENDIAN);
 	
-	ADD(hf_flag_lossy, off, 1); off += 1;
-	
-	return off;
+	return off+1;
 }
 
 /** Dissect a length-delimited binary blob.
@@ -2010,6 +2014,16 @@ proto_register_ceph(void)
 		{ &hf_features, {
 			"Features", "ceph.connect.features",
 			FT_UINT64, BASE_HEX, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_features_low, {
+			"Features", "ceph.connect.features.low",
+			FT_UINT32, BASE_HEX, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_features_high, {
+			"Features", "ceph.connect.features.high",
+			FT_UINT32, BASE_HEX, NULL, 0,
 			NULL, HFILL
 		} },
 		{ &hf_feature_uid, {
