@@ -1130,7 +1130,7 @@ guint c_dissect_paxos(proto_tree *root,
  * Simply displays the front, middle and data portions as binary strings.
  */
 static
-void c_dissect_msg_unknown(proto_tree *tree, packet_info *pinfo,
+guint c_dissect_msg_unknown(proto_tree *tree, packet_info *pinfo,
                           tvbuff_t *tvb,
                           guint front_len, guint middle_len, guint data_len,
                           c_pkt_data *data _U_)
@@ -1154,10 +1154,12 @@ void c_dissect_msg_unknown(proto_tree *tree, packet_info *pinfo,
 		                    tvb, off, data_len, ENC_NA);
 		off += data_len;
 	}
+	
+	return off;
 }
 
 static
-void c_dissect_msg_mon_map(proto_tree *root, packet_info *pinfo,
+guint c_dissect_msg_mon_map(proto_tree *root, packet_info *pinfo,
                            tvbuff_t *tvb,
                            guint front_len, guint middle_len _U_, guint data_len _U_,
                            c_pkt_data *data _U_)
@@ -1173,14 +1175,14 @@ void c_dissect_msg_mon_map(proto_tree *root, packet_info *pinfo,
 	                         tvb, 0, front_len, ENC_NA);
 	tree = proto_item_add_subtree(ti, hf_msg_mon_map);
 	
-	c_dissect_blob(tree, hf_msg_mon_map_data, hf_msg_mon_map_data_len,
-	               tvb, 0);
+	return c_dissect_blob(tree, hf_msg_mon_map_data, hf_msg_mon_map_data_len,
+	                      tvb, 0);
 	
 	//@TODO: Parse Mon Map.
 }
 
 static
-void c_dissect_msg_mon_sub(proto_tree *root, packet_info *pinfo,
+guint c_dissect_msg_mon_sub(proto_tree *root, packet_info *pinfo,
                            tvbuff_t *tvb,
                            guint front_len, guint middle_len _U_, guint data_len _U_,
                            c_pkt_data *data _U_)
@@ -1243,10 +1245,12 @@ void c_dissect_msg_mon_sub(proto_tree *root, packet_info *pinfo,
 		
 		proto_item_set_len(ti, off-offs);
 	}
+	
+	return off;
 }
 
 static
-void c_dissect_msg_mon_sub_ack(proto_tree *root, packet_info *pinfo,
+guint c_dissect_msg_mon_sub_ack(proto_tree *root, packet_info *pinfo,
                                tvbuff_t *tvb,
                                guint front_len, guint middle_len _U_, guint data_len _U_,
                                c_pkt_data *data _U_)
@@ -1269,10 +1273,12 @@ void c_dissect_msg_mon_sub_ack(proto_tree *root, packet_info *pinfo,
 	proto_tree_add_item(tree, hf_msg_mon_sub_ack_fsid,
 	                    tvb, off, 16, ENC_LITTLE_ENDIAN);
 	off += 16;
+	
+	return off;
 }
 
 static
-void c_dissect_msg_auth(proto_tree *root, packet_info *pinfo,
+guint c_dissect_msg_auth(proto_tree *root, packet_info *pinfo,
                         tvbuff_t *tvb,
                         guint front_len, guint middle_len _U_, guint data_len _U_,
                         c_pkt_data *data _U_)
@@ -1305,10 +1311,12 @@ void c_dissect_msg_auth(proto_tree *root, packet_info *pinfo,
 		                    tvb, off, 4, ENC_LITTLE_ENDIAN);
 		off += 4;
 	}
+	
+	return off;
 }
 
 static
-void c_dissect_msg_auth_reply(proto_tree *root, packet_info *pinfo,
+guint c_dissect_msg_auth_reply(proto_tree *root, packet_info *pinfo,
                               tvbuff_t *tvb,
                               guint front_len, guint middle_len _U_, guint data_len _U_,
                               c_pkt_data *data _U_)
@@ -1339,10 +1347,12 @@ void c_dissect_msg_auth_reply(proto_tree *root, packet_info *pinfo,
 	                     tvb, off);
 	off = c_dissect_blob(tree, hf_msg_auth_reply_msg, hf_msg_auth_reply_msg_len,
 	                     tvb, off);
+	
+	return off;
 }
 
 static
-void c_dissect_msg_osd_map(proto_tree *root, packet_info *pinfo,
+guint c_dissect_msg_osd_map(proto_tree *root, packet_info *pinfo,
                            tvbuff_t *tvb,
                            guint front_len, guint middle_len _U_, guint data_len _U_,
                            c_pkt_data *data _U_)
@@ -1411,16 +1421,18 @@ void c_dissect_msg_osd_map(proto_tree *root, packet_info *pinfo,
 	if (data->header.ver >= 2)
 	{
 		proto_tree_add_item(tree, hf_msg_osd_map_oldest,
-	                    tvb, off, 4, ENC_LITTLE_ENDIAN);
-	off += 4;
+		                    tvb, off, 4, ENC_LITTLE_ENDIAN);
+		off += 4;
 		proto_tree_add_item(tree, hf_msg_osd_map_newest,
-	                    tvb, off, 4, ENC_LITTLE_ENDIAN);
-	off += 4;
+		                    tvb, off, 4, ENC_LITTLE_ENDIAN);
+		off += 4;
 	}
+	
+	return off;
 }
 
 static
-void c_dissect_msg_mon_cmd(proto_tree *root, packet_info *pinfo,
+guint c_dissect_msg_mon_cmd(proto_tree *root, packet_info *pinfo,
                           tvbuff_t *tvb,
                           guint front_len, guint middle_len _U_, guint data_len _U_,
                           c_pkt_data *data _U_)
@@ -1461,10 +1473,12 @@ void c_dissect_msg_mon_cmd(proto_tree *root, packet_info *pinfo,
 		
 		proto_item_set_len(ti, off-offs);
 	}
+	
+	return off;
 }
 
 static
-void c_dissect_msg_mon_cmd_ack(proto_tree *root, packet_info *pinfo,
+guint c_dissect_msg_mon_cmd_ack(proto_tree *root, packet_info *pinfo,
                                tvbuff_t *tvb,
                                guint front_len, guint middle_len _U_, guint data_len,
                                c_pkt_data *data _U_)
@@ -1511,6 +1525,8 @@ void c_dissect_msg_mon_cmd_ack(proto_tree *root, packet_info *pinfo,
 	
 	proto_tree_add_item(tree, hf_msg_mon_cmd_ack_data,
 	                    tvb, front_len, data_len, ENC_NA);
+	
+	return front_len+data_len;
 }
 
 /*** MSGR Dissectors ***/
@@ -1544,6 +1560,7 @@ guint c_dissect_msg(proto_tree *tree, packet_info *pinfo,
 	proto_tree *subtree;
 	guint16 type;
 	guint32 front_len, middle_len, data_len;
+	guint parsedsize;
 	
 	C_HEADER_SIZE(C_OFF_HEAD1 + C_SIZE_HEAD1);
 	
@@ -1641,7 +1658,7 @@ guint c_dissect_msg(proto_tree *tree, packet_info *pinfo,
 	{
 #define CALL_MSG(name) name(tree, pinfo, \
                             subtvb, front_len, middle_len, data_len, data)
-#define HANDLE_MSG(tag, name) case tag: CALL_MSG(name); break;
+#define HANDLE_MSG(tag, name) case tag: parsedsize = CALL_MSG(name); break;
 	
 	HANDLE_MSG(C_CEPH_MSG_MON_MAP,           c_dissect_msg_mon_map)
 	HANDLE_MSG(C_CEPH_MSG_MON_SUBSCRIBE,     c_dissect_msg_mon_sub)
@@ -1653,11 +1670,13 @@ guint c_dissect_msg(proto_tree *tree, packet_info *pinfo,
 	HANDLE_MSG(C_MSG_MON_COMMAND_ACK,        c_dissect_msg_mon_cmd_ack)
 	
 	default:
-		CALL_MSG(c_dissect_msg_unknown);
+		parsedsize = CALL_MSG(c_dissect_msg_unknown);
 #undef CALL_MSG
 #undef HANDLE_MSG
 	}
 	off += front_len + middle_len + data_len;
+	
+	//@TODO: Warn if parsedsize != size of data in the packet.
 	
 	/*** Footer ***/
 	
@@ -2840,8 +2859,6 @@ proto_reg_handoff_ceph(void)
 	ceph_handle = create_dissector_handle(dissect_ceph_old, proto_ceph);
 	
 	heur_dissector_add("tcp", dissect_ceph_heur, proto_ceph);
-	
-	//dissector_add_uint("tcp.port", 6789, ceph_handle);
 }
 
 /*
