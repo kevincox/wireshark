@@ -811,6 +811,10 @@ gboolean c_from_server(c_pkt_data *d)
 
 /***** Protocol Dissector *****/
 
+enum c_ressembly {
+	C_NEEDMORE = 0
+};
+
 /*** A couple of magic marcos ***/
 /*
  * These macros are very magic and expect the proper variable names to exist
@@ -1560,15 +1564,18 @@ guint c_dissect_msg(proto_tree *tree, packet_info *pinfo,
 	proto_tree *subtree;
 	guint16 type;
 	guint32 front_len, middle_len, data_len;
-	guint parsedsize;
+	guint size, parsedsize;
 	
-	C_HEADER_SIZE(C_OFF_HEAD1 + C_SIZE_HEAD1);
+	if (!tvb_bytes_exist(tvb, off, C_OFF_HEAD1 + C_SIZE_HEAD1))
+		return C_NEEDMORE;
 	
 	front_len  = tvb_get_letoh64(tvb, off + C_OFF_HEAD1 + 0);
 	middle_len = tvb_get_letoh64(tvb, off + C_OFF_HEAD1 + 4);
 	data_len   = tvb_get_letoh64(tvb, off + C_OFF_HEAD1 + 8);
 	
-	C_PACKET_SIZE(C_SIZE_HEAD+front_len+middle_len+data_len+C_SIZE_FOOT);
+	size = C_SIZE_HEAD+front_len+middle_len+data_len+C_SIZE_FOOT;
+	if (!tvb_bytes_exist(tvb, off, size))
+		return off+size; /* We need more data to dissect. */
 	
 	/*** Header ***/
 	
@@ -1791,7 +1798,8 @@ guint c_dissect_connect_reply(proto_tree *root, packet_info *pinfo,
 	proto_item *ti;
 	proto_tree *tree;
 	
-	C_PACKET_SIZE(C_SIZE_CONNECT_REPLY);
+	if (!tvb_bytes_exist(tvb, off, C_SIZE_CONNECT_REPLY))
+		return off+C_SIZE_CONNECT_REPLY; /* We need more data to dissect. */
 	
 	col_set_str(pinfo->cinfo, COL_INFO, "Connect Reply");
 	
@@ -1829,6 +1837,7 @@ guint c_dissect_new(proto_tree *tree, packet_info *pinfo,
                   tvbuff_t *tvb, guint off, c_pkt_data *data)
 {
 	gint banlen;
+	guint size;
 	
 	/*
 		Since the packet is larger than the max banner length we can read it
@@ -1837,7 +1846,8 @@ guint c_dissect_new(proto_tree *tree, packet_info *pinfo,
 	G_STATIC_ASSERT(C_BANNER_LEN_MAX+1 <= C_BANNER_LEN_MIN+C_SIZE_HELLO_C);
 	G_STATIC_ASSERT(C_BANNER_LEN_MAX+1 <= C_BANNER_LEN_MIN+C_SIZE_HELLO_S);
 	
-	C_HEADER_SIZE(C_BANNER_LEN_MAX+1);
+	if (!tvb_bytes_exist(tvb, off, C_BANNER_LEN_MAX+1))
+		return C_NEEDMORE;
 	
 	/* @TODO: handle invalid banners.
 	if (tvb_memeql(tvb, off, C_BANNER, C_BANNER_LEN_MIN) != 0)
@@ -1853,7 +1863,9 @@ guint c_dissect_new(proto_tree *tree, packet_info *pinfo,
 	proto_tree_add_item(tree, hf_version, tvb, off, banlen, ENC_NA);
 	off += banlen;
 	
-	C_PACKET_SIZE(c_from_server(data)? C_SIZE_HELLO_S : C_SIZE_HELLO_C);
+	size = c_from_server(data)? C_SIZE_HELLO_S : C_SIZE_HELLO_C;
+	if (!tvb_bytes_exist(tvb, off, size))
+		return off+size; /* We need more data to dissect. */
 	
 	col_set_str(pinfo->cinfo, COL_INFO, "Connect");
 	
@@ -1880,7 +1892,8 @@ guint c_dissect_msgr(proto_tree *tree, packet_info *pinfo,
 {
 	guint8 tag;
 	
-	C_HEADER_SIZE(1);
+	if (!tvb_bytes_exist(tvb, off, 1))
+		return C_NEEDMORE;
 	
 	tag = tvb_get_guint8(tvb, off);
 	proto_tree_add_item(tree, hf_tag, tvb, off, 1, ENC_LITTLE_ENDIAN);
@@ -1899,7 +1912,9 @@ guint c_dissect_msgr(proto_tree *tree, packet_info *pinfo,
 		off = c_dissect_connect_reply(tree, pinfo, tvb, off, data);
 		break;
 	case C_TAG_SEQ:
-		C_PACKET_SIZE(C_SIZE_CONNECT_REPLY + 8);
+		if (!tvb_bytes_exist(tvb, off, C_SIZE_CONNECT_REPLY+8))
+			return off+C_SIZE_CONNECT_REPLY+8; /* We need more data to dissect. */
+		
 		off = c_dissect_connect_reply(tree, pinfo, tvb, off, data);
 		off += 8; //@TODO: Read sequence number.
 		break;
@@ -1912,7 +1927,9 @@ guint c_dissect_msgr(proto_tree *tree, packet_info *pinfo,
 		break;
 	case C_TAG_ACK:
 		col_set_str(pinfo->cinfo, COL_INFO, "ACK");
-		C_PACKET_SIZE(8);
+		if (!tvb_bytes_exist(tvb, off, 8))
+			return off+8; /* We need more data to dissect. */
+		
 		proto_tree_add_item(tree, hf_ack,
 		                    tvb, off, 8, ENC_LITTLE_ENDIAN);
 		off += 8;
@@ -1923,7 +1940,9 @@ guint c_dissect_msgr(proto_tree *tree, packet_info *pinfo,
 		break;
 	case C_TAG_KEEPALIVE2:
 	case C_TAG_KEEPALIVE2_ACK:
-		C_PACKET_SIZE(C_SIZE_TIMESPEC);
+		if (!tvb_bytes_exist(tvb, off, C_SIZE_TIMESPEC))
+			return off+C_SIZE_TIMESPEC; /* We need more data to dissect. */
+		
 		col_set_str(pinfo->cinfo, COL_INFO, "KEEPALIVE2");
 		off = c_dissect_timespec(tree, pinfo, tvb, off, data);
 		break;
