@@ -1193,7 +1193,7 @@ guint c_dissect_msg_mon_sub(proto_tree *root, packet_info *pinfo,
 {
 	proto_item *ti, *ti2;
 	proto_tree *tree, *subtree;
-	guint off = 0, offs;
+	guint off = 0;
 	guint len;
 	
 	/* ceph:/src/messages/MMonSubscribe.h */
@@ -1210,8 +1210,6 @@ guint c_dissect_msg_mon_sub(proto_tree *root, packet_info *pinfo,
 	off += 4;
 	while (len--)
 	{
-		offs = off;
-		
 		/* From ceph:/src/include/ceph_fs.h
 		struct ceph_mon_subscribe_item {
 			__le64 start;
@@ -1247,7 +1245,7 @@ guint c_dissect_msg_mon_sub(proto_tree *root, packet_info *pinfo,
 		                    tvb, off, 1, ENC_LITTLE_ENDIAN);
 		off += 1;
 		
-		proto_item_set_len(ti, off-offs);
+		proto_item_set_end(ti, tvb, off);
 	}
 	
 	return off;
@@ -1363,7 +1361,7 @@ guint c_dissect_msg_osd_map(proto_tree *root, packet_info *pinfo,
 {
 	proto_item *ti;
 	proto_tree *tree, *subtree;
-	guint off = 0, offs;
+	guint off = 0;
 	guint32 i;
 	
 	/* ceph:/src/messages/MOSDMap.h */
@@ -1386,8 +1384,6 @@ guint c_dissect_msg_osd_map(proto_tree *root, packet_info *pinfo,
 	off += 4;
 	while (i--)
 	{
-		offs = off;
-		
 		ti = proto_tree_add_item(tree, hf_msg_osd_map_inc,
 		                         tvb, off, -1, ENC_NA);
 		subtree = proto_item_add_subtree(ti, hf_msg_osd_map_inc);
@@ -1398,7 +1394,7 @@ guint c_dissect_msg_osd_map(proto_tree *root, packet_info *pinfo,
 		off = c_dissect_blob(subtree, hf_msg_osd_map_data, hf_msg_osd_map_data_len,
 		                     tvb, off);
 		
-		proto_item_set_len(ti, off-offs);
+		proto_item_set_end(ti, tvb, off);
 	}
 	
 	i = tvb_get_letohl(tvb, off);
@@ -1407,8 +1403,6 @@ guint c_dissect_msg_osd_map(proto_tree *root, packet_info *pinfo,
 	off += 4;
 	while (i--)
 	{
-		offs = off;
-		
 		ti = proto_tree_add_item(tree, hf_msg_osd_map_map,
 		                         tvb, off, -1, ENC_NA);
 		subtree = proto_item_add_subtree(ti, hf_msg_osd_map_map);
@@ -1419,7 +1413,7 @@ guint c_dissect_msg_osd_map(proto_tree *root, packet_info *pinfo,
 		off = c_dissect_blob(subtree, hf_msg_osd_map_data, hf_msg_osd_map_data_len,
 		                     tvb, off);
 		
-		proto_item_set_len(ti, off-offs);
+		proto_item_set_end(ti, tvb, off);
 	}
 	
 	if (data->header.ver >= 2)
@@ -1443,7 +1437,7 @@ guint c_dissect_msg_mon_cmd(proto_tree *root, packet_info *pinfo,
 {
 	proto_item *ti;
 	proto_tree *tree, *subtree;
-	guint off = 0, offs;
+	guint off = 0;
 	guint i;
 	
 	/* ceph:/src/messages/MMonCommand.h */
@@ -1466,8 +1460,6 @@ guint c_dissect_msg_mon_cmd(proto_tree *root, packet_info *pinfo,
 	off += 4;
 	while (i--)
 	{
-		offs = off;
-		
 		ti = proto_tree_add_item(tree, hf_msg_mon_cmd_arg,
 		                         tvb, off, -1, ENC_NA);
 		subtree = proto_item_add_subtree(ti, hf_msg_mon_cmd_arg);
@@ -1475,7 +1467,7 @@ guint c_dissect_msg_mon_cmd(proto_tree *root, packet_info *pinfo,
 		off = c_dissect_blob(subtree, hf_msg_mon_cmd_str, hf_msg_mon_cmd_str_len,
 		                     tvb, off);
 		
-		proto_item_set_len(ti, off-offs);
+		proto_item_set_end(ti, tvb, off);
 	}
 	
 	return off;
@@ -1489,7 +1481,7 @@ guint c_dissect_msg_mon_cmd_ack(proto_tree *root, packet_info *pinfo,
 {
 	proto_item *ti;
 	proto_tree *tree, *subtree;
-	guint off = 0, offs;
+	guint off = 0;
 	guint i;
 	
 	/* ceph:/src/messages/MMonCommandAck.h */
@@ -1514,8 +1506,6 @@ guint c_dissect_msg_mon_cmd_ack(proto_tree *root, packet_info *pinfo,
 	off += 4;
 	while (i--)
 	{
-		offs = off;
-		
 		ti = proto_tree_add_item(tree, hf_msg_mon_cmd_ack_arg,
 		                         tvb, off, -1, ENC_NA);
 		subtree = proto_item_add_subtree(ti, hf_msg_mon_cmd_ack_arg);
@@ -1524,7 +1514,7 @@ guint c_dissect_msg_mon_cmd_ack(proto_tree *root, packet_info *pinfo,
 		                     hf_msg_mon_cmd_ack_arg_str_len,
 		                     tvb, off);
 		
-		proto_item_set_len(ti, off-offs);
+		proto_item_set_end(ti, tvb, off);
 	}
 	
 	proto_tree_add_item(tree, hf_msg_mon_cmd_ack_data,
@@ -1663,23 +1653,23 @@ guint c_dissect_msg(proto_tree *tree, packet_info *pinfo,
 	
 	switch (type)
 	{
-#define CALL_MSG(name) name(tree, pinfo, \
+#define C_CALL_MSG(name) name(tree, pinfo, \
                             subtvb, front_len, middle_len, data_len, data)
-#define HANDLE_MSG(tag, name) case tag: parsedsize = CALL_MSG(name); break;
+#define C_HANDLE_MSG(tag, name) case tag: parsedsize = C_CALL_MSG(name); break;
 	
-	HANDLE_MSG(C_CEPH_MSG_MON_MAP,           c_dissect_msg_mon_map)
-	HANDLE_MSG(C_CEPH_MSG_MON_SUBSCRIBE,     c_dissect_msg_mon_sub)
-	HANDLE_MSG(C_CEPH_MSG_MON_SUBSCRIBE_ACK, c_dissect_msg_mon_sub_ack)
-	HANDLE_MSG(C_CEPH_MSG_AUTH,              c_dissect_msg_auth)
-	HANDLE_MSG(C_CEPH_MSG_AUTH_REPLY,        c_dissect_msg_auth_reply)
-	HANDLE_MSG(C_CEPH_MSG_OSD_MAP,           c_dissect_msg_osd_map)
-	HANDLE_MSG(C_MSG_MON_COMMAND,            c_dissect_msg_mon_cmd)
-	HANDLE_MSG(C_MSG_MON_COMMAND_ACK,        c_dissect_msg_mon_cmd_ack)
+	C_HANDLE_MSG(C_CEPH_MSG_MON_MAP,           c_dissect_msg_mon_map)
+	C_HANDLE_MSG(C_CEPH_MSG_MON_SUBSCRIBE,     c_dissect_msg_mon_sub)
+	C_HANDLE_MSG(C_CEPH_MSG_MON_SUBSCRIBE_ACK, c_dissect_msg_mon_sub_ack)
+	C_HANDLE_MSG(C_CEPH_MSG_AUTH,              c_dissect_msg_auth)
+	C_HANDLE_MSG(C_CEPH_MSG_AUTH_REPLY,        c_dissect_msg_auth_reply)
+	C_HANDLE_MSG(C_CEPH_MSG_OSD_MAP,           c_dissect_msg_osd_map)
+	C_HANDLE_MSG(C_MSG_MON_COMMAND,            c_dissect_msg_mon_cmd)
+	C_HANDLE_MSG(C_MSG_MON_COMMAND_ACK,        c_dissect_msg_mon_cmd_ack)
 	
 	default:
-		parsedsize = CALL_MSG(c_dissect_msg_unknown);
-#undef CALL_MSG
-#undef HANDLE_MSG
+		parsedsize = C_CALL_MSG(c_dissect_msg_unknown);
+#undef C_CALL_MSG
+#undef C_HANDLE_MSG
 	}
 	off += front_len + middle_len + data_len;
 	
@@ -1990,7 +1980,7 @@ guint c_dissect_pdu(proto_tree *root, packet_info *pinfo,
 	else
 		off = c_dissect_msgr(tree, pinfo, tvb, off, data);
 	
-	proto_item_set_len(ti, off);
+	proto_item_set_end(ti, tvb, off);
 	return off;
 }
 
