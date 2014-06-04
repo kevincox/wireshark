@@ -1088,6 +1088,9 @@ guint c_dissect_blob(proto_tree *root, int hf_data, int hf_len,
 	guint32 size;
 	
 	size = tvb_get_letohl(tvb, off);
+	//hex  = bytestring_to_str(wmem_packet_scope(),
+	//                         tvb_get_ptr(tvb, off+4, size), size
+	//                         '\0');
 	
 	ti = proto_tree_add_item(root, hf_data, tvb, off+4, size, ENC_NA);
 	tree = proto_item_add_subtree(ti, hf_data);
