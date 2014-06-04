@@ -208,11 +208,14 @@ static int hf_msg_mon_cmd_ack_data         = -1;
 static int hf_msg_                         = -1;
 */
 
-#define C_NEW_FILESCOPE(klass) ((klass*)wmem_alloc(wmem_file_scope(),   sizeof(klass)))
-#define C_NEW_PKTSCOPE(klass)  ((klass*)wmem_alloc(wmem_packet_scope(), sizeof(klass)))
+/* Initialize the expert items. */
+static expert_field ei_unused = EI_INIT;
 
 /* Initialize the subtree pointers */
 static gint ett_ceph = -1;
+
+#define C_NEW_FILESCOPE(klass) ((klass*)wmem_alloc(wmem_file_scope(),   sizeof(klass)))
+#define C_NEW_PKTSCOPE(klass)  ((klass*)wmem_alloc(wmem_packet_scope(), sizeof(klass)))
 
 static const char *C_BANNER = "ceph";
 enum c_banner {
@@ -1251,13 +1254,13 @@ guint c_dissect_msg_mon_map(proto_tree *root,
 }
 
 static
-guint c_dissect_msg_mon_sub(proto_tree *tree,
+guint c_dissect_msg_mon_sub(proto_tree *root,
                            tvbuff_t *tvb,
                            guint front_len, guint middle_len _U_, guint data_len _U_,
                            c_pkt_data *data)
 {
 	proto_item *ti, *ti2;
-	proto_tree *subtree;
+	proto_tree *tree, *subtree;
 	guint off = 0;
 	guint len;
 	gboolean first = 1;
@@ -1267,6 +1270,10 @@ guint c_dissect_msg_mon_sub(proto_tree *tree,
 	
 	c_set_type(data, "Mon Subscribe");
 	proto_item_append_text(data->item_root, ", To:");
+	
+	ti = proto_tree_add_item(root, hf_msg_mon_sub,
+	                         tvb, off, front_len, ENC_NA);
+	tree = proto_item_add_subtree(ti, hf_msg_mon_sub);
 	
 	len = tvb_get_letohl(tvb, off);
 	proto_tree_add_item(tree, hf_msg_mon_sub_item_len,
@@ -1759,9 +1766,20 @@ guint c_dissect_msg(proto_tree *tree,
 #undef C_CALL_MSG
 #undef C_HANDLE_MSG
 	}
-	off += front_len + middle_len + data_len;
 	
-	//@TODO: Warn if parsedsize != size of data in the packet.
+	size = front_len + middle_len + data_len;
+	
+	/* Did the message dissector use all the data? */
+	if (parsedsize < size)
+	{
+		ti = proto_tree_add_text(tree, tvb, off+parsedsize, size-parsedsize,
+		                         "%"G_GINT32_MODIFIER"u unused byte%s",
+		                         size-parsedsize,
+		                         size-parsedsize == 1? "":"s");
+		expert_add_info(data->pinfo, ti, &ei_unused);
+	}
+	
+	off += size;
 	
 	/*** Footer ***/
 	
@@ -2148,8 +2166,7 @@ gboolean dissect_ceph_heur(tvbuff_t *tvb, packet_info *pinfo,
 void
 proto_register_ceph(void)
 {
-	//module_t *ceph_module;
-	//expert_module_t* expert_ceph;
+	expert_module_t* expert_ceph;
 	
 	static hf_register_info hf[] = {
 		{ &hf_node_id, {
@@ -2949,15 +2966,23 @@ proto_register_ceph(void)
 		&ett_ceph,
 	};
 	
+	/* Expert info items. */
+	static ei_register_info ei[] = {
+		{ &ei_unused, {
+			"ceph.unused", PI_UNDECODED, PI_WARN,
+			"Unused data in message.  This usually indicates an error by the "
+			"sender or a bug in the dissector.", EXPFILL
+		} },
+	};
+	
 	/* Register the protocol name and description */
 	proto_ceph = proto_register_protocol("Ceph", "Ceph", "ceph");
 	
 	/* Required function calls to register the header fields and subtrees */
 	proto_register_field_array(proto_ceph, hf, array_length(hf));
 	proto_register_subtree_array(ett, array_length(ett));
-	
-	/*** Preferences ***/
-	//ceph_module = prefs_register_protocol(proto_ceph, proto_reg_handoff_ceph);
+	expert_ceph = expert_register_protocol(proto_ceph);
+	expert_register_field_array(expert_ceph, ei, array_length(ei));
 }
 
 /* If this dissector uses sub-dissector registration add a registration routine.
