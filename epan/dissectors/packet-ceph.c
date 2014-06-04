@@ -33,6 +33,7 @@
 #include <epan/expert.h>
 #include <epan/prefs.h>
 #include <epan/conversation.h>
+#include <epan/to_str.h>
 
 /* Forward declaration that is needed below if using the
  * proto_reg_handoff_ceph function as a callback for when protocol
@@ -56,6 +57,10 @@ static int hf_inet_family                  = -1;
 static int hf_port                         = -1;
 static int hf_addr_ipv4                    = -1;
 static int hf_addr_ipv6                    = -1;
+static int hf_blob_data                    = -1;
+static int hf_blob_size                    = -1;
+static int hf_string_data                  = -1;
+static int hf_string_size                  = -1;
 static int hf_time                         = -1;
 static int hf_time_sec                     = -1;
 static int hf_time_nsec                    = -1;
@@ -304,22 +309,22 @@ enum c_tag {
 
 static const
 value_string c_tag_strings[] = {
-	{C_TAG_READY,          "server->client: ready for messages"                 },
-	{C_TAG_RESETSESSION,   "server->client: reset, try again"                   },
-	{C_TAG_WAIT,           "server->client: wait for racing incoming connection"},
-	{C_TAG_RETRY_SESSION,  "server->client + cseq: try again with higher cseq"  },
-	{C_TAG_RETRY_GLOBAL,   "server->client + gseq: try again with higher gseq"  },
-	{C_TAG_CLOSE,          "closing pipe"                                       },
-	{C_TAG_MSG,            "message"                                            },
-	{C_TAG_ACK,            "message ack"                                        },
-	{C_TAG_KEEPALIVE,      "just a keepalive byte!"                             },
-	{C_TAG_BADPROTOVER,    "bad protocol version"                               },
-	{C_TAG_BADAUTHORIZER,  "bad authorizer"                                     },
-	{C_TAG_FEATURES,       "insufficient features"                              },
-	{C_TAG_SEQ,            "64-bit int follows with seen seq number"            },
-	{C_TAG_KEEPALIVE2,     "Keepalive"                                          },
-	{C_TAG_KEEPALIVE2_ACK, "keepalive reply"                                    },
-	{0,                    NULL                                                 },
+	{C_TAG_READY,          "Ready for messages"                       },
+	{C_TAG_RESETSESSION,   "Reset, try again"                         },
+	{C_TAG_WAIT,           "Wait for racing incoming connection"      },
+	{C_TAG_RETRY_SESSION,  "Try again with higher connection sequence"},
+	{C_TAG_RETRY_GLOBAL,   "Try again with higher global sequence."   },
+	{C_TAG_CLOSE,          "Close"                                    },
+	{C_TAG_MSG,            "Message"                                  },
+	{C_TAG_ACK,            "Message acknowledgment"                   },
+	{C_TAG_KEEPALIVE,      "Keepalive"                                },
+	{C_TAG_BADPROTOVER,    "Bad protocol version"                     },
+	{C_TAG_BADAUTHORIZER,  "Bad authorizer"                           },
+	{C_TAG_FEATURES,       "Insufficient features"                    },
+	{C_TAG_SEQ,            "Sequence number"                          },
+	{C_TAG_KEEPALIVE2,     "Keepalive"                                },
+	{C_TAG_KEEPALIVE2_ACK, "keepalive reply"                          },
+	{0,                    NULL                                       },
 };
 static const
 value_string_ext c_tag_strings_ext = VALUE_STRING_EXT_INIT(c_tag_strings);
@@ -611,7 +616,17 @@ value_string c_node_type_strings[] = {
 	{C_NODE_TYPE_OSD,     "Object Storage Daemon"},
 	{C_NODE_TYPE_CLIENT,  "Client"               },
 	{C_NODE_TYPE_AUTH,    "Authentication Server"},
-	{0, NULL}
+	{0,                   NULL                   }
+};
+static const
+value_string c_node_type_abbr_strings[] = {
+	{C_NODE_TYPE_UNKNOWN, "unknown"},
+	{C_NODE_TYPE_MON,     "mon"    },
+	{C_NODE_TYPE_MDS,     "mds"    },
+	{C_NODE_TYPE_OSD,     "osd"    },
+	{C_NODE_TYPE_CLIENT,  "client" },
+	{C_NODE_TYPE_AUTH,    "auth"   },
+	{0,                   NULL     }
 };
 
 enum c_mon_sub_flags {
@@ -833,13 +848,21 @@ enum c_size_sockaddr {
 	C_SIZE_SOCKADDR_STORAGE = 128
 };
 
+typedef struct _c_sockaddr {
+	const gchar *str;
+	const gchar *addr_str;
+	
+	guint16 af;
+	guint16 port;
+} c_sockaddr;
+
 static
-guint c_dissect_sockaddr(proto_tree *root,
+guint c_dissect_sockaddr(proto_tree *root, c_sockaddr *sdata,
                          tvbuff_t *tvb, guint off, c_pkt_data *data _U_)
 {
-	guint16 af;
 	proto_item *ti;
 	proto_tree *tree;
+	c_sockaddr d;
 	
 	/*
 	struct sockaddr_storage {
@@ -861,29 +884,41 @@ guint c_dissect_sockaddr(proto_tree *root,
 	};
 	*/
 	
-	//@TODO Build human-readable string for root node.
-	
 	ti = proto_tree_add_item(root, hf_sockaddr,
 	                         tvb, off, C_SIZE_SOCKADDR_STORAGE, ENC_NA);
 	tree = proto_item_add_subtree(ti, hf_sockaddr);
 	
-	af = tvb_get_ntohs(tvb, off);
+	d.af = tvb_get_ntohs(tvb, off);
 	
 	proto_tree_add_item(tree, hf_inet_family, tvb, off, 2, ENC_BIG_ENDIAN);
 	
-	switch (af) {
+	switch (d.af) {
 	case C_IPv4:
+		d.port     = tvb_get_ntohs(tvb, off+2);
+		d.addr_str = tvb_ip_to_str(tvb, off+4);
+		
 		proto_tree_add_item(tree, hf_port, tvb, off+2, 2, ENC_BIG_ENDIAN);
 		proto_tree_add_item(tree, hf_addr_ipv4, tvb, off+4, 4, ENC_BIG_ENDIAN);
 		break;
 	case C_IPv6: //@UNTESTED
+		d.port     = tvb_get_ntohs (tvb, off+2);
+		d.addr_str = tvb_ip6_to_str(tvb, off+8);
+		
 		proto_tree_add_item(tree, hf_port, tvb, off+2, 2, ENC_BIG_ENDIAN);
 		proto_tree_add_item(tree, hf_addr_ipv6, tvb, off+8, 16, ENC_NA);
 		break;
 	default:
-		printf("UNKNOWN INET %x!\n", af);
+		d.port = 0;
+		d.addr_str = "Unknown INET";
 	}
 	off += C_SIZE_SOCKADDR_STORAGE; // Skip over sockaddr_storage.
+	
+	d.str = wmem_strdup_printf(wmem_packet_scope(), "%s:%"G_GINT16_MODIFIER"u",
+	                           d.addr_str,
+	                           d.port);
+	proto_item_append_text(ti, ": %s", d.str);
+	
+	if (sdata) *sdata = d;
 	
 	return off;
 }
@@ -898,17 +933,24 @@ guint c_dissect_entity_addr(proto_tree *root, int hf,
 {
 	proto_item *ti;
 	proto_tree *tree;
+	guint32     type;
+	c_sockaddr  addr;
 	
 	ti = proto_tree_add_item(root, hf, tvb, off, C_SIZE_ENTITY_ADDR, ENC_NA);
 	tree = proto_item_add_subtree(ti, hf);
 	
+	type = tvb_get_letohl(tvb, off);
 	proto_tree_add_item(tree, hf_node_type,
 	                    tvb, off, 4, ENC_LITTLE_ENDIAN);
 	off += 4;
 	proto_tree_add_item(tree, hf_node_nonce,
 	                    tvb, off, 4, ENC_LITTLE_ENDIAN);
 	off += 4;
-	off = c_dissect_sockaddr(tree, tvb, off, data);
+	off = c_dissect_sockaddr(tree, &addr, tvb, off, data);
+	
+	proto_item_append_text(ti, ", Type: %s, Address: %s",
+	                       val_to_str(type, c_node_type_strings, "Uknown (0x%08x)"),
+	                       addr.str);
 	
 	return off;
 }
@@ -1035,18 +1077,59 @@ guint c_dissect_flags(proto_tree *tree,
 /** Dissect a length-delimited binary blob.
  */
 static
-guint c_dissect_blob(proto_tree *tree, int hf_data, int hf_len,
+guint c_dissect_blob(proto_tree *root, int hf_data, int hf_len,
                      tvbuff_t *tvb, guint off)
 {
+	proto_item *ti;
+	proto_tree *tree;
 	guint32 size;
 	
 	size = tvb_get_letohl(tvb, off);
-	proto_tree_add_item(tree, hf_len,
+	
+	ti = proto_tree_add_item(root, hf_data, tvb, off+4, size, ENC_NA);
+	tree = proto_item_add_subtree(ti, hf_data);
+	
+	proto_tree_add_item(tree, hf_blob_size,
 	                    tvb, off, 4, ENC_LITTLE_ENDIAN);
 	off += 4;
-	proto_tree_add_item(tree, hf_data,
+	proto_tree_add_item(tree, hf_blob_data,
 	                    tvb, off, size, ENC_LITTLE_ENDIAN);
 	off += size;
+	
+	return off;
+}
+
+typedef struct _c_str {
+	char    *str;
+	guint32  size;
+} c_str;
+
+/** Dissect a length-delimited string.
+ */
+static
+guint c_dissect_str(proto_tree *root, int hf, c_str *out,
+                     tvbuff_t *tvb, guint off)
+{
+	proto_item *ti;
+	proto_tree *tree;
+	c_str d;
+	
+	d.size = tvb_get_letohl(tvb, off);
+	d.str  = tvb_get_string_enc(wmem_packet_scope(), tvb, off+4, d.size, ENC_ASCII);
+	
+	ti = proto_tree_add_string_format_value(root, hf, tvb, off, 4+d.size,
+	                                        d.str,
+	                                        "%s", d.str);
+	tree = proto_item_add_subtree(ti, hf);
+	
+	proto_tree_add_item(tree, hf_string_size,
+	                    tvb, off, 4, ENC_LITTLE_ENDIAN);
+	off += 4;
+	proto_tree_add_item(tree, hf_string_data,
+	                    tvb, off, d.size, ENC_LITTLE_ENDIAN);
+	off += d.size;
+	
+	if (out) *out = d;
 	
 	return off;
 }
@@ -1168,25 +1251,22 @@ guint c_dissect_msg_mon_map(proto_tree *root,
 }
 
 static
-guint c_dissect_msg_mon_sub(proto_tree *root,
+guint c_dissect_msg_mon_sub(proto_tree *tree,
                            tvbuff_t *tvb,
                            guint front_len, guint middle_len _U_, guint data_len _U_,
                            c_pkt_data *data)
 {
 	proto_item *ti, *ti2;
-	proto_tree *tree, *subtree;
+	proto_tree *subtree;
 	guint off = 0;
 	guint len;
 	gboolean first = 1;
+	c_str str;
 	
 	/* ceph:/src/messages/MMonSubscribe.h */
 	
 	c_set_type(data, "Mon Subscribe");
 	proto_item_append_text(data->item_root, ", To:");
-	
-	ti = proto_tree_add_item(root, hf_msg_mon_sub,
-	                         tvb, off, front_len, ENC_NA);
-	tree = proto_item_add_subtree(ti, hf_msg_mon_sub);
 	
 	len = tvb_get_letohl(tvb, off);
 	proto_tree_add_item(tree, hf_msg_mon_sub_item_len,
@@ -1213,14 +1293,16 @@ guint c_dissect_msg_mon_sub(proto_tree *root,
 		                         tvb, off, -1, ENC_NA);
 		subtree = proto_item_add_subtree(ti, hf_msg_mon_sub_item);
 		
+		off = c_dissect_str(subtree, hf_msg_mon_sub_what, &str, tvb, off);
+		
 		proto_item_append_text(data->item_root, "%c%s",
 		                       first? ' ':',',
-		                       tvb_format_text(tvb, off+4,
-		                                       tvb_get_letohl(tvb, off)));
+		                       str.str);
 		first = 0;
 		
-		off = c_dissect_blob(subtree, hf_msg_mon_sub_what, hf_msg_mon_sub_what_len,
-		                     tvb, off);
+		proto_item_append_text(ti, ", What: %s, Starting: %"G_GUINT64_FORMAT,
+		                       str.str,
+		                       tvb_get_letoh64(tvb, off));
 		
 		proto_tree_add_item(subtree, hf_msg_mon_sub_start,
 		                    tvb, off, 8, ENC_LITTLE_ENDIAN);
@@ -1438,6 +1520,7 @@ guint c_dissect_msg_mon_cmd(proto_tree *root,
 	proto_tree *tree, *subtree;
 	guint off = 0;
 	guint i;
+	c_str str;
 	
 	/* ceph:/src/messages/MMonCommand.h */
 	
@@ -1463,8 +1546,9 @@ guint c_dissect_msg_mon_cmd(proto_tree *root,
 		                         tvb, off, -1, ENC_NA);
 		subtree = proto_item_add_subtree(ti, hf_msg_mon_cmd_arg);
 		
-		off = c_dissect_blob(subtree, hf_msg_mon_cmd_str, hf_msg_mon_cmd_str_len,
-		                     tvb, off);
+		off = c_dissect_str(subtree, hf_msg_mon_cmd_str, &str, tvb, off);
+		
+		proto_item_append_text(ti, " %s", str.str);
 		
 		proto_item_set_end(ti, tvb, off);
 	}
@@ -1546,7 +1630,7 @@ enum c_size_msg {
  */
 static
 guint c_dissect_msg(proto_tree *tree,
-                  tvbuff_t *tvb, guint off, c_pkt_data *data)
+                    tvbuff_t *tvb, guint off, c_pkt_data *data)
 {
 	tvbuff_t *subtvb;
 	proto_item *ti;
@@ -1606,8 +1690,7 @@ guint c_dissect_msg(proto_tree *tree,
 	                    tvb, off, 8, ENC_LITTLE_ENDIAN);
 	off += 8;
 	
-	type = tvb_get_letohs(tvb, off);
-	data->header.type = type;
+	data->header.type = type = tvb_get_letohs(tvb, off);
 	proto_tree_add_item(subtree, hf_head_type,
 	                    tvb, off, 2, ENC_LITTLE_ENDIAN);
 	off += 2;
@@ -1645,6 +1728,12 @@ guint c_dissect_msg(proto_tree *tree,
 	proto_tree_add_item(subtree, hf_head_crc,
 	                    tvb, off, 4, ENC_LITTLE_ENDIAN);
 	off += 4;
+	
+	proto_item_append_text(ti, ", Type: %s",
+	                       val_to_str_ext(type, &c_msg_type_strings_ext, "Unknown (%04x)"));
+	if (front_len ) proto_item_append_text(ti, ", Front Len: %d", front_len);
+	if (middle_len) proto_item_append_text(ti, ", Mid Len: %d",   middle_len);
+	if (data_len  ) proto_item_append_text(ti, ", Data Len: %d",  data_len);
 	
 	/*** Body ***/
 	
@@ -2122,6 +2211,26 @@ proto_register_ceph(void)
 			"IPv6 Address", "ceph.client.ip",
 			FT_IPv6, BASE_NONE, NULL, 0,
 			"The IP address of the client as seen by the server.", HFILL
+		} },
+		{ &hf_blob_data, {
+			"Data", "ceph.blob.size",
+			FT_BYTES, BASE_NONE, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_blob_size, {
+			"Size", "ceph.blob.size",
+			FT_UINT32, BASE_DEC, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_string_data, {
+			"Data", "ceph.string.size",
+			FT_STRING, BASE_NONE, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_string_size, {
+			"Size", "ceph.string.size",
+			FT_UINT32, BASE_DEC, NULL, 0,
+			NULL, HFILL
 		} },
 		{ &hf_time, {
 			"Timestamp", "ceph.time",
@@ -2684,7 +2793,7 @@ proto_register_ceph(void)
 			NULL, HFILL
 		} },
 		{ &hf_msg_auth_reply_data, {
-			"Data Length", "ceph.msg.auth_reply.data",
+			"Data", "ceph.msg.auth_reply.data",
 			FT_BYTES, BASE_NONE, NULL, 0,
 			NULL, HFILL
 		} },
