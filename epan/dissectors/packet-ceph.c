@@ -223,10 +223,10 @@ enum c_banner {
 	C_BANNER_LEN_MAX = 30,
 };
 
-enum c_inet {
+typedef enum _c_inet {
 	C_IPv4 = 0x0002,
 	C_IPv6 = 0x000A
-};
+} c_inet;
 
 static const
 value_string c_inet_strings[] = {
@@ -234,10 +234,15 @@ value_string c_inet_strings[] = {
 	{ C_IPv6, "IPv6" },
 	{ 0     ,  NULL  }
 };
+static
+const char *c_inet_string(c_inet val)
+{
+	return val_to_str(val, c_inet_strings, "Unknown (0x%04x)");
+}
 
 /***** Feature Flags *****/
 /* Transmuted from ceph:/src/include/ceph_features.h */
-enum c_features {
+typedef enum _c_features {
 	C_FEATURE_UID                  = 1 <<  0,
 	C_FEATURE_NOSRCADDR            = 1 <<  1,
 	C_FEATURE_MONCLOCKCHECK        = 1 <<  2,
@@ -284,15 +289,15 @@ enum c_features {
 	C_FEATURE_OSD_PRIMARY_AFFINITY = 1 <<  9,
 	C_FEATURE_MSGR_KEEPALIVE2      = 1 << 10,
 	C_FEATURE_RESERVED             = 1 << 31
-};
+} c_features;
 
 /***** Connect Message Flags *****/
-enum c_flags {
+typedef enum _c_flags {
 	C_FLAG_LOSSY = 1 << 0,
-};
+} c_flags;
 
 /***** Message Tags *****/
-enum c_tag {
+typedef enum _c_tag {
 	C_TAG_READY          = 0x01, /* server->client: ready for messages */
 	C_TAG_RESETSESSION   = 0x02, /* server->client: reset, try again */
 	C_TAG_WAIT           = 0x03, /* server->client: wait for racing incoming connection */
@@ -308,7 +313,7 @@ enum c_tag {
 	C_TAG_SEQ            = 0x0D, /* 64-bit int follows with seen seq number */
 	C_TAG_KEEPALIVE2     = 0x0E,
 	C_TAG_KEEPALIVE2_ACK = 0x0F  /* keepalive reply */
-};
+} c_tag;
 
 static const
 value_string c_tag_strings[] = {
@@ -331,6 +336,11 @@ value_string c_tag_strings[] = {
 };
 static const
 value_string_ext c_tag_strings_ext = VALUE_STRING_EXT_INIT(c_tag_strings);
+static
+const char *c_tag_string(c_tag val)
+{
+	return val_to_str_ext(val, &c_tag_strings_ext, "Unknown (0x%02x)");
+}
 
 /* Extracted from the Ceph tree.
  * 
@@ -338,7 +348,9 @@ value_string_ext c_tag_strings_ext = VALUE_STRING_EXT_INIT(c_tag_strings);
  * CEPH_MSG_* for client <-> server messages.  There is no functional
  * difference, just a naming convention.
  */
-enum c_msg_type {
+typedef enum _c_msg_type {
+	C_MSG_UNKNOWN                     = 0x0000,
+	
 	C_CEPH_MSG_SHUTDOWN               = 0x0001,
 	C_CEPH_MSG_PING                   = 0x0002,
 	C_CEPH_MSG_MON_MAP                = 0x0004,
@@ -466,10 +478,11 @@ enum c_msg_type {
 	C_MSG_MDS_HEARTBEAT               = 0x0500,
 	C_MSG_TIMECHECK                   = 0x0600,
 	C_MSG_MON_HEALTH                  = 0x0601,
-};
+} c_msg_type;
 
 static const
 value_string c_msg_type_strings[] = {
+	{C_MSG_UNKNOWN,                     "Unknown (0x0000)"                },
 	{C_CEPH_MSG_SHUTDOWN,               "CEPH_MSG_SHUTDOWN"               },
 	{C_CEPH_MSG_PING,                   "CEPH_MSG_PING"                   },
 	{C_CEPH_MSG_MON_MAP,                "CEPH_MSG_MON_MAP"                },
@@ -602,6 +615,12 @@ value_string c_msg_type_strings[] = {
 static const
 value_string_ext c_msg_type_strings_ext = VALUE_STRING_EXT_INIT(c_msg_type_strings);
 
+static
+const char *c_msg_type_string(c_msg_type val)
+{
+	return val_to_str_ext(val, &c_msg_type_strings_ext, "Unknown (0x%04x)");
+}
+
 typedef enum _c_node_type {
 	C_NODE_TYPE_UNKNOWN = 0x00,
 	C_NODE_TYPE_MON     = 0x01,
@@ -621,6 +640,11 @@ value_string c_node_type_strings[] = {
 	{C_NODE_TYPE_AUTH,    "Authentication Server"},
 	{0,                   NULL                   }
 };
+static
+const char *c_node_type_string(c_node_type val)
+{
+	return val_to_str(val, c_node_type_strings, "Unknown (0x%02x)");
+}
 static const
 value_string c_node_type_abbr_strings[] = {
 	{C_NODE_TYPE_UNKNOWN, "unknown"},
@@ -631,6 +655,11 @@ value_string c_node_type_abbr_strings[] = {
 	{C_NODE_TYPE_AUTH,    "auth"   },
 	{0,                   NULL     }
 };
+static
+const char *c_node_type_abbr_string(c_node_type val)
+{
+	return val_to_str(val, c_node_type_abbr_strings, "Unknown (0x%02x)");
+}
 
 enum c_mon_sub_flags {
 	C_MON_SUB_FLAG_ONETIME = 0x01
@@ -647,6 +676,14 @@ typedef struct _c_node {
 	c_state state;
 	guint16 port;
 } c_node;
+
+typedef struct _c_node_name {
+	const char *slug;
+	const char *type_str;
+	guint64 id;
+	c_node_type type;
+} c_node_name;
+
 
 static
 void c_node_init(c_node *n)
@@ -707,9 +744,10 @@ c_conv_data* c_conv_data_new(void)
 typedef struct _c_header {
 	guint64 seq;
 	guint64 tid;
-	guint16 type;
+	c_msg_type type;
 	guint16 ver;
 	guint8  priority;
+	c_node_name src;
 } c_header;
 
 static
@@ -717,9 +755,10 @@ void c_header_init(c_header *h)
 {
 	h->seq      = 0;
 	h->tid      = 0;
-	h->type     = 0;
+	h->type     = C_MSG_UNKNOWN;
 	h->priority = 0;
 	h->ver      = 0;
+	memset(&h->src, 0, sizeof(h->src));
 }
 
 typedef struct _c_pkt_data {
@@ -952,7 +991,7 @@ guint c_dissect_entity_addr(proto_tree *root, int hf,
 	off = c_dissect_sockaddr(tree, &addr, tvb, off, data);
 	
 	proto_item_append_text(ti, ", Type: %s, Address: %s",
-	                       val_to_str(type, c_node_type_strings, "Uknown (0x%08x)"),
+	                       c_node_type_string((c_node_type)type),
 	                       addr.str);
 	
 	return off;
@@ -963,8 +1002,8 @@ enum c_size_entity_name {
 };
 
 static
-guint c_dissect_entity_name(proto_tree *root,
-                            tvbuff_t *tvb, guint off, c_pkt_data *data _U_)
+guint c_dissect_node_name(proto_tree *root, c_node_name *out,
+                          tvbuff_t *tvb, guint off, c_pkt_data *data _U_)
 {
 	/* From ceph:/src/include/msgr.h
 	struct ceph_entity_name {
@@ -975,19 +1014,38 @@ guint c_dissect_entity_name(proto_tree *root,
 	
 	proto_item *ti;
 	proto_tree *tree;
+	c_node_name d;
 	
 	ti = proto_tree_add_item(root, hf_node_name, tvb,
 	                         off, C_SIZE_ENTITY_NAME,
 	                         ENC_NA);
 	tree = proto_item_add_subtree(ti, hf_node_name);
 	
+	d.type     = (c_node_type)tvb_get_guint8(tvb, off);
+	d.type_str = c_node_type_abbr_string(d.type);
 	proto_tree_add_item(tree, hf_node_type,
 	                    tvb, off, 1, ENC_LITTLE_ENDIAN);
 	off += 1;
+	
+	d.id   = tvb_get_letoh64(tvb, off);
 	proto_tree_add_item(tree, hf_node_id,
 	                    tvb, off, 8, ENC_LITTLE_ENDIAN);
 	off += 8;
 	
+	if (d.id == G_MAXUINT64)
+	{
+		d.slug = d.type_str;
+	}
+	else
+	{
+		d.slug = wmem_strdup_printf(wmem_packet_scope(), "%s%"G_GINT64_MODIFIER"u",
+		                            d.type_str,
+		                            d.id);
+	}
+	
+	proto_item_append_text(ti, ": %s", d.slug);
+	
+	if (out) *out = d;
 	return off;
 }
 
@@ -1645,7 +1703,7 @@ guint c_dissect_msg(proto_tree *tree,
 	tvbuff_t *subtvb;
 	proto_item *ti;
 	proto_tree *subtree;
-	guint16 type;
+	c_msg_type type;
 	guint32 front_len, middle_len, data_len;
 	guint size, parsedsize;
 	
@@ -1700,7 +1758,7 @@ guint c_dissect_msg(proto_tree *tree,
 	                    tvb, off, 8, ENC_LITTLE_ENDIAN);
 	off += 8;
 	
-	data->header.type = type = tvb_get_letohs(tvb, off);
+	data->header.type = type = (c_msg_type)tvb_get_letohs(tvb, off);
 	proto_tree_add_item(subtree, hf_head_type,
 	                    tvb, off, 2, ENC_LITTLE_ENDIAN);
 	off += 2;
@@ -1727,7 +1785,7 @@ guint c_dissect_msg(proto_tree *tree,
 	                    tvb, off, 2, ENC_LITTLE_ENDIAN);
 	off += 2;
 	
-	off = c_dissect_entity_name(subtree, tvb, off, data);
+	off = c_dissect_node_name(subtree, &data->header.src, tvb, off, data);
 	
 	proto_tree_add_item(subtree, hf_head_compat_version,
 	                    tvb, off, 2, ENC_LITTLE_ENDIAN);
@@ -1739,8 +1797,9 @@ guint c_dissect_msg(proto_tree *tree,
 	                    tvb, off, 4, ENC_LITTLE_ENDIAN);
 	off += 4;
 	
-	proto_item_append_text(ti, ", Type: %s",
-	                       val_to_str_ext(type, &c_msg_type_strings_ext, "Unknown (%04x)"));
+	proto_item_append_text(ti, ", Type: %s, From: %s",
+	                       c_msg_type_string(type),
+	                       data->header.src.slug);
 	if (front_len ) proto_item_append_text(ti, ", Front Len: %d", front_len);
 	if (middle_len) proto_item_append_text(ti, ", Mid Len: %d",   middle_len);
 	if (data_len  ) proto_item_append_text(ti, ", Data Len: %d",  data_len);
@@ -2057,7 +2116,7 @@ guint c_dissect_msgr(proto_tree *tree,
 			we can continue.
 			
 			Stepping through byte-by-byte is slow, and creates a lot of
-			"Unkown Tag" items (where only the first one is really
+			"Unknown Tag" items (where only the first one is really
 			meaningful) but we don't want to miss the next message if we
 			can help it.
 			
