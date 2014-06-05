@@ -642,10 +642,10 @@ typedef enum _c_state {
 } c_state;
 
 typedef struct _c_node {
-	c_node_type type;
 	address addr;
-	guint16 port;
+	c_node_type type;
 	c_state state;
+	guint16 port;
 } c_node;
 
 static
@@ -708,8 +708,8 @@ typedef struct _c_header {
 	guint64 seq;
 	guint64 tid;
 	guint16 type;
-	guint8  priority;
 	guint16 ver;
+	guint8  priority;
 } c_header;
 
 static
