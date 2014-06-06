@@ -62,14 +62,11 @@ static int hf_inet_family                  = -1;
 static int hf_port                         = -1;
 static int hf_addr_ipv4                    = -1;
 static int hf_addr_ipv6                    = -1;
-static int hf_blob_data                    = -1;
-static int hf_blob_size                    = -1;
 static int hf_string_data                  = -1;
 static int hf_string_size                  = -1;
 static int hf_time                         = -1;
 static int hf_time_sec                     = -1;
 static int hf_time_nsec                    = -1;
-static int hf_features                     = -1;
 static int hf_features_high                = -1;
 static int hf_features_low                 = -1;
 static int hf_feature_uid                  = -1;
@@ -157,12 +154,12 @@ static int hf_paxos_mon                    = -1;
 static int hf_paxos_mon_tid                = -1;
 static int hf_msg_mon_map                  = -1;
 static int hf_msg_mon_map_data             = -1;
+static int hf_msg_mon_map_data_data        = -1;
 static int hf_msg_mon_map_data_len         = -1;
 static int hf_msg_mon_sub                  = -1;
 static int hf_msg_mon_sub_item             = -1;
 static int hf_msg_mon_sub_item_len         = -1;
 static int hf_msg_mon_sub_what             = -1;
-static int hf_msg_mon_sub_what_len         = -1;
 static int hf_msg_mon_sub_start            = -1;
 static int hf_msg_mon_sub_flags            = -1;
 static int hf_msg_mon_sub_flags_onetime    = -1;
@@ -172,16 +169,17 @@ static int hf_msg_mon_sub_ack_fsid         = -1;
 static int hf_msg_auth                     = -1;
 static int hf_msg_auth_proto               = -1;
 static int hf_msg_auth_payload             = -1;
+static int hf_msg_auth_payload_data        = -1;
 static int hf_msg_auth_payload_len         = -1;
 static int hf_msg_auth_monmap_epoch        = -1;
 static int hf_msg_auth_reply               = -1;
 static int hf_msg_auth_reply_proto         = -1;
 static int hf_msg_auth_reply_result        = -1;
 static int hf_msg_auth_reply_global_id     = -1;
-static int hf_msg_auth_reply_data_len      = -1;
 static int hf_msg_auth_reply_data          = -1;
+static int hf_msg_auth_reply_data_data     = -1;
+static int hf_msg_auth_reply_data_len      = -1;
 static int hf_msg_auth_reply_msg           = -1;
-static int hf_msg_auth_reply_msg_len       = -1;
 static int hf_msg_osd_map                  = -1;
 static int hf_msg_osd_map_fsid             = -1;
 static int hf_msg_osd_map_inc              = -1;
@@ -190,6 +188,7 @@ static int hf_msg_osd_map_map              = -1;
 static int hf_msg_osd_map_map_len          = -1;
 static int hf_msg_osd_map_epoch            = -1;
 static int hf_msg_osd_map_data             = -1;
+static int hf_msg_osd_map_data_data             = -1;
 static int hf_msg_osd_map_data_len         = -1;
 static int hf_msg_osd_map_oldest           = -1;
 static int hf_msg_osd_map_newest           = -1;
@@ -198,15 +197,12 @@ static int hf_msg_mon_cmd_fsid             = -1;
 static int hf_msg_mon_cmd_arg              = -1;
 static int hf_msg_mon_cmd_arg_len          = -1;
 static int hf_msg_mon_cmd_str              = -1;
-static int hf_msg_mon_cmd_str_len          = -1;
 static int hf_msg_mon_cmd_ack              = -1;
 static int hf_msg_mon_cmd_ack_code         = -1;
 static int hf_msg_mon_cmd_ack_res          = -1;
-static int hf_msg_mon_cmd_ack_res_len      = -1;
 static int hf_msg_mon_cmd_ack_arg          = -1;
 static int hf_msg_mon_cmd_ack_arg_len      = -1;
 static int hf_msg_mon_cmd_ack_arg_str      = -1;
-static int hf_msg_mon_cmd_ack_arg_str_len  = -1;
 static int hf_msg_mon_cmd_ack_data         = -1;
 
 /* @TODO: Remove before release.  Just for copying convenience.
@@ -239,11 +235,11 @@ value_string c_inet_strings[] = {
 	{ C_IPv6, "IPv6" },
 	{ 0     ,  NULL  }
 };
-static
-const char *c_inet_string(c_inet val)
-{
-	return val_to_str(val, c_inet_strings, "Unknown (0x%04x)");
-}
+//static
+//const char *c_inet_string(c_inet val)
+//{
+//	return val_to_str(val, c_inet_strings, "Unknown (0x%04x)");
+//}
 
 /***** Feature Flags *****/
 /* Transmuted from ceph:/src/include/ceph_features.h */
@@ -336,16 +332,16 @@ value_string c_tag_strings[] = {
 	{C_TAG_FEATURES,       "Insufficient features"                    },
 	{C_TAG_SEQ,            "Sequence number"                          },
 	{C_TAG_KEEPALIVE2,     "Keepalive"                                },
-	{C_TAG_KEEPALIVE2_ACK, "keepalive reply"                          },
+	{C_TAG_KEEPALIVE2_ACK, "Keepalive reply"                          },
 	{0,                    NULL                                       },
 };
 static const
 value_string_ext c_tag_strings_ext = VALUE_STRING_EXT_INIT(c_tag_strings);
-static
-const char *c_tag_string(c_tag val)
-{
-	return val_to_str_ext(val, &c_tag_strings_ext, "Unknown (0x%02x)");
-}
+//static
+//const char *c_tag_string(c_tag val)
+//{
+//	return val_to_str_ext(val, &c_tag_strings_ext, "Unknown (0x%02x)");
+//}
 
 /* Extracted from the Ceph tree.
  * 
@@ -1152,26 +1148,29 @@ guint c_dissect_flags(proto_tree *tree,
 /** Dissect a length-delimited binary blob.
  */
 static
-guint c_dissect_blob(proto_tree *root, int hf_data, int hf_len,
+guint c_dissect_blob(proto_tree *root, int hf, int hf_data, int hf_len,
                      tvbuff_t *tvb, guint off)
 {
 	proto_item *ti;
 	proto_tree *tree;
 	guint32 size;
+	const char *hex;
 	
 	size = tvb_get_letohl(tvb, off);
-	//hex  = bytestring_to_str(wmem_packet_scope(),
-	//                         tvb_get_ptr(tvb, off+4, size), size
-	//                         '\0');
+	hex  = bytestring_to_str(wmem_packet_scope(),
+	                         tvb_get_ptr(tvb, off+4, size), size,
+	                         '\0');
 	
-	ti = proto_tree_add_item(root, hf_data, tvb, off+4, size, ENC_NA);
+	ti = proto_tree_add_item(root, hf, tvb, off, size+4, ENC_NA);
+	proto_item_append_text(ti, ", Size: %"G_GINT32_MODIFIER"u, Data: %s",
+	                       size, hex);
 	tree = proto_item_add_subtree(ti, hf_data);
 	
-	proto_tree_add_item(tree, hf_blob_size,
+	proto_tree_add_item(tree, hf_len,
 	                    tvb, off, 4, ENC_LITTLE_ENDIAN);
 	off += 4;
-	proto_tree_add_item(tree, hf_blob_data,
-	                    tvb, off, size, ENC_LITTLE_ENDIAN);
+	proto_tree_add_item(tree, hf_data,
+	                    tvb, off, size, ENC_NA);
 	off += size;
 	
 	return off;
@@ -1322,7 +1321,8 @@ guint c_dissect_msg_mon_map(proto_tree *root,
 	                         tvb, 0, front_len, ENC_NA);
 	tree = proto_item_add_subtree(ti, hf_msg_mon_map);
 	
-	return c_dissect_blob(tree, hf_msg_mon_map_data, hf_msg_mon_map_data_len,
+	return c_dissect_blob(tree, hf_msg_mon_map_data,
+	                      hf_msg_mon_map_data_data, hf_msg_mon_map_data_len,
 	                      tvb, 0);
 	
 	//@TODO: Parse Mon Map.
@@ -1459,7 +1459,8 @@ guint c_dissect_msg_auth(proto_tree *root,
 	                    tvb, off, 4, ENC_LITTLE_ENDIAN);
 	off += 4;
 	
-	off = c_dissect_blob(tree, hf_msg_auth_payload, hf_msg_auth_payload_len,
+	off = c_dissect_blob(tree, hf_msg_auth_payload,
+	                     hf_msg_auth_payload_data, hf_msg_auth_payload_len,
 	                     tvb, off);
 	
 	//@TODO: Parse auth.
@@ -1503,10 +1504,10 @@ guint c_dissect_msg_auth_reply(proto_tree *root,
 	                    tvb, off, 8, ENC_LITTLE_ENDIAN);
 	off += 8;
 	
-	off = c_dissect_blob(tree, hf_msg_auth_reply_data, hf_msg_auth_reply_data_len,
+	off = c_dissect_blob(tree, hf_msg_auth_reply_data,
+	                     hf_msg_auth_reply_data_data, hf_msg_auth_reply_data_len,
 	                     tvb, off);
-	off = c_dissect_blob(tree, hf_msg_auth_reply_msg, hf_msg_auth_reply_msg_len,
-	                     tvb, off);
+	off = c_dissect_str(tree, hf_msg_auth_reply_msg, NULL, tvb, off);
 	
 	return off;
 }
@@ -1552,7 +1553,8 @@ guint c_dissect_msg_osd_map(proto_tree *root,
 		proto_tree_add_item(subtree, hf_msg_osd_map_epoch,
 		                    tvb, off, 4, ENC_LITTLE_ENDIAN);
 		off += 4;
-		off = c_dissect_blob(subtree, hf_msg_osd_map_data, hf_msg_osd_map_data_len,
+		off = c_dissect_blob(subtree, hf_msg_osd_map_data,
+		                     hf_msg_osd_map_data_data, hf_msg_osd_map_data_len,
 		                     tvb, off);
 		
 		proto_item_set_end(ti, tvb, off);
@@ -1573,7 +1575,8 @@ guint c_dissect_msg_osd_map(proto_tree *root,
 		proto_tree_add_item(subtree, hf_msg_osd_map_epoch,
 		                    tvb, off, 4, ENC_LITTLE_ENDIAN);
 		off += 4;
-		off = c_dissect_blob(subtree, hf_msg_osd_map_data, hf_msg_osd_map_data_len,
+		off = c_dissect_blob(subtree, hf_msg_osd_map_data,
+		                     hf_msg_osd_map_data_data, hf_msg_osd_map_data_len,
 		                     tvb, off);
 		
 		proto_item_set_end(ti, tvb, off);
@@ -1662,8 +1665,7 @@ guint c_dissect_msg_mon_cmd_ack(proto_tree *root,
 	proto_tree_add_item(tree, hf_msg_mon_cmd_ack_code,
 	                    tvb, off, 4, ENC_LITTLE_ENDIAN);
 	off += 4;
-	off = c_dissect_blob(tree, hf_msg_mon_cmd_ack_res, hf_msg_mon_cmd_ack_res_len,
-	                     tvb, off);
+	off = c_dissect_str(tree, hf_msg_mon_cmd_ack_res, NULL, tvb, off);
 	
 	i = tvb_get_letohl(tvb, off);
 	proto_tree_add_item(tree, hf_msg_mon_cmd_ack_arg_len,
@@ -1675,9 +1677,8 @@ guint c_dissect_msg_mon_cmd_ack(proto_tree *root,
 		                         tvb, off, -1, ENC_NA);
 		subtree = proto_item_add_subtree(ti, hf_msg_mon_cmd_ack_arg);
 		
-		off = c_dissect_blob(subtree, hf_msg_mon_cmd_ack_arg_str,
-		                     hf_msg_mon_cmd_ack_arg_str_len,
-		                     tvb, off);
+		off = c_dissect_str(subtree, hf_msg_mon_cmd_ack_arg_str, NULL,
+		                    tvb, off);
 		
 		proto_item_set_end(ti, tvb, off);
 	}
@@ -2349,16 +2350,6 @@ proto_register_ceph(void)
 			FT_IPv6, BASE_NONE, NULL, 0,
 			"The IP address of the client as seen by the server.", HFILL
 		} },
-		{ &hf_blob_data, {
-			"Data", "ceph.blob.size",
-			FT_BYTES, BASE_NONE, NULL, 0,
-			NULL, HFILL
-		} },
-		{ &hf_blob_size, {
-			"Size", "ceph.blob.size",
-			FT_UINT32, BASE_DEC, NULL, 0,
-			NULL, HFILL
-		} },
 		{ &hf_string_data, {
 			"Data", "ceph.string.size",
 			FT_STRING, BASE_NONE, NULL, 0,
@@ -2387,11 +2378,6 @@ proto_register_ceph(void)
 		{ &hf_connect, {
 			"Connection Negotiation", "ceph.connect",
 			FT_NONE, BASE_NONE, NULL, 0,
-			NULL, HFILL
-		} },
-		{ &hf_features, {
-			"Features", "ceph.connect.features",
-			FT_UINT64, BASE_HEX, NULL, 0,
 			NULL, HFILL
 		} },
 		{ &hf_features_low, {
@@ -2820,12 +2806,17 @@ proto_register_ceph(void)
 			NULL, HFILL
 		} },
 		{ &hf_msg_mon_map_data, {
-			"Payload", "ceph.msg.mon_map.data",
+			"Payload", "ceph",
+			FT_NONE, BASE_NONE, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_mon_map_data_data, {
+			"Data", "ceph.msg.mon_map.data",
 			FT_BYTES, BASE_NONE, NULL, 0,
 			NULL, HFILL
 		} },
 		{ &hf_msg_mon_map_data_len, {
-			"Payload Length", "ceph.msg.mon_map.data_len",
+			"Length", "ceph.msg.mon_map.data_len",
 			FT_UINT32, BASE_DEC, NULL, 0,
 			NULL, HFILL
 		} },
@@ -2848,11 +2839,6 @@ proto_register_ceph(void)
 			"What", "ceph.msg.mon_sub.what",
 			FT_STRING, BASE_NONE, NULL, 0,
 			"What to subscribe to.", HFILL
-		} },
-		{ &hf_msg_mon_sub_what_len, {
-			"What Length", "ceph.msg.mon_sub.what_len",
-			FT_UINT32, BASE_DEC, NULL, 0,
-			NULL, HFILL
 		} },
 		{ &hf_msg_mon_sub_start, {
 			"Start Time", "ceph.msg.mon_sub.start",
@@ -2895,12 +2881,17 @@ proto_register_ceph(void)
 			NULL, HFILL
 		} },
 		{ &hf_msg_auth_payload, {
-			"Payload", "ceph.msg.auth.data",
+			"Payload", "ceph",
+			FT_NONE, BASE_NONE, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_auth_payload_data, {
+			"Data", "ceph.msg.auth.payload",
 			FT_BYTES, BASE_NONE, NULL, 0,
 			NULL, HFILL
 		} },
 		{ &hf_msg_auth_payload_len, {
-			"Payload Length", "ceph.msg.auth.data_len",
+			"Length", "ceph.msg.auth.payload_len",
 			FT_UINT32, BASE_DEC, NULL, 0,
 			NULL, HFILL
 		} },
@@ -2930,23 +2921,23 @@ proto_register_ceph(void)
 			NULL, HFILL
 		} },
 		{ &hf_msg_auth_reply_data, {
+			"Data", "ceph",
+			FT_NONE, BASE_NONE, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_auth_reply_data_data, {
 			"Data", "ceph.msg.auth_reply.data",
 			FT_BYTES, BASE_NONE, NULL, 0,
 			NULL, HFILL
 		} },
 		{ &hf_msg_auth_reply_data_len, {
-			"Data Length", "ceph.msg.auth_reply.data_len",
+			"Length", "ceph.msg.auth_reply.data_len",
 			FT_UINT32, BASE_DEC, NULL, 0,
 			NULL, HFILL
 		} },
 		{ &hf_msg_auth_reply_msg, {
 			"Message", "ceph.msg.auth_reply.msg",
 			FT_STRING, BASE_NONE, NULL, 0,
-			NULL, HFILL
-		} },
-		{ &hf_msg_auth_reply_msg_len, {
-			"Message Length", "ceph.msg.auth_reply.msg_len",
-			FT_UINT32, BASE_DEC, NULL, 0,
 			NULL, HFILL
 		} },
 		{ &hf_msg_osd_map, {
@@ -2985,12 +2976,17 @@ proto_register_ceph(void)
 			NULL, HFILL
 		} },
 		{ &hf_msg_osd_map_data, {
-			"Map Data", "ceph.msg.osd_map.data",
+			"Map Data", "ceph",
+			FT_NONE, BASE_NONE, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_osd_map_data_data, {
+			"Data", "ceph.msg.osd_map.data",
 			FT_BYTES, BASE_NONE, NULL, 0,
 			NULL, HFILL
 		} },
 		{ &hf_msg_osd_map_data_len, {
-			"Data Length", "ceph.msg.osd_map.data_len",
+			"Length", "ceph.msg.osd_map.data_len",
 			FT_UINT32, BASE_DEC, NULL, 0,
 			NULL, HFILL
 		} },
@@ -3029,11 +3025,6 @@ proto_register_ceph(void)
 			FT_STRING, BASE_NONE, NULL, 0,
 			NULL, HFILL
 		} },
-		{ &hf_msg_mon_cmd_str_len, {
-			"String Length", "ceph.msg.mon_cmd.str_len",
-			FT_UINT32, BASE_DEC, NULL, 0,
-			NULL, HFILL
-		} },
 		{ &hf_msg_mon_cmd_ack, {
 			"Mon Command Result", "ceph.msg.mon_cmd_ack",
 			FT_NONE, BASE_NONE, NULL, 0,
@@ -3049,11 +3040,6 @@ proto_register_ceph(void)
 			FT_STRING, BASE_NONE, NULL, 0,
 			NULL, HFILL
 		} },
-		{ &hf_msg_mon_cmd_ack_res_len, {
-			"String Length", "ceph.msg.mon_cmd_ack.result_len",
-			FT_UINT32, BASE_DEC, NULL, 0,
-			NULL, HFILL
-		} },
 		{ &hf_msg_mon_cmd_ack_arg, {
 			"Argument", "ceph.msg.mon_cmd_ack.arg",
 			FT_NONE, BASE_NONE, NULL, 0,
@@ -3067,11 +3053,6 @@ proto_register_ceph(void)
 		{ &hf_msg_mon_cmd_ack_arg_str, {
 			"String", "ceph.msg.mon_cmd_ack.str",
 			FT_STRING, BASE_NONE, NULL, 0,
-			NULL, HFILL
-		} },
-		{ &hf_msg_mon_cmd_ack_arg_str_len, {
-			"String Length", "ceph.msg.mon_cmd_ack.str_len",
-			FT_UINT32, BASE_DEC, NULL, 0,
 			NULL, HFILL
 		} },
 		{ &hf_msg_mon_cmd_ack_data, {
