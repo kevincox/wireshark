@@ -45,10 +45,15 @@ static dissector_handle_t ceph_handle;
 
 /* Initialize the protocol and registered fields */
 static int proto_ceph                      = -1;
+static int hf_filter_data                  = -1;
 static int hf_node_id                      = -1;
 static int hf_node_type                    = -1;
 static int hf_node_nonce                   = -1;
 static int hf_node_name                    = -1;
+static int hf_src_slug                    = -1;
+static int hf_src_type                    = -1;
+static int hf_dst_type                    = -1;
+static int hf_dst_slug                    = -1;
 static int hf_version                      = -1;
 static int hf_client_info                  = -1;
 static int hf_server_info                  = -1;
@@ -670,13 +675,6 @@ typedef enum _c_state {
 	C_STATE_OPEN
 } c_state;
 
-typedef struct _c_node {
-	address addr;
-	c_node_type type;
-	c_state state;
-	guint16 port;
-} c_node;
-
 typedef struct _c_node_name {
 	const char *slug;
 	const char *type_str;
@@ -684,12 +682,27 @@ typedef struct _c_node_name {
 	c_node_type type;
 } c_node_name;
 
+static
+void c_node_name_init(c_node_name *d)
+{
+	d->slug     = NULL;
+	d->type_str = NULL;
+	d->id       = G_MAXUINT64;
+	d->type     = C_NODE_TYPE_UNKNOWN;
+}
+
+typedef struct _c_node {
+	address addr;
+	c_node_name name;
+	c_state state;
+	guint16 port;
+} c_node;
 
 static
 void c_node_init(c_node *n)
 {
-	n->type = C_NODE_TYPE_UNKNOWN;
 	/* @HELP: n->addr is there a sane way to initialize this? */
+	c_node_name_init(&n->name);
 	n->port = 0xFFFF;
 	n->state = C_STATE_NEW;
 }
@@ -697,7 +710,7 @@ void c_node_init(c_node *n)
 static
 c_node *c_node_copy(c_node *src, c_node *dst)
 {
-	dst->type = src->type;
+	dst->name = src->name;
 	copy_address(&dst->addr, &src->addr);
 	dst->port = src->port;
 	dst->state = src->state;
@@ -767,7 +780,8 @@ typedef struct _c_pkt_data {
 	c_node *src;          /* The node in convd that sent this message. */
 	c_node *dst;          /* The node in convd that is receiving this message. */
 	
-	proto_item  *item_root; /* The root proto_item for the message. */
+	proto_item  *item_root;   /* The root proto_item for the message. */
+	proto_item  *tree_filter; /* The filter data tree. */
 	packet_info *pinfo;
 	
 	c_header header;      /* The MSG header. */
@@ -1787,6 +1801,15 @@ guint c_dissect_msg(proto_tree *tree,
 	
 	off = c_dissect_node_name(subtree, &data->header.src, tvb, off, data);
 	
+	/*** Copy the data to the state structure. ***/
+	if (!data->src->name.slug)
+	{
+		data->src->name.slug     = wmem_strdup(wmem_file_scope(), data->header.src.slug);
+		data->src->name.type_str = wmem_strdup(wmem_file_scope(), data->header.src.type_str);
+		data->src->name.type     = data->header.src.type;
+		data->src->name.id       = data->header.src.id;
+	}
+	
 	proto_tree_add_item(subtree, hf_head_compat_version,
 	                    tvb, off, 2, ENC_LITTLE_ENDIAN);
 	off += 2;
@@ -2140,7 +2163,7 @@ static
 guint c_dissect_pdu(proto_tree *root,
                   tvbuff_t *tvb, guint off, c_pkt_data *data)
 {
-	proto_item *ti;
+	proto_item *ti, *tif;
 	proto_tree *tree;
 	
 	ti = proto_tree_add_item(root, proto_ceph, tvb, off, -1, ENC_NA);
@@ -2148,12 +2171,22 @@ guint c_dissect_pdu(proto_tree *root,
 	
 	data->item_root = ti;
 	
+	tif = proto_tree_add_item(tree, hf_filter_data, tvb, off, -1, ENC_NA);
+	data->tree_filter = proto_item_add_subtree(tif, hf_filter_data);
+	
 	if (data->src->state == C_STATE_NEW)
 		off = c_dissect_new(tree, tvb, off, data);
 	else
 		off = c_dissect_msgr(tree, tvb, off, data);
 	
-	proto_item_set_end(ti, tvb, off);
+	/*** General Filter Data ***/
+	proto_tree_add_string(data->tree_filter, hf_src_slug, NULL,0,0, data->src->name.slug);
+	proto_tree_add_uint  (data->tree_filter, hf_src_type, NULL,0,0, data->src->name.type);
+	proto_tree_add_string(data->tree_filter, hf_dst_slug, NULL,0,0, data->dst->name.slug);
+	proto_tree_add_uint  (data->tree_filter, hf_dst_type, NULL,0,0, data->dst->name.type);
+	
+	proto_item_set_end(ti,  tvb, off);
+	proto_item_set_end(tif, tvb, off);
 	return off;
 }
 
@@ -2231,6 +2264,11 @@ proto_register_ceph(void)
 	expert_module_t* expert_ceph;
 	
 	static hf_register_info hf[] = {
+		{ &hf_filter_data, {
+			"Filter Data", "ceph.filter",
+			FT_NONE, BASE_NONE, NULL, 0,
+			"A bunch of properties for convenient filtering.", HFILL
+		} },
 		{ &hf_node_id, {
 			"ID", "ceph.node_id",
 			FT_UINT64, BASE_DEC, NULL, 0,
@@ -2249,6 +2287,26 @@ proto_register_ceph(void)
 		{ &hf_node_name, {
 			"Source Name", "ceph.node",
 			FT_NONE, BASE_NONE, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_src_slug, {
+			"Source Node Name", "ceph.src",
+			FT_STRING, BASE_NONE, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_src_type, {
+			"Source Node Type", "ceph.src.type",
+			FT_UINT8, BASE_HEX, VALS(c_node_type_abbr_strings), 0,
+			NULL, HFILL
+		} },
+		{ &hf_dst_slug, {
+			"Destination Node Name", "ceph.dst",
+			FT_STRING, BASE_NONE, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_dst_type, {
+			"Destination Node Type", "ceph.dst.type",
+			FT_UINT8, BASE_HEX, VALS(c_node_type_abbr_strings), 0,
 			NULL, HFILL
 		} },
 		{ &hf_version, {
