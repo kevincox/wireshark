@@ -121,6 +121,7 @@ static int hf_connect_seq                  = -1;
 static int hf_connect_proto_ver            = -1;
 static int hf_connect_auth_proto           = -1;
 static int hf_connect_auth_len             = -1;
+static int hf_connect_auth                 = -1;
 static int hf_flags                        = -1;
 static int hf_flag_lossy                   = -1;
 static int hf_connect                      = -1;
@@ -796,16 +797,17 @@ typedef struct _c_pkt_data {
  * it was dissected initially.
  */
 static void
-c_pkt_data_init(c_pkt_data *d, packet_info *pinfo, guint offset)
+c_pkt_data_init(c_pkt_data *d, packet_info *pinfo, guint off)
 {
 	/* Get conversation to store/retrieve connection data. */
 	d->conv = find_or_create_conversation(pinfo);
-	g_assert(d->conv);
+	g_assert(d->conv && "find_or_create_conversation() returned NULL");
 	
 	if (pinfo->fd->flags.visited)
 	{
 		/* Retrieve the saved state. */
-		d->convd = (c_conv_data*)p_get_proto_data(wmem_file_scope(), pinfo, proto_ceph, offset);
+		d->convd = (c_conv_data*)p_get_proto_data(wmem_file_scope(), pinfo, proto_ceph, off);
+		DISSECTOR_ASSERT_HINT(d->convd, "Frame visited, but no saved state.");
 		/* Make a copy and use that so we don't mess up the original. */
 		d->convd = c_conv_data_copy(d->convd, C_NEW_PKTSCOPE(c_conv_data));
 	}
@@ -837,7 +839,7 @@ c_pkt_data_init(c_pkt_data *d, packet_info *pinfo, guint offset)
 		/*
 			Save a copy of the state for next time we dissect this packet.
 		*/
-		p_add_proto_data(wmem_file_scope(), pinfo, proto_ceph, offset,
+		p_add_proto_data(wmem_file_scope(), pinfo, proto_ceph, off,
 		                                    c_conv_data_clone(d->convd));
 	}
 	
@@ -1907,7 +1909,8 @@ enum c_sizes_connect {
 	C_SIZE_CONNECT = 33,
 	C_SIZE_CONNECT_REPLY = 25,
 	C_SIZE_HELLO_S = 2*C_SIZE_ENTITY_ADDR,
-	C_SIZE_HELLO_C = C_SIZE_ENTITY_ADDR + C_SIZE_CONNECT
+	C_SIZE_HELLO_C = C_SIZE_ENTITY_ADDR + C_SIZE_CONNECT,
+	C_HELLO_OFF_AUTHLEN = C_SIZE_ENTITY_ADDR + 28
 };
 
 static
@@ -1929,6 +1932,9 @@ guint c_dissect_connect(proto_tree *root,
 	
 	proto_item *ti;
 	proto_tree *tree;
+	guint32 authlen;
+	
+	authlen = tvb_get_letohl(tvb, off+28);
 	
 	ti = proto_tree_add_item(root, hf_connect, tvb,
 	                         off, C_SIZE_CONNECT,
@@ -1958,6 +1964,10 @@ guint c_dissect_connect(proto_tree *root,
 	
 	off = c_dissect_flags(tree, tvb, off, data);
 	
+	proto_tree_add_item(tree, hf_connect_auth,
+	                    tvb, off, authlen, ENC_NA);
+	off += authlen;
+	
 	return off;
 }
 
@@ -1979,9 +1989,12 @@ guint c_dissect_connect_reply(proto_tree *root,
 	
 	proto_item *ti;
 	proto_tree *tree;
+	guint32 authlen;
 	
-	if (!tvb_bytes_exist(tvb, off, C_SIZE_CONNECT_REPLY))
-		return off+C_SIZE_CONNECT_REPLY; /* We need more data to dissect. */
+	authlen = tvb_get_letohl(tvb, off+20);
+	
+	if (!tvb_bytes_exist(tvb, off, C_SIZE_CONNECT_REPLY + authlen))
+		return off+C_SIZE_CONNECT_REPLY+authlen; /* We need more data to dissect. */
 	
 	c_set_type(data, "Connect Reply");
 	
@@ -2006,6 +2019,10 @@ guint c_dissect_connect_reply(proto_tree *root,
 	off += 4;
 	
 	off = c_dissect_flags(tree, tvb, off, data);
+	
+	proto_tree_add_item(tree, hf_connect_auth,
+	                    tvb, off, authlen, ENC_NA);
+	off += authlen;
 	
 	return off;
 }
@@ -2045,7 +2062,14 @@ guint c_dissect_new(proto_tree *tree,
 	proto_tree_add_item(tree, hf_version, tvb, off, banlen, ENC_NA);
 	off += banlen;
 	
-	size = c_from_server(data)? C_SIZE_HELLO_S : C_SIZE_HELLO_C;
+	if (c_from_server(data)) size = C_SIZE_HELLO_S;
+	else {
+		if (!tvb_bytes_exist(tvb, off, C_HELLO_OFF_AUTHLEN))
+			return 0; /* Need More */
+		
+		size = C_SIZE_HELLO_C + tvb_get_letohl(tvb, off+C_HELLO_OFF_AUTHLEN);
+	}
+	
 	if (!tvb_bytes_exist(tvb, off, size))
 		return off+size; /* We need more data to dissect. */
 	
@@ -2180,14 +2204,17 @@ guint c_dissect_pdu(proto_tree *root,
 	else
 		off = c_dissect_msgr(tree, tvb, off, data);
 	
-	/*** General Filter Data ***/
-	proto_tree_add_string(data->tree_filter, hf_src_slug, NULL,0,0, data->src->name.slug);
-	proto_tree_add_uint  (data->tree_filter, hf_src_type, NULL,0,0, data->src->name.type);
-	proto_tree_add_string(data->tree_filter, hf_dst_slug, NULL,0,0, data->dst->name.slug);
-	proto_tree_add_uint  (data->tree_filter, hf_dst_type, NULL,0,0, data->dst->name.type);
+	if (data->tree_filter) {
+		/*** General Filter Data ***/
+		proto_tree_add_string(data->tree_filter, hf_src_slug, NULL,0,0, data->src->name.slug);
+		proto_tree_add_uint  (data->tree_filter, hf_src_type, NULL,0,0, data->src->name.type);
+		proto_tree_add_string(data->tree_filter, hf_dst_slug, NULL,0,0, data->dst->name.slug);
+		proto_tree_add_uint  (data->tree_filter, hf_dst_type, NULL,0,0, data->dst->name.type);
+		
+		proto_item_set_end(ti,  tvb, off);
+		proto_item_set_end(tif, tvb, off);
+	}
 	
-	proto_item_set_end(ti,  tvb, off);
-	proto_item_set_end(tif, tvb, off);
 	return off;
 }
 
@@ -2206,7 +2233,7 @@ int dissect_ceph(tvbuff_t *tvb, packet_info *pinfo,
 	{
 		col_append_sep_str(pinfo->cinfo, COL_INFO, " | ", "");
 		col_set_fence(pinfo->cinfo, COL_INFO);
-		c_pkt_data_init(&data, pinfo, off);
+		c_pkt_data_init(&data, pinfo, tvb_offset_from_real_beginning(tvb));
 		
 		offt = c_dissect_pdu(tree, tvb, off, &data);
 		if (offt == 0) /* Need more data to determine PDU length. */
@@ -2649,6 +2676,11 @@ proto_register_ceph(void)
 			"Authentication Length", "ceph.connect.auth.length",
 			FT_UINT32, BASE_DEC, NULL, 0,
 			"The length of the authentication.", HFILL
+		} },
+		{ &hf_connect_auth, {
+			"Authentication", "ceph.connect.auth",
+			FT_BYTES, BASE_NONE, NULL, 0,
+			"Authentication data.", HFILL
 		} },
 		{ &hf_flags, {
 			"Flags", "ceph.connect.flags",
