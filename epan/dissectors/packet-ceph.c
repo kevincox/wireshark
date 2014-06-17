@@ -50,11 +50,11 @@ static int hf_node_id                      = -1;
 static int hf_node_type                    = -1;
 static int hf_node_nonce                   = -1;
 static int hf_node_name                    = -1;
-static int hf_src_slug                    = -1;
-static int hf_src_type                    = -1;
-static int hf_dst_type                    = -1;
-static int hf_dst_slug                    = -1;
-static int hf_version                      = -1;
+static int hf_src_slug                     = -1;
+static int hf_src_type                     = -1;
+static int hf_dst_type                     = -1;
+static int hf_dst_slug                     = -1;
+static int hf_banner                      = -1;
 static int hf_client_info                  = -1;
 static int hf_server_info                  = -1;
 static int hf_sockaddr                     = -1;
@@ -67,6 +67,19 @@ static int hf_string_size                  = -1;
 static int hf_time                         = -1;
 static int hf_time_sec                     = -1;
 static int hf_time_nsec                    = -1;
+static int hf_encoded_ver                    = -1;
+static int hf_encoded_compat                    = -1;
+static int hf_encoded_size                    = -1;
+static int hf_version                    = -1;
+static int hf_epoch                    = -1;
+static int hf_pool                    = -1;
+static int hf_key                    = -1;
+static int hf_namespace                    = -1;
+static int hf_hash                    = -1;
+static int hf_pgid_ver         = -1;
+static int hf_pgid_pool         = -1;
+static int hf_pgid_seed         = -1;
+static int hf_pgid_preferred     = -1;
 static int hf_features_high                = -1;
 static int hf_features_low                 = -1;
 static int hf_feature_uid                  = -1;
@@ -124,6 +137,36 @@ static int hf_connect_auth_len             = -1;
 static int hf_connect_auth                 = -1;
 static int hf_flags                        = -1;
 static int hf_flag_lossy                   = -1;
+static int hf_osd_flags                    = -1;
+static int hf_osd_flag_ack                 = -1;
+static int hf_osd_flag_onnvram             = -1;
+static int hf_osd_flag_ondisk              = -1;
+static int hf_osd_flag_retry               = -1;
+static int hf_osd_flag_read                = -1;
+static int hf_osd_flag_write               = -1;
+static int hf_osd_flag_ordersnap           = -1;
+static int hf_osd_flag_peerstat_old        = -1;
+static int hf_osd_flag_balance_reads       = -1;
+static int hf_osd_flag_parallelexec        = -1;
+static int hf_osd_flag_pgop                = -1;
+static int hf_osd_flag_exec                = -1;
+static int hf_osd_flag_exec_public         = -1;
+static int hf_osd_flag_localize_reads      = -1;
+static int hf_osd_flag_rwordered           = -1;
+static int hf_osd_flag_ignore_cache        = -1;
+static int hf_osd_flag_skiprwlocks         = -1;
+static int hf_osd_flag_ignore_overlay      = -1;
+static int hf_osd_flag_flush               = -1;
+static int hf_osd_flag_map_snap_clone      = -1;
+static int hf_osd_flag_enforce_snapc       = -1;
+static int hf_osd_op_type       = -1;
+static int hf_osd_op_data       = -1;
+static int hf_osd_op_payload_len       = -1;
+static int hf_osd_redirect_oloc       = -1;
+static int hf_osd_redirect_obj       = -1;
+static int hf_osd_redirect_osdinstr       = -1;
+static int hf_osd_redirect_osdinstr_data       = -1;
+static int hf_osd_redirect_osdinstr_len       = -1;
 static int hf_connect                      = -1;
 static int hf_connect_reply                = -1;
 static int hf_tag                          = -1;
@@ -189,7 +232,7 @@ static int hf_msg_osd_map_map              = -1;
 static int hf_msg_osd_map_map_len          = -1;
 static int hf_msg_osd_map_epoch            = -1;
 static int hf_msg_osd_map_data             = -1;
-static int hf_msg_osd_map_data_data             = -1;
+static int hf_msg_osd_map_data_data        = -1;
 static int hf_msg_osd_map_data_len         = -1;
 static int hf_msg_osd_map_oldest           = -1;
 static int hf_msg_osd_map_newest           = -1;
@@ -205,6 +248,38 @@ static int hf_msg_mon_cmd_ack_arg          = -1;
 static int hf_msg_mon_cmd_ack_arg_len      = -1;
 static int hf_msg_mon_cmd_ack_arg_str      = -1;
 static int hf_msg_mon_cmd_ack_data         = -1;
+static int hf_msg_osd_op                   = -1;
+static int hf_msg_osd_op_client_inc        = -1;
+static int hf_msg_osd_op_osdmap_epoch      = -1;
+static int hf_msg_osd_op_flags             = -1;
+static int hf_msg_osd_op_mtime             = -1;
+static int hf_msg_osd_op_reassert_version  = -1;
+static int hf_msg_osd_op_oloc              = -1;
+static int hf_msg_osd_op_pgid              = -1;
+static int hf_msg_osd_op_oid               = -1;
+static int hf_msg_osd_op_ops_len           = -1;
+static int hf_msg_osd_op_op                = -1;
+static int hf_msg_osd_op_snap_id           = -1;
+static int hf_msg_osd_op_snap_seq          = -1;
+static int hf_msg_osd_op_snaps_len         = -1;
+static int hf_msg_osd_op_snap             = -1;
+static int hf_msg_osd_op_retry_attempt     = -1;
+static int hf_msg_osd_op_payload     = -1;
+static int hf_msg_osd_opreply                   = -1;
+static int hf_msg_osd_opreply_oid                   = -1;
+static int hf_msg_osd_opreply_pgid                   = -1;
+static int hf_msg_osd_opreply_flags                   = -1;
+static int hf_msg_osd_opreply_result                   = -1;
+static int hf_msg_osd_opreply_bad_replay_ver                   = -1;
+static int hf_msg_osd_opreply_osdmap_epoch                   = -1;
+static int hf_msg_osd_opreply_ops_len                   = -1;
+static int hf_msg_osd_opreply_op                   = -1;
+static int hf_msg_osd_opreply_retry_attempt                   = -1;
+static int hf_msg_osd_opreply_rval                   = -1;
+static int hf_msg_osd_opreply_replay_ver                   = -1;
+static int hf_msg_osd_opreply_user_ver                   = -1;
+static int hf_msg_osd_opreply_redirect                   = -1;
+static int hf_msg_osd_opreply_payload                   = -1;
 
 /* @TODO: Remove before release.  Just for copying convenience.
 static int hf_msg_                         = -1;
@@ -216,10 +291,7 @@ static expert_field ei_unused = EI_INIT;
 /* Initialize the subtree pointers */
 static gint ett_ceph = -1;
 
-#define C_NEW_FILESCOPE(klass) ((klass*)wmem_alloc(wmem_file_scope(),   sizeof(klass)))
-#define C_NEW_PKTSCOPE(klass)  ((klass*)wmem_alloc(wmem_packet_scope(), sizeof(klass)))
-
-static const char *C_BANNER = "ceph";
+static const guint8 *C_BANNER = (const guint8*)"ceph";
 enum c_banner {
 	C_BANNER_LEN_MIN = 4,
 	C_BANNER_LEN_MAX = 30,
@@ -623,6 +695,192 @@ const char *c_msg_type_string(c_msg_type val)
 	return val_to_str_ext(val, &c_msg_type_strings_ext, "Unknown (0x%04x)");
 }
 
+
+typedef enum _c_osd_optype {
+	/*** Raw Codes ***/
+	C_OSD_OP_MODE               = 0xf000,
+	C_OSD_OP_MODE_RD            = 0x1000,
+	C_OSD_OP_MODE_WR            = 0x2000,
+	C_OSD_OP_MODE_RMW           = 0x3000,
+	C_OSD_OP_MODE_SUB           = 0x4000,
+	C_OSD_OP_MODE_CACHE         = 0x8000,
+	
+	C_OSD_OP_TYPE               = 0x0f00,
+	C_OSD_OP_TYPE_LOCK          = 0x0100,
+	C_OSD_OP_TYPE_DATA          = 0x0200,
+	C_OSD_OP_TYPE_ATTR          = 0x0300,
+	C_OSD_OP_TYPE_EXEC          = 0x0400,
+	C_OSD_OP_TYPE_PG            = 0x0500,
+	C_OSD_OP_TYPE_MULTI         = 0x0600, /* multiobject */
+	
+	/*** Sorted by value, keep it that way. ***/
+	C_OSD_OP_READ               = C_OSD_OP_MODE_RD    | C_OSD_OP_TYPE_DATA  | 0x01,
+	C_OSD_OP_STAT               = C_OSD_OP_MODE_RD    | C_OSD_OP_TYPE_DATA  | 0x02,
+	C_OSD_OP_MAPEXT             = C_OSD_OP_MODE_RD    | C_OSD_OP_TYPE_DATA  | 0x03,
+	C_OSD_OP_MASKTRUNC          = C_OSD_OP_MODE_RD    | C_OSD_OP_TYPE_DATA  | 0x04,
+	C_OSD_OP_SPARSE_READ        = C_OSD_OP_MODE_RD    | C_OSD_OP_TYPE_DATA  | 0x05,
+	C_OSD_OP_NOTIFY             = C_OSD_OP_MODE_RD    | C_OSD_OP_TYPE_DATA  | 0x06,
+	C_OSD_OP_NOTIFY_ACK         = C_OSD_OP_MODE_RD    | C_OSD_OP_TYPE_DATA  | 0x07,
+	C_OSD_OP_ASSERT_VER         = C_OSD_OP_MODE_RD    | C_OSD_OP_TYPE_DATA  | 0x08,
+	C_OSD_OP_LIST_WATCHERS      = C_OSD_OP_MODE_RD    | C_OSD_OP_TYPE_DATA  | 0x09,
+	C_OSD_OP_LIST_SNAPS         = C_OSD_OP_MODE_RD    | C_OSD_OP_TYPE_DATA  | 0x0A,
+	C_OSD_OP_SYNC_READ          = C_OSD_OP_MODE_RD    | C_OSD_OP_TYPE_DATA  | 0x0B,
+	C_OSD_OP_TMAPGET            = C_OSD_OP_MODE_RD    | C_OSD_OP_TYPE_DATA  | 0x0C,
+	C_OSD_OP_OMAPGETKEYS        = C_OSD_OP_MODE_RD    | C_OSD_OP_TYPE_DATA  | 0x11,
+	C_OSD_OP_OMAPGETVALS        = C_OSD_OP_MODE_RD    | C_OSD_OP_TYPE_DATA  | 0x12,
+	C_OSD_OP_OMAPGETHEADER      = C_OSD_OP_MODE_RD    | C_OSD_OP_TYPE_DATA  | 0x13,
+	C_OSD_OP_OMAPGETVALSBYKEYS  = C_OSD_OP_MODE_RD    | C_OSD_OP_TYPE_DATA  | 0x14,
+	C_OSD_OP_OMAP_CMP           = C_OSD_OP_MODE_RD    | C_OSD_OP_TYPE_DATA  | 0x19,
+	C_OSD_OP_COPY_GET_CLASSIC   = C_OSD_OP_MODE_RD    | C_OSD_OP_TYPE_DATA  | 0x1B,
+	C_OSD_OP_ISDIRTY            = C_OSD_OP_MODE_RD    | C_OSD_OP_TYPE_DATA  | 0x1D,
+	C_OSD_OP_COPY_GET           = C_OSD_OP_MODE_RD    | C_OSD_OP_TYPE_DATA  | 0x1E,
+	C_OSD_OP_GETXATTR           = C_OSD_OP_MODE_RD    | C_OSD_OP_TYPE_ATTR  | 0x01,
+	C_OSD_OP_GETXATTRS          = C_OSD_OP_MODE_RD    | C_OSD_OP_TYPE_ATTR  | 0x02,
+	C_OSD_OP_CMPXATTR           = C_OSD_OP_MODE_RD    | C_OSD_OP_TYPE_ATTR  | 0x03,
+	C_OSD_OP_CALL               = C_OSD_OP_MODE_RD    | C_OSD_OP_TYPE_EXEC  | 0x01,
+	C_OSD_OP_PGLS               = C_OSD_OP_MODE_RD    | C_OSD_OP_TYPE_PG    | 0x01,
+	C_OSD_OP_PGLS_FILTER        = C_OSD_OP_MODE_RD    | C_OSD_OP_TYPE_PG    | 0x02,
+	C_OSD_OP_PG_HITSET_LS       = C_OSD_OP_MODE_RD    | C_OSD_OP_TYPE_PG    | 0x03,
+	C_OSD_OP_PG_HITSET_GET      = C_OSD_OP_MODE_RD    | C_OSD_OP_TYPE_PG    | 0x04,
+	C_OSD_OP_ASSERT_SRC_VERSION = C_OSD_OP_MODE_RD    | C_OSD_OP_TYPE_MULTI | 0x02,
+	C_OSD_OP_SRC_CMPXATTR       = C_OSD_OP_MODE_RD    | C_OSD_OP_TYPE_MULTI | 0x03,
+	C_OSD_OP_WRLOCK             = C_OSD_OP_MODE_WR    | C_OSD_OP_TYPE_LOCK  | 0x01,
+	C_OSD_OP_WRUNLOCK           = C_OSD_OP_MODE_WR    | C_OSD_OP_TYPE_LOCK  | 0x02,
+	C_OSD_OP_RDLOCK             = C_OSD_OP_MODE_WR    | C_OSD_OP_TYPE_LOCK  | 0x03,
+	C_OSD_OP_RDUNLOCK           = C_OSD_OP_MODE_WR    | C_OSD_OP_TYPE_LOCK  | 0x04,
+	C_OSD_OP_UPLOCK             = C_OSD_OP_MODE_WR    | C_OSD_OP_TYPE_LOCK  | 0x05,
+	C_OSD_OP_DNLOCK             = C_OSD_OP_MODE_WR    | C_OSD_OP_TYPE_LOCK  | 0x06,
+	C_OSD_OP_WRITE              = C_OSD_OP_MODE_WR    | C_OSD_OP_TYPE_DATA  | 0x01,
+	C_OSD_OP_WRITEFULL          = C_OSD_OP_MODE_WR    | C_OSD_OP_TYPE_DATA  | 0x02,
+	C_OSD_OP_TRUNCATE           = C_OSD_OP_MODE_WR    | C_OSD_OP_TYPE_DATA  | 0x03,
+	C_OSD_OP_ZERO               = C_OSD_OP_MODE_WR    | C_OSD_OP_TYPE_DATA  | 0x04,
+	C_OSD_OP_DELETE             = C_OSD_OP_MODE_WR    | C_OSD_OP_TYPE_DATA  | 0x05,
+	C_OSD_OP_APPEND             = C_OSD_OP_MODE_WR    | C_OSD_OP_TYPE_DATA  | 0x06,
+	C_OSD_OP_STARTSYNC          = C_OSD_OP_MODE_WR    | C_OSD_OP_TYPE_DATA  | 0x07,
+	C_OSD_OP_SETTRUNC           = C_OSD_OP_MODE_WR    | C_OSD_OP_TYPE_DATA  | 0x08,
+	C_OSD_OP_TRIMTRUNC          = C_OSD_OP_MODE_WR    | C_OSD_OP_TYPE_DATA  | 0x09,
+	C_OSD_OP_TMAPPUT            = C_OSD_OP_MODE_WR    | C_OSD_OP_TYPE_DATA  | 0x0B,
+	C_OSD_OP_CREATE             = C_OSD_OP_MODE_WR    | C_OSD_OP_TYPE_DATA  | 0x0D,
+	C_OSD_OP_ROLLBACK           = C_OSD_OP_MODE_WR    | C_OSD_OP_TYPE_DATA  | 0x0E,
+	C_OSD_OP_WATCH              = C_OSD_OP_MODE_WR    | C_OSD_OP_TYPE_DATA  | 0x0F,
+	C_OSD_OP_OMAPSETVALS        = C_OSD_OP_MODE_WR    | C_OSD_OP_TYPE_DATA  | 0x15,
+	C_OSD_OP_OMAPSETHEADER      = C_OSD_OP_MODE_WR    | C_OSD_OP_TYPE_DATA  | 0x16,
+	C_OSD_OP_OMAPCLEAR          = C_OSD_OP_MODE_WR    | C_OSD_OP_TYPE_DATA  | 0x17,
+	C_OSD_OP_OMAPRMKEYS         = C_OSD_OP_MODE_WR    | C_OSD_OP_TYPE_DATA  | 0x18,
+	C_OSD_OP_COPY_FROM          = C_OSD_OP_MODE_WR    | C_OSD_OP_TYPE_DATA  | 0x1A,
+	C_OSD_OP_UNDIRTY            = C_OSD_OP_MODE_WR    | C_OSD_OP_TYPE_DATA  | 0x1C,
+	C_OSD_OP_SETALLOCHINT       = C_OSD_OP_MODE_WR    | C_OSD_OP_TYPE_DATA  | 0x23,
+	C_OSD_OP_SETXATTR           = C_OSD_OP_MODE_WR    | C_OSD_OP_TYPE_ATTR  | 0x01,
+	C_OSD_OP_SETXATTRS          = C_OSD_OP_MODE_WR    | C_OSD_OP_TYPE_ATTR  | 0x02,
+	C_OSD_OP_RESETXATTRS        = C_OSD_OP_MODE_WR    | C_OSD_OP_TYPE_ATTR  | 0x03,
+	C_OSD_OP_RMXATTR            = C_OSD_OP_MODE_WR    | C_OSD_OP_TYPE_ATTR  | 0x04,
+	C_OSD_OP_CLONERANGE         = C_OSD_OP_MODE_WR    | C_OSD_OP_TYPE_MULTI | 0x01,
+	C_OSD_OP_TMAPUP             = C_OSD_OP_MODE_RMW   | C_OSD_OP_TYPE_DATA  | 0x0A,
+	C_OSD_OP_TMAP2OMAP          = C_OSD_OP_MODE_RMW   | C_OSD_OP_TYPE_DATA  | 0x22,
+	C_OSD_OP_PULL               = C_OSD_OP_MODE_SUB                         | 0x01,
+	C_OSD_OP_PUSH               = C_OSD_OP_MODE_SUB                         | 0x02,
+	C_OSD_OP_BALANCEREADS       = C_OSD_OP_MODE_SUB                         | 0x03,
+	C_OSD_OP_UNBALANCEREADS     = C_OSD_OP_MODE_SUB                         | 0x04,
+	C_OSD_OP_SCRUB              = C_OSD_OP_MODE_SUB                         | 0x05,
+	C_OSD_OP_SCRUB_RESERVE      = C_OSD_OP_MODE_SUB                         | 0x06,
+	C_OSD_OP_SCRUB_UNRESERVE    = C_OSD_OP_MODE_SUB                         | 0x07,
+	C_OSD_OP_SCRUB_STOP         = C_OSD_OP_MODE_SUB                         | 0x08,
+	C_OSD_OP_SCRUB_MAP          = C_OSD_OP_MODE_SUB                         | 0x09,
+	C_OSD_OP_CACHE_FLUSH        = C_OSD_OP_MODE_CACHE | C_OSD_OP_TYPE_DATA  | 0x1F,
+	C_OSD_OP_CACHE_EVICT        = C_OSD_OP_MODE_CACHE | C_OSD_OP_TYPE_DATA  | 0x20,
+	C_OSD_OP_CACHE_TRY_FLUSH    = C_OSD_OP_MODE_CACHE | C_OSD_OP_TYPE_DATA  | 0x21,
+} c_osd_optype;
+
+
+static const
+value_string c_osd_op_strings[] = {
+	/*** Sorted, like above. ***/
+	{C_OSD_OP_READ,               "C_OSD_OP_READ"              },
+	{C_OSD_OP_STAT,               "C_OSD_OP_STAT"              },
+	{C_OSD_OP_MAPEXT,             "C_OSD_OP_MAPEXT"            },
+	{C_OSD_OP_MASKTRUNC,          "C_OSD_OP_MASKTRUNC"         },
+	{C_OSD_OP_SPARSE_READ,        "C_OSD_OP_SPARSE_READ"       },
+	{C_OSD_OP_NOTIFY,             "C_OSD_OP_NOTIFY"            },
+	{C_OSD_OP_NOTIFY_ACK,         "C_OSD_OP_NOTIFY_ACK"        },
+	{C_OSD_OP_ASSERT_VER,         "C_OSD_OP_ASSERT_VER"        },
+	{C_OSD_OP_LIST_WATCHERS,      "C_OSD_OP_LIST_WATCHERS"     },
+	{C_OSD_OP_LIST_SNAPS,         "C_OSD_OP_LIST_SNAPS"        },
+	{C_OSD_OP_SYNC_READ,          "C_OSD_OP_SYNC_READ"         },
+	{C_OSD_OP_TMAPGET,            "C_OSD_OP_TMAPGET"           },
+	{C_OSD_OP_OMAPGETKEYS,        "C_OSD_OP_OMAPGETKEYS"       },
+	{C_OSD_OP_OMAPGETVALS,        "C_OSD_OP_OMAPGETVALS"       },
+	{C_OSD_OP_OMAPGETHEADER,      "C_OSD_OP_OMAPGETHEADER"     },
+	{C_OSD_OP_OMAPGETVALSBYKEYS,  "C_OSD_OP_OMAPGETVALSBYKEYS" },
+	{C_OSD_OP_OMAP_CMP,           "C_OSD_OP_OMAP_CMP"          },
+	{C_OSD_OP_COPY_GET_CLASSIC,   "C_OSD_OP_COPY_GET_CLASSIC"  },
+	{C_OSD_OP_ISDIRTY,            "C_OSD_OP_ISDIRTY"           },
+	{C_OSD_OP_COPY_GET,           "C_OSD_OP_COPY_GET"          },
+	{C_OSD_OP_GETXATTR,           "C_OSD_OP_GETXATTR"          },
+	{C_OSD_OP_GETXATTRS,          "C_OSD_OP_GETXATTRS"         },
+	{C_OSD_OP_CMPXATTR,           "C_OSD_OP_CMPXATTR"          },
+	{C_OSD_OP_CALL,               "C_OSD_OP_CALL"              },
+	{C_OSD_OP_PGLS,               "C_OSD_OP_PGLS"              },
+	{C_OSD_OP_PGLS_FILTER,        "C_OSD_OP_PGLS_FILTER"       },
+	{C_OSD_OP_PG_HITSET_LS,       "C_OSD_OP_PG_HITSET_LS"      },
+	{C_OSD_OP_PG_HITSET_GET,      "C_OSD_OP_PG_HITSET_GET"     },
+	{C_OSD_OP_ASSERT_SRC_VERSION, "C_OSD_OP_ASSERT_SRC_VERSION"},
+	{C_OSD_OP_SRC_CMPXATTR,       "C_OSD_OP_SRC_CMPXATTR"      },
+	{C_OSD_OP_WRLOCK,             "C_OSD_OP_WRLOCK"            },
+	{C_OSD_OP_WRUNLOCK,           "C_OSD_OP_WRUNLOCK"          },
+	{C_OSD_OP_RDLOCK,             "C_OSD_OP_RDLOCK"            },
+	{C_OSD_OP_RDUNLOCK,           "C_OSD_OP_RDUNLOCK"          },
+	{C_OSD_OP_UPLOCK,             "C_OSD_OP_UPLOCK"            },
+	{C_OSD_OP_DNLOCK,             "C_OSD_OP_DNLOCK"            },
+	{C_OSD_OP_WRITE,              "C_OSD_OP_WRITE"             },
+	{C_OSD_OP_WRITEFULL,          "C_OSD_OP_WRITEFULL"         },
+	{C_OSD_OP_TRUNCATE,           "C_OSD_OP_TRUNCATE"          },
+	{C_OSD_OP_ZERO,               "C_OSD_OP_ZERO"              },
+	{C_OSD_OP_DELETE,             "C_OSD_OP_DELETE"            },
+	{C_OSD_OP_APPEND,             "C_OSD_OP_APPEND"            },
+	{C_OSD_OP_STARTSYNC,          "C_OSD_OP_STARTSYNC"         },
+	{C_OSD_OP_SETTRUNC,           "C_OSD_OP_SETTRUNC"          },
+	{C_OSD_OP_TRIMTRUNC,          "C_OSD_OP_TRIMTRUNC"         },
+	{C_OSD_OP_TMAPPUT,            "C_OSD_OP_TMAPPUT"           },
+	{C_OSD_OP_CREATE,             "C_OSD_OP_CREATE"            },
+	{C_OSD_OP_ROLLBACK,           "C_OSD_OP_ROLLBACK"          },
+	{C_OSD_OP_WATCH,              "C_OSD_OP_WATCH"             },
+	{C_OSD_OP_OMAPSETVALS,        "C_OSD_OP_OMAPSETVALS"       },
+	{C_OSD_OP_OMAPSETHEADER,      "C_OSD_OP_OMAPSETHEADER"     },
+	{C_OSD_OP_OMAPCLEAR,          "C_OSD_OP_OMAPCLEAR"         },
+	{C_OSD_OP_OMAPRMKEYS,         "C_OSD_OP_OMAPRMKEYS"        },
+	{C_OSD_OP_COPY_FROM,          "C_OSD_OP_COPY_FROM"         },
+	{C_OSD_OP_UNDIRTY,            "C_OSD_OP_UNDIRTY"           },
+	{C_OSD_OP_SETALLOCHINT,       "C_OSD_OP_SETALLOCHINT"      },
+	{C_OSD_OP_SETXATTR,           "C_OSD_OP_SETXATTR"          },
+	{C_OSD_OP_SETXATTRS,          "C_OSD_OP_SETXATTRS"         },
+	{C_OSD_OP_RESETXATTRS,        "C_OSD_OP_RESETXATTRS"       },
+	{C_OSD_OP_RMXATTR,            "C_OSD_OP_RMXATTR"           },
+	{C_OSD_OP_CLONERANGE,         "C_OSD_OP_CLONERANGE"        },
+	{C_OSD_OP_TMAPUP,             "C_OSD_OP_TMAPUP"            },
+	{C_OSD_OP_TMAP2OMAP,          "C_OSD_OP_TMAP2OMAP"         },
+	{C_OSD_OP_PULL,               "C_OSD_OP_PULL"              },
+	{C_OSD_OP_PUSH,               "C_OSD_OP_PUSH"              },
+	{C_OSD_OP_BALANCEREADS,       "C_OSD_OP_BALANCEREADS"      },
+	{C_OSD_OP_UNBALANCEREADS,     "C_OSD_OP_UNBALANCEREADS"    },
+	{C_OSD_OP_SCRUB,              "C_OSD_OP_SCRUB"             },
+	{C_OSD_OP_SCRUB_RESERVE,      "C_OSD_OP_SCRUB_RESERVE"     },
+	{C_OSD_OP_SCRUB_UNRESERVE,    "C_OSD_OP_SCRUB_UNRESERVE"   },
+	{C_OSD_OP_SCRUB_STOP,         "C_OSD_OP_SCRUB_STOP"        },
+	{C_OSD_OP_SCRUB_MAP,          "C_OSD_OP_SCRUB_MAP"         },
+	{C_OSD_OP_CACHE_FLUSH,        "C_OSD_OP_CACHE_FLUSH"       },
+	{C_OSD_OP_CACHE_EVICT,        "C_OSD_OP_CACHE_EVICT"       },
+	{C_OSD_OP_CACHE_TRY_FLUSH,    "C_OSD_OP_CACHE_TRY_FLUSH"   },
+	{0,                           NULL                         }
+};
+static const
+value_string_ext c_osd_op_strings_ext = VALUE_STRING_EXT_INIT(c_osd_op_strings);
+
+static
+const char *c_osd_op_string(c_osd_optype val)
+{
+	return val_to_str_ext(val, &c_osd_op_strings_ext, "Unknown (0x%04x)");
+}
+
 typedef enum _c_node_type {
 	C_NODE_TYPE_UNKNOWN = 0x00,
 	C_NODE_TYPE_MON     = 0x01,
@@ -739,14 +997,14 @@ c_conv_data *c_conv_data_copy(c_conv_data *src, c_conv_data *dst)
 static
 c_conv_data *c_conv_data_clone(c_conv_data *d)
 {
-	return c_conv_data_copy(d, C_NEW_FILESCOPE(c_conv_data));
+	return c_conv_data_copy(d, wmem_new(wmem_file_scope(), c_conv_data));
 }
 
 static
 c_conv_data* c_conv_data_new(void)
 {
 	c_conv_data *r;
-	r = C_NEW_FILESCOPE(c_conv_data);
+	r = wmem_new(wmem_file_scope(), c_conv_data);
 	c_conv_data_init(r);
 	return r;
 }
@@ -809,7 +1067,7 @@ c_pkt_data_init(c_pkt_data *d, packet_info *pinfo, guint off)
 		d->convd = (c_conv_data*)p_get_proto_data(wmem_file_scope(), pinfo, proto_ceph, off);
 		DISSECTOR_ASSERT_HINT(d->convd, "Frame visited, but no saved state.");
 		/* Make a copy and use that so we don't mess up the original. */
-		d->convd = c_conv_data_copy(d->convd, C_NEW_PKTSCOPE(c_conv_data));
+		d->convd = c_conv_data_copy(d->convd, wmem_new(wmem_packet_scope(), c_conv_data));
 	}
 	else
 	{
@@ -938,8 +1196,7 @@ guint c_dissect_sockaddr(proto_tree *root, c_sockaddr *sdata,
 	};
 	*/
 	
-	ti = proto_tree_add_item(root, hf_sockaddr,
-	                         tvb, off, C_SIZE_SOCKADDR_STORAGE, ENC_NA);
+	ti = proto_tree_add_item(root, hf_sockaddr, tvb, off, C_SIZE_SOCKADDR_STORAGE, ENC_NA);
 	tree = proto_item_add_subtree(ti, hf_sockaddr);
 	
 	d.af = tvb_get_ntohs(tvb, off);
@@ -1028,9 +1285,8 @@ guint c_dissect_node_name(proto_tree *root, c_node_name *out,
 	proto_tree *tree;
 	c_node_name d;
 	
-	ti = proto_tree_add_item(root, hf_node_name, tvb,
-	                         off, C_SIZE_ENTITY_NAME,
-	                         ENC_NA);
+	ti = proto_tree_add_item(root, hf_node_name,
+	                         tvb, off, C_SIZE_ENTITY_NAME, ENC_NA);
 	tree = proto_item_add_subtree(ti, hf_node_name);
 	
 	d.type     = (c_node_type)tvb_get_guint8(tvb, off);
@@ -1147,6 +1403,65 @@ guint c_dissect_flags(proto_tree *tree,
 	return off+1;
 }
 
+enum c_osd_flags {
+	C_OSD_FLAG_ACK            = 0x00000001,  /* want (or is) "ack" ack */
+	C_OSD_FLAG_ONNVRAM        = 0x00000002,  /* want (or is) "onnvram" ack */
+	C_OSD_FLAG_ONDISK         = 0x00000004,  /* want (or is) "ondisk" ack */
+	C_OSD_FLAG_RETRY          = 0x00000008,  /* resend attempt */
+	C_OSD_FLAG_READ           = 0x00000010,  /* op may read */
+	C_OSD_FLAG_WRITE          = 0x00000020,  /* op may write */
+	C_OSD_FLAG_ORDERSNAP      = 0x00000040,  /* EOLDSNAP if snapc is out of order */
+	C_OSD_FLAG_PEERSTAT_OLD   = 0x00000080,  /* DEPRECATED msg includes osd_peer_stat */
+	C_OSD_FLAG_BALANCE_READS  = 0x00000100,
+	C_OSD_FLAG_PARALLELEXEC   = 0x00000200,  /* execute op in parallel */
+	C_OSD_FLAG_PGOP           = 0x00000400,  /* pg op, no object */
+	C_OSD_FLAG_EXEC           = 0x00000800,  /* op may exec */
+	C_OSD_FLAG_EXEC_PUBLIC    = 0x00001000,  /* DEPRECATED op may exec (public) */
+	C_OSD_FLAG_LOCALIZE_READS = 0x00002000,  /* read from nearby replica, if any */
+	C_OSD_FLAG_RWORDERED      = 0x00004000,  /* order wrt concurrent reads */
+	C_OSD_FLAG_IGNORE_CACHE   = 0x00008000,  /* ignore cache logic */
+	C_OSD_FLAG_SKIPRWLOCKS    = 0x00010000,  /* skip rw locks */
+	C_OSD_FLAG_IGNORE_OVERLAY = 0x00020000,  /* ignore pool overlay */
+	C_OSD_FLAG_FLUSH          = 0x00040000,  /* this is part of flush */
+	C_OSD_FLAG_MAP_SNAP_CLONE = 0x00080000,  /* map snap direct to clone id */
+	C_OSD_FLAG_ENFORCE_SNAPC  = 0x00100000   /* use snapc provided even if pool uses pool snaps */
+};
+
+static
+guint c_dissect_osd_flags(proto_tree *tree,
+                          tvbuff_t *tvb, guint off, c_pkt_data *data _U_)
+{
+	static const int *flags[] = {
+		&hf_osd_flag_ack,
+		&hf_osd_flag_onnvram,
+		&hf_osd_flag_ondisk,
+		&hf_osd_flag_retry,
+		&hf_osd_flag_read,
+		&hf_osd_flag_write,
+		&hf_osd_flag_ordersnap,
+		&hf_osd_flag_peerstat_old,
+		&hf_osd_flag_balance_reads,
+		&hf_osd_flag_parallelexec,
+		&hf_osd_flag_pgop,
+		&hf_osd_flag_exec,
+		&hf_osd_flag_exec_public,
+		&hf_osd_flag_localize_reads,
+		&hf_osd_flag_rwordered,
+		&hf_osd_flag_ignore_cache,
+		&hf_osd_flag_skiprwlocks,
+		&hf_osd_flag_ignore_overlay,
+		&hf_osd_flag_flush,
+		&hf_osd_flag_map_snap_clone,
+		&hf_osd_flag_enforce_snapc,
+		NULL
+	};
+	
+	proto_tree_add_bitmask(tree, tvb, off, hf_osd_flags, hf_osd_flags,
+	                       flags, ENC_LITTLE_ENDIAN);
+	
+	return off+4;
+}
+
 /** Dissect a length-delimited binary blob.
  */
 static
@@ -1164,9 +1479,10 @@ guint c_dissect_blob(proto_tree *root, int hf, int hf_data, int hf_len,
 	                         '\0');
 	
 	ti = proto_tree_add_item(root, hf, tvb, off, size+4, ENC_NA);
-	proto_item_append_text(ti, ", Size: %"G_GINT32_MODIFIER"u, Data: %s",
-	                       size, hex);
 	tree = proto_item_add_subtree(ti, hf_data);
+	
+	proto_item_append_text(ti, ", Size: %"G_GINT32_MODIFIER"u", size);
+	if (size) proto_item_append_text(ti, ", Data: %s", hex);
 	
 	proto_tree_add_item(tree, hf_len,
 	                    tvb, off, 4, ENC_LITTLE_ENDIAN);
@@ -1194,7 +1510,7 @@ guint c_dissect_str(proto_tree *root, int hf, c_str *out,
 	c_str d;
 	
 	d.size = tvb_get_letohl(tvb, off);
-	d.str  = tvb_get_string_enc(wmem_packet_scope(), tvb, off+4, d.size, ENC_ASCII);
+	d.str  = (char*)tvb_get_string_enc(wmem_packet_scope(), tvb, off+4, d.size, ENC_ASCII);
 	
 	ti = proto_tree_add_string_format_value(root, hf, tvb, off, 4+d.size,
 	                                        d.str,
@@ -1213,6 +1529,32 @@ guint c_dissect_str(proto_tree *root, int hf, c_str *out,
 	return off;
 }
 
+typedef struct _c_encoded {
+	guint8  version;
+	guint8  compat;
+	guint32 size;
+} c_encoded;
+
+/** Dissect and 'encoded' struct.
+ * 
+ * @return The offset of the data.
+ */
+static
+guint c_dissect_encoded(proto_tree *tree, c_encoded *enc,
+                        tvbuff_t *tvb, guint off, c_pkt_data *data _U_)
+{
+	enc->version = tvb_get_guint8(tvb, off);
+	proto_tree_add_item(tree, hf_encoded_ver,    tvb, off++, 1, ENC_LITTLE_ENDIAN);
+	enc->compat = tvb_get_guint8(tvb, off);
+	proto_tree_add_item(tree, hf_encoded_compat, tvb, off++, 1, ENC_LITTLE_ENDIAN);
+	
+	enc->size = tvb_get_letohl(tvb, off);
+	proto_tree_add_item(tree, hf_encoded_size, tvb, off, 4, ENC_LITTLE_ENDIAN);
+	off += 4;
+	
+	return off;
+}
+
 enum c_size_timespec {
 	C_SIZE_TIMESPEC = 4 + 4
 };
@@ -1224,9 +1566,9 @@ guint c_dissect_timespec(proto_tree *root,
 	proto_item *ti;
 	proto_tree *tree;
 	
-	ti = proto_tree_add_item(root, hf_time, tvb,
-	                         off, C_SIZE_TIMESPEC,
-	                         ENC_NA);
+	//@TODO: Use FT_ABSOLUTE_TIME
+	
+	ti   = proto_tree_add_item(root, hf_time, tvb, off, C_SIZE_TIMESPEC, ENC_NA);
 	tree = proto_item_add_subtree(ti, hf_time);
 	
 	proto_tree_add_item(tree, hf_time_sec,
@@ -1239,6 +1581,271 @@ guint c_dissect_timespec(proto_tree *root,
 	return off;
 }
 
+enum c_size_eversion {
+	C_SIZE_EVERSION = 12
+};
+
+static
+guint c_dissect_eversion(proto_tree *root, gint hf,
+                         tvbuff_t *tvb, guint off, c_pkt_data *data _U_)
+{
+	proto_item *ti;
+	proto_tree *tree;
+	guint64 ver;
+	guint32 epoch;
+	
+	ti   = proto_tree_add_item(root, hf, tvb, off, C_SIZE_EVERSION, ENC_NA);
+	tree = proto_item_add_subtree(ti, hf);
+	
+	/*** version_t ***/
+	ver = tvb_get_letoh64(tvb, off);
+	proto_tree_add_item(tree, hf_version, tvb, off, 8, ENC_LITTLE_ENDIAN);
+	off += 8;
+	
+	/*** epoch_t ***/
+	epoch = tvb_get_letohl(tvb, off);
+	proto_tree_add_item(tree, hf_epoch, tvb, off, 4, ENC_LITTLE_ENDIAN);
+	off += 4;
+	
+	proto_item_append_text(ti,
+	                       ", Version: %"G_GINT64_MODIFIER"d"
+	                       ", Epoch: %"G_GINT32_MODIFIER"d",
+	                       ver, epoch);
+	
+	return off;
+}
+
+static
+guint c_dissect_object_locator(proto_tree *root, gint hf,
+                               tvbuff_t *tvb, guint off, c_pkt_data *data _U_)
+{
+	proto_item *ti;
+	proto_tree *tree;
+	c_encoded enchdr;
+	guint expectedoff;
+	c_str str;
+	gint64 hash;
+	
+	ti   = proto_tree_add_item(root, hf, tvb, off, -1, ENC_NA);
+	tree = proto_item_add_subtree(ti, hf);
+	
+	off = c_dissect_encoded(tree, &enchdr, tvb, off, data);
+	expectedoff = off + enchdr.size;
+	
+	proto_item_append_text(ti, ", Pool: %"G_GINT64_MODIFIER"d",
+	                       (gint64)tvb_get_letoh64(tvb, off));
+	proto_tree_add_item(tree, hf_pool, tvb, off, 8, ENC_LITTLE_ENDIAN);
+	off += 8;
+	
+	off += 4; /* Skip over preferred == -1 that old code used. */
+	
+	if (tvb_get_letohl(tvb, off))
+	{
+		off = c_dissect_str(tree, hf_key, &str, tvb, off);
+		proto_item_append_text(ti, ", Key: '%s'", str.str);
+	}
+	else off += 4; /* If string is empty we should use hash. */
+	
+	off = c_dissect_str(tree, hf_namespace, &str, tvb, off);
+	if (str.size)
+		proto_item_append_text(ti, ", Namespace: '%s'", str.str);
+	
+	hash = tvb_get_letoh64(tvb, off);
+	if (hash >= 0)
+	{
+		proto_tree_add_item(tree, hf_hash, tvb, off, 8, ENC_LITTLE_ENDIAN);
+		proto_item_append_text(ti, ", Hash: %"G_GINT64_MODIFIER"d", hash);
+	}
+	off += 8;
+	
+	//@TODO: Warn if not key or hash.
+	//@TODO: Warn if off != expectedoff
+	
+	return off;
+}
+
+static
+guint c_dissect_pgid(proto_tree *root, gint hf,
+                     tvbuff_t *tvb, guint off, c_pkt_data *data _U_)
+{
+	proto_item *ti;
+	proto_tree *tree;
+	gint32 preferred;
+	
+	ti   = proto_tree_add_item(root, hf, tvb, off, -1, ENC_NA);
+	tree = proto_item_add_subtree(ti, hf);
+	
+	//@TODO: version check.
+	
+	proto_tree_add_item(tree, hf_pgid_ver, tvb, off, 1, ENC_LITTLE_ENDIAN);
+	off += 1;
+	
+	proto_item_append_text(ti, ", Pool: %"G_GINT64_MODIFIER"d",
+	                       tvb_get_letoh64(tvb, off));
+	proto_tree_add_item(tree, hf_pgid_pool, tvb, off, 8, ENC_LITTLE_ENDIAN);
+	off += 8;
+	
+	proto_item_append_text(ti, ", Seed: %08"G_GINT32_MODIFIER"X",
+	                       tvb_get_letohl(tvb, off));
+	proto_tree_add_item(tree, hf_pgid_seed, tvb, off, 4, ENC_LITTLE_ENDIAN);
+	off += 4;
+	
+	preferred = tvb_get_letohl(tvb, off);
+	if (preferred >= 0)
+		proto_item_append_text(ti, ", Prefer: %"G_GINT32_MODIFIER"d", preferred);
+	proto_tree_add_item(tree, hf_pgid_preferred, tvb, off, 4, ENC_LITTLE_ENDIAN);
+	off += 4;
+	
+	return off;
+}
+
+typedef struct _c_osd_op {
+	c_osd_optype type;
+	const char *type_str;
+	guint32 payload_len;
+} c_osd_op;
+
+static
+guint c_dissect_osd_op(proto_tree *root, gint hf, c_osd_op *out,
+                       tvbuff_t *tvb, guint off, c_pkt_data *data _U_)
+{
+	proto_item *ti;
+	proto_tree *tree;
+	c_osd_op d;
+	
+	/* From ceph:/src/include/rados.h
+	struct ceph_osd_op {
+		__le16 op;           // CEPH_OSD_OP_*
+		__le32 flags;        // CEPH_OSD_FLAG_*
+		union {
+			struct {
+				__le64 offset, length;
+				__le64 truncate_size;
+				__le32 truncate_seq;
+			} __attribute__ ((packed)) extent;
+			struct {
+				__le32 name_len;
+				__le32 value_len;
+				__u8 cmp_op;       // CEPH_OSD_CMPXATTR_OP_*
+				__u8 cmp_mode;     // CEPH_OSD_CMPXATTR_MODE_*
+			} __attribute__ ((packed)) xattr;
+			struct {
+				__u8 class_len;
+				__u8 method_len;
+				__u8 argc;
+				__le32 indata_len;
+			} __attribute__ ((packed)) cls;
+			struct {
+				__le64 count;
+				__le32 start_epoch; // for the pgls sequence
+			} __attribute__ ((packed)) pgls;
+			struct {
+				__le64 snapid;
+			} __attribute__ ((packed)) snap;
+			struct {
+				__le64 cookie;
+				__le64 ver;
+				__u8 flag; // 0 = unwatch, 1 = watch
+			} __attribute__ ((packed)) watch;
+			struct {
+				__le64 unused;
+				__le64 ver;
+			} __attribute__ ((packed)) assert_ver;
+			struct {
+				__le64 offset, length;
+				__le64 src_offset;
+			} __attribute__ ((packed)) clonerange;
+			struct {
+				__le64 max;     // max data in reply
+			} __attribute__ ((packed)) copy_get;
+			struct {
+				__le64 snapid;
+				__le64 src_version;
+				__u8 flags;
+			} __attribute__ ((packed)) copy_from;
+			struct {
+				struct ceph_timespec stamp;
+			} __attribute__ ((packed)) hit_set_get;
+			struct {
+				__u8 flags;
+			} __attribute__ ((packed)) tmap2omap;
+			struct {
+				__le64 expected_object_size;
+				__le64 expected_write_size;
+			} __attribute__ ((packed)) alloc_hint;
+		};
+		__le32 payload_len;
+	} __attribute__ ((packed));
+	*/
+	
+	d.type = (c_osd_optype)tvb_get_letohs(tvb, off);
+	
+	ti   = proto_tree_add_item(root, hf, tvb, off, -1, ENC_NA);
+	tree = proto_item_add_subtree(ti, hf);
+	
+	d.type_str = c_osd_op_string(d.type);
+	proto_item_append_text(ti, ", Type: %s", d.type_str);
+	proto_tree_add_item(tree, hf_osd_op_type, tvb, off, 2, ENC_LITTLE_ENDIAN);
+	off += 2;
+	
+	off = c_dissect_osd_flags(tree, tvb, off, data);
+	
+	/***
+		Stop moving off here.  The size of the individual message doesn't
+		matter, only the size of the largest, which is added below.
+	***/
+	
+	switch (d.type)
+	{
+	default:
+		proto_tree_add_item(tree, hf_osd_op_data, tvb, off, 28, ENC_NA);
+		//@TODO: Warn.
+	}
+	
+	off += 28;
+	
+	d.payload_len = tvb_get_letohl(tvb, off);
+	proto_item_append_text(ti, ", Data Length: %"G_GINT32_MODIFIER"d",
+	                       d.payload_len);
+	proto_tree_add_item(tree, hf_osd_op_payload_len,
+	                    tvb, off, 4, ENC_LITTLE_ENDIAN);
+	off += 4;
+	
+	if (out) *out = d;
+	return off;
+}
+
+static
+guint c_dissect_redirect(proto_tree *root, gint hf,
+                         tvbuff_t *tvb, guint off, c_pkt_data *data _U_)
+{
+	proto_item *ti;
+	proto_tree *tree;
+	guint offexpected;
+	c_encoded enc;
+	
+	ti = proto_tree_add_item(root, hf, tvb, off, -1, ENC_NA);
+	tree = proto_item_add_subtree(ti, hf);
+	
+	off = c_dissect_encoded(tree, &enc, tvb, off, data);
+	offexpected = off + enc.size;
+	
+	off = c_dissect_object_locator(tree, hf_osd_redirect_oloc, tvb, off, data);
+	
+	if (tvb_get_letohl(tvb, off))
+	{
+		off = c_dissect_str(tree, hf_osd_redirect_obj, NULL, tvb, off);
+	}
+	else off += 4;
+	
+	off = c_dissect_blob(tree, hf_osd_redirect_osdinstr,
+	                     hf_osd_redirect_osdinstr_data, hf_osd_redirect_osdinstr_len,
+	                     tvb, off);
+	
+	//@TODO: check off == expectedoff
+	proto_item_set_end(ti, tvb, off);
+	return off;
+}
 enum c_size_paxos {
 	C_SIZE_PAXOS = 18
 };
@@ -1250,8 +1857,7 @@ guint c_dissect_paxos(proto_tree *root,
 	proto_item *ti;
 	proto_tree *tree;
 	
-	ti = proto_tree_add_item(root, hf_paxos,
-	                         tvb, off, C_SIZE_PAXOS, ENC_NA);
+	ti = proto_tree_add_item(root, hf_paxos, tvb, off, C_SIZE_PAXOS, ENC_NA);
 	tree = proto_item_add_subtree(ti, hf_paxos);
 	
 	proto_tree_add_item(tree, hf_paxos_ver,
@@ -1319,8 +1925,7 @@ guint c_dissect_msg_mon_map(proto_tree *root,
 	
 	c_set_type(data, "Mon Map");
 	
-	ti = proto_tree_add_item(root, hf_msg_mon_map,
-	                         tvb, 0, front_len, ENC_NA);
+	ti = proto_tree_add_item(root, hf_msg_mon_map, tvb, 0, front_len, ENC_NA);
 	tree = proto_item_add_subtree(ti, hf_msg_mon_map);
 	
 	return c_dissect_blob(tree, hf_msg_mon_map_data,
@@ -1348,8 +1953,7 @@ guint c_dissect_msg_mon_sub(proto_tree *root,
 	c_set_type(data, "Mon Subscribe");
 	proto_item_append_text(data->item_root, ", To:");
 	
-	ti = proto_tree_add_item(root, hf_msg_mon_sub,
-	                         tvb, off, front_len, ENC_NA);
+	ti = proto_tree_add_item(root, hf_msg_mon_sub, tvb, off, front_len, ENC_NA);
 	tree = proto_item_add_subtree(ti, hf_msg_mon_sub);
 	
 	len = tvb_get_letohl(tvb, off);
@@ -1373,8 +1977,7 @@ guint c_dissect_msg_mon_sub(proto_tree *root,
 		} __attribute__ ((packed));
 		*/
 		
-		ti = proto_tree_add_item(tree, hf_msg_mon_sub_item,
-		                         tvb, off, -1, ENC_NA);
+		ti = proto_tree_add_item(tree, hf_msg_mon_sub_item, tvb, off, -1, ENC_NA);
 		subtree = proto_item_add_subtree(ti, hf_msg_mon_sub_item);
 		
 		off = c_dissect_str(subtree, hf_msg_mon_sub_what, &str, tvb, off);
@@ -1421,8 +2024,7 @@ guint c_dissect_msg_mon_sub_ack(proto_tree *root,
 	
 	c_set_type(data, "Mon Subscribe Ack");
 	
-	ti = proto_tree_add_item(root, hf_msg_mon_sub_ack,
-	                         tvb, off, front_len, ENC_NA);
+	ti = proto_tree_add_item(root, hf_msg_mon_sub_ack, tvb, off, front_len, ENC_NA);
 	tree = proto_item_add_subtree(ti, hf_msg_mon_sub_ack);
 	
 	proto_tree_add_item(tree, hf_msg_mon_sub_ack_interval,
@@ -1451,8 +2053,7 @@ guint c_dissect_msg_auth(proto_tree *root,
 	
 	off = c_dissect_paxos(root, tvb, off, data);
 	
-	ti = proto_tree_add_item(root, hf_msg_auth,
-	                         tvb, off, front_len-off, ENC_NA);
+	ti = proto_tree_add_item(root, hf_msg_auth, tvb, off, front_len-off, ENC_NA);
 	tree = proto_item_add_subtree(ti, hf_msg_auth);
 	
 	proto_item_append_text(data->item_root, ", Proto: 0x%02x",
@@ -1490,8 +2091,7 @@ guint c_dissect_msg_auth_reply(proto_tree *root,
 	
 	c_set_type(data, "Auth Reply");
 	
-	ti = proto_tree_add_item(root, hf_msg_auth_reply,
-	                         tvb, off, front_len, ENC_NA);
+	ti = proto_tree_add_item(root, hf_msg_auth_reply, tvb, off, front_len, ENC_NA);
 	tree = proto_item_add_subtree(ti, hf_msg_auth_reply);
 	
 	proto_item_append_text(data->item_root, ", Proto: %x",
@@ -1531,8 +2131,7 @@ guint c_dissect_msg_osd_map(proto_tree *root,
 	
 	c_set_type(data, "OSD Map");
 	
-	ti = proto_tree_add_item(root, hf_msg_osd_map,
-	                         tvb, off, front_len, ENC_NA);
+	ti = proto_tree_add_item(root, hf_msg_osd_map, tvb, off, front_len, ENC_NA);
 	tree = proto_item_add_subtree(ti, hf_msg_osd_map);
 	
 	proto_tree_add_item(tree, hf_msg_osd_map_fsid,
@@ -1548,8 +2147,7 @@ guint c_dissect_msg_osd_map(proto_tree *root,
 	off += 4;
 	while (i--)
 	{
-		ti = proto_tree_add_item(tree, hf_msg_osd_map_inc,
-		                         tvb, off, -1, ENC_NA);
+		ti = proto_tree_add_item(tree, hf_msg_osd_map_inc, tvb, off, -1, ENC_NA);
 		subtree = proto_item_add_subtree(ti, hf_msg_osd_map_inc);
 		
 		proto_tree_add_item(subtree, hf_msg_osd_map_epoch,
@@ -1570,8 +2168,7 @@ guint c_dissect_msg_osd_map(proto_tree *root,
 	off += 4;
 	while (i--)
 	{
-		ti = proto_tree_add_item(tree, hf_msg_osd_map_map,
-		                         tvb, off, -1, ENC_NA);
+		ti = proto_tree_add_item(tree, hf_msg_osd_map_map, tvb, off, -1, ENC_NA);
 		subtree = proto_item_add_subtree(ti, hf_msg_osd_map_map);
 		
 		proto_tree_add_item(subtree, hf_msg_osd_map_epoch,
@@ -1597,11 +2194,192 @@ guint c_dissect_msg_osd_map(proto_tree *root,
 	return off;
 }
 
+/** OSD Operation (0x002A)
+ */
+static
+guint c_dissect_msg_osd_op(proto_tree *root,
+                           tvbuff_t *tvb,
+                           guint front_len, guint middle_len _U_, guint data_len _U_,
+                           c_pkt_data *data)
+{
+	proto_item *ti;
+	proto_tree *tree;
+	guint off = 0;
+	guint16 opslen, i;
+	c_osd_op *ops;
+	c_str str;
+	
+	c_set_type(data, "OSD Operation");
+	
+	ti = proto_tree_add_item(root, hf_msg_osd_op, tvb, off, front_len, ENC_NA);
+	tree = proto_item_add_subtree(ti, hf_msg_osd_op);
+	
+	proto_tree_add_item(tree, hf_msg_osd_op_client_inc,
+	                    tvb, off, 4, ENC_LITTLE_ENDIAN);
+	off += 4;
+	
+	proto_tree_add_item(tree, hf_msg_osd_op_osdmap_epoch,
+	                    tvb, off, 4, ENC_LITTLE_ENDIAN);
+	off += 4;
+	
+	off = c_dissect_osd_flags(tree, tvb, off, data);
+	
+	proto_tree_add_item(tree, hf_msg_osd_op_mtime,
+	                    tvb, off, 8, ENC_TIME_TIMESPEC|ENC_LITTLE_ENDIAN);
+	off += 8;
+	
+	off = c_dissect_eversion(tree, hf_msg_osd_op_reassert_version, tvb, off, data);
+	
+	off = c_dissect_object_locator(tree, hf_msg_osd_op_oloc, tvb, off, data);
+	
+	off = c_dissect_pgid(tree, hf_msg_osd_op_pgid, tvb, off, data);
+	
+	off = c_dissect_str(tree, hf_msg_osd_op_oid, &str, tvb, off);
+	
+	opslen = tvb_get_letohs(tvb, off);
+	proto_item_append_text(ti, ", Operations: %"G_GINT32_MODIFIER"d", opslen);
+	proto_tree_add_item(tree, hf_msg_osd_op_ops_len, tvb, off, 2, ENC_LITTLE_ENDIAN);
+	off += 2;
+	ops = wmem_alloc_array(wmem_packet_scope(), c_osd_op, opslen);
+	for (i = 0; i < opslen; i++)
+	{
+		off = c_dissect_osd_op(tree, hf_msg_osd_op_op, &ops[i], tvb, off, data);
+	}
+	
+	proto_tree_add_item(tree, hf_msg_osd_op_snap_id, tvb, off, 8, ENC_LITTLE_ENDIAN);
+	off += 8;
+	proto_tree_add_item(tree, hf_msg_osd_op_snap_seq, tvb, off, 8, ENC_LITTLE_ENDIAN);
+	off += 8;
+	
+	i = tvb_get_letohl(tvb, off);
+	proto_tree_add_item(tree, hf_msg_osd_op_snaps_len, tvb, off, 4, ENC_LITTLE_ENDIAN);
+	off += 4;
+	while (i--)
+	{
+		proto_tree_add_item(tree, hf_msg_osd_op_snap, tvb, off, 8, ENC_LITTLE_ENDIAN);
+		off += 8;
+	}
+	
+	if (data->header.ver >= 4)
+	{
+		proto_tree_add_item(tree, hf_msg_osd_op_retry_attempt, tvb, off, 4, ENC_LITTLE_ENDIAN);
+		off += 4;
+	}
+	
+	//@TODO: Check off == font_len;
+	
+	for (i = 0; i < opslen; i++)
+	{
+		proto_tree_add_item(tree, hf_msg_osd_op_payload,
+		                    tvb, off, ops[i].payload_len, ENC_NA);
+		off += ops[i].payload_len;
+	}
+	
+	return off;
+}
+
+/** OSD Operation Reply (0x002B)
+ */
+static
+guint c_dissect_msg_osd_opreply(proto_tree *root,
+                                tvbuff_t *tvb,
+                                guint front_len, guint middle_len _U_, guint data_len _U_,
+                                c_pkt_data *data)
+{
+	proto_item *ti;
+	proto_tree *tree;
+	guint off = 0;
+	c_str str;
+	guint32 i;
+	guint32 opslen;
+	c_osd_op *ops;
+	
+	c_set_type(data, "OSD Operation Reply");
+	
+	ti = proto_tree_add_item(root, hf_msg_osd_opreply, tvb, off, front_len, ENC_NA);
+	tree = proto_item_add_subtree(ti, hf_msg_osd_opreply);
+	
+	off = c_dissect_str(tree, hf_msg_osd_opreply_oid, &str, tvb, off);
+	
+	off = c_dissect_pgid(tree, hf_msg_osd_opreply_pgid, tvb, off, data);
+	
+	off = c_dissect_osd_flags(tree, tvb, off, data);
+	off += 4; /* flags is 64 bit but it appears that the higher 32 are ignored. */
+	
+	proto_tree_add_item(tree, hf_msg_osd_opreply_result,
+	                    tvb, off, 4, ENC_LITTLE_ENDIAN);
+	off += 4;
+	
+	off = c_dissect_eversion(tree, hf_msg_osd_opreply_bad_replay_ver,
+	                         tvb, off, data);
+	
+	proto_tree_add_item(tree, hf_msg_osd_opreply_osdmap_epoch,
+	                    tvb, off, 4, ENC_LITTLE_ENDIAN);
+	off += 4;
+	
+	opslen = tvb_get_letohl(tvb, off);
+	proto_tree_add_item(tree, hf_msg_osd_opreply_ops_len,
+	                    tvb, off, 4, ENC_LITTLE_ENDIAN);
+	ops = wmem_alloc_array(wmem_file_scope(), c_osd_op, opslen);
+	off += 4;
+	for (i = 0; i < opslen; i++)
+	{
+		off = c_dissect_osd_op(tree, hf_msg_osd_opreply_op, &ops[i],
+		                       tvb, off, data);
+	}
+	
+	if (data->header.ver >= 3)
+	{
+		proto_tree_add_item(tree, hf_msg_osd_opreply_retry_attempt,
+		                    tvb, off, 4, ENC_LITTLE_ENDIAN);
+		off += 4;
+	}
+	
+	if (data->header.ver >= 4)
+	{
+		for (i = 0; i < opslen; i++)
+		{
+			proto_tree_add_item(tree, hf_msg_osd_opreply_rval,
+			                    tvb, off, 4, ENC_LITTLE_ENDIAN);
+			off += 4;
+		}
+	}
+	
+	if (data->header.ver >= 5)
+	{
+		off = c_dissect_eversion(tree, hf_msg_osd_opreply_replay_ver,
+		                         tvb, off, data);
+		proto_tree_add_item(tree, hf_msg_osd_opreply_user_ver,
+		                    tvb, off, 8, ENC_LITTLE_ENDIAN);
+		off += 8;
+	}
+	
+	if (data->header.ver >= 6)
+	{
+		off = c_dissect_redirect(tree, hf_msg_osd_opreply_redirect,
+		                         tvb, off, data);
+	}
+	
+	//@TODO: Check off == font_len;
+	
+	if (data->header.ver >= 4)
+	{
+		for (i = 0; i < opslen; i++)
+		{
+			proto_tree_add_item(tree, hf_msg_osd_opreply_payload,
+			                    tvb, off, ops[i].payload_len, ENC_NA);
+			off += ops[i].payload_len;
+		}
+	}
+	
+	return off;
+}
+
 static
 guint c_dissect_msg_mon_cmd(proto_tree *root,
-                          tvbuff_t *tvb,
-                          guint front_len, guint middle_len _U_, guint data_len _U_,
-                          c_pkt_data *data)
+                            tvbuff_t *tvb,
+                            guint front_len, guint middle_len _U_, guint data_len _U_,
+                            c_pkt_data *data)
 {
 	proto_item *ti;
 	proto_tree *tree, *subtree;
@@ -1615,8 +2393,7 @@ guint c_dissect_msg_mon_cmd(proto_tree *root,
 	
 	off = c_dissect_paxos(root, tvb, off, data);
 	
-	ti = proto_tree_add_item(root, hf_msg_mon_cmd,
-	                         tvb, off, front_len, ENC_NA);
+	ti = proto_tree_add_item(root, hf_msg_mon_cmd, tvb, off, front_len, ENC_NA);
 	tree = proto_item_add_subtree(ti, hf_msg_mon_cmd);
 	
 	proto_tree_add_item(tree, hf_msg_mon_cmd_fsid,
@@ -1629,8 +2406,7 @@ guint c_dissect_msg_mon_cmd(proto_tree *root,
 	off += 4;
 	while (i--)
 	{
-		ti = proto_tree_add_item(tree, hf_msg_mon_cmd_arg,
-		                         tvb, off, -1, ENC_NA);
+		ti = proto_tree_add_item(tree, hf_msg_mon_cmd_arg, tvb, off, -1, ENC_NA);
 		subtree = proto_item_add_subtree(ti, hf_msg_mon_cmd_arg);
 		
 		off = c_dissect_str(subtree, hf_msg_mon_cmd_str, &str, tvb, off);
@@ -1660,8 +2436,7 @@ guint c_dissect_msg_mon_cmd_ack(proto_tree *root,
 	
 	off = c_dissect_paxos(root, tvb, off, data);
 	
-	ti = proto_tree_add_item(root, hf_msg_mon_cmd_ack,
-	                         tvb, off, front_len, ENC_NA);
+	ti = proto_tree_add_item(root, hf_msg_mon_cmd_ack, tvb, off, front_len, ENC_NA);
 	tree = proto_item_add_subtree(ti, hf_msg_mon_cmd_ack);
 	
 	proto_tree_add_item(tree, hf_msg_mon_cmd_ack_code,
@@ -1675,8 +2450,7 @@ guint c_dissect_msg_mon_cmd_ack(proto_tree *root,
 	off += 4;
 	while (i--)
 	{
-		ti = proto_tree_add_item(tree, hf_msg_mon_cmd_ack_arg,
-		                         tvb, off, -1, ENC_NA);
+		ti = proto_tree_add_item(tree, hf_msg_mon_cmd_ack_arg, tvb, off, -1, ENC_NA);
 		subtree = proto_item_add_subtree(ti, hf_msg_mon_cmd_ack_arg);
 		
 		off = c_dissect_str(subtree, hf_msg_mon_cmd_ack_arg_str, NULL,
@@ -1727,9 +2501,9 @@ guint c_dissect_msg(proto_tree *tree,
 	if (!tvb_bytes_exist(tvb, off, C_OFF_HEAD1 + C_SIZE_HEAD1))
 		return C_NEEDMORE;
 	
-	front_len  = tvb_get_letoh64(tvb, off + C_OFF_HEAD1 + 0);
-	middle_len = tvb_get_letoh64(tvb, off + C_OFF_HEAD1 + 4);
-	data_len   = tvb_get_letoh64(tvb, off + C_OFF_HEAD1 + 8);
+	front_len  = tvb_get_letohl(tvb, off + C_OFF_HEAD1 + 0);
+	middle_len = tvb_get_letohl(tvb, off + C_OFF_HEAD1 + 4);
+	data_len   = tvb_get_letohl(tvb, off + C_OFF_HEAD1 + 8);
 	
 	size = C_SIZE_HEAD+front_len+middle_len+data_len+C_SIZE_FOOT;
 	if (!tvb_bytes_exist(tvb, off, size))
@@ -1761,9 +2535,7 @@ guint c_dissect_msg(proto_tree *tree,
 	} __attribute__ ((packed));
 	*/
 	
-	ti = proto_tree_add_item(tree, hf_head, tvb,
-	                         off, C_SIZE_HEAD,
-	                         ENC_NA);
+	ti = proto_tree_add_item(tree, hf_head, tvb, off, C_SIZE_HEAD, ENC_NA);
 	subtree = proto_item_add_subtree(ti, hf_head);
 	
 	data->header.seq = tvb_get_letoh64(tvb, off);
@@ -1846,6 +2618,8 @@ guint c_dissect_msg(proto_tree *tree,
 	C_HANDLE_MSG(C_CEPH_MSG_AUTH,              c_dissect_msg_auth)
 	C_HANDLE_MSG(C_CEPH_MSG_AUTH_REPLY,        c_dissect_msg_auth_reply)
 	C_HANDLE_MSG(C_CEPH_MSG_OSD_MAP,           c_dissect_msg_osd_map)
+	C_HANDLE_MSG(C_CEPH_MSG_OSD_OP,            c_dissect_msg_osd_op)
+	C_HANDLE_MSG(C_CEPH_MSG_OSD_OPREPLY,       c_dissect_msg_osd_opreply)
 	C_HANDLE_MSG(C_MSG_MON_COMMAND,            c_dissect_msg_mon_cmd)
 	C_HANDLE_MSG(C_MSG_MON_COMMAND_ACK,        c_dissect_msg_mon_cmd_ack)
 	
@@ -1882,9 +2656,7 @@ guint c_dissect_msg(proto_tree *tree,
 	} __attribute__ ((packed));
 	*/
 	
-	ti = proto_tree_add_item(tree, hf_foot, tvb,
-	                         off, C_SIZE_FOOT,
-	                         ENC_NA);
+	ti = proto_tree_add_item(tree, hf_foot, tvb, off, C_SIZE_FOOT, ENC_NA);
 	subtree = proto_item_add_subtree(ti, hf_foot);
 	
 	proto_tree_add_item(subtree, hf_foot_front_crc,
@@ -1936,9 +2708,7 @@ guint c_dissect_connect(proto_tree *root,
 	
 	authlen = tvb_get_letohl(tvb, off+28);
 	
-	ti = proto_tree_add_item(root, hf_connect, tvb,
-	                         off, C_SIZE_CONNECT,
-	                         ENC_NA);
+	ti = proto_tree_add_item(root, hf_connect, tvb, off, C_SIZE_CONNECT, ENC_NA);
 	tree = proto_item_add_subtree(ti, hf_connect);
 	
 	off = c_dissect_features(tree, tvb, off, data);
@@ -1964,6 +2734,7 @@ guint c_dissect_connect(proto_tree *root,
 	
 	off = c_dissect_flags(tree, tvb, off, data);
 	
+	//@TODO: Parse auth.
 	proto_tree_add_item(tree, hf_connect_auth,
 	                    tvb, off, authlen, ENC_NA);
 	off += authlen;
@@ -1998,9 +2769,8 @@ guint c_dissect_connect_reply(proto_tree *root,
 	
 	c_set_type(data, "Connect Reply");
 	
-	ti = proto_tree_add_item(root, hf_connect_reply, tvb,
-	                         off, C_SIZE_CONNECT_REPLY,
-	                         ENC_NA);
+	ti = proto_tree_add_item(root, hf_connect_reply,
+	                         tvb, off, C_SIZE_CONNECT_REPLY, ENC_NA);
 	tree = proto_item_add_subtree(ti, hf_connect_reply);
 	
 	off = c_dissect_features(tree, tvb, off, data);
@@ -2020,6 +2790,7 @@ guint c_dissect_connect_reply(proto_tree *root,
 	
 	off = c_dissect_flags(tree, tvb, off, data);
 	
+	//@TODO: Parse auth.
 	proto_tree_add_item(tree, hf_connect_auth,
 	                    tvb, off, authlen, ENC_NA);
 	off += authlen;
@@ -2059,7 +2830,7 @@ guint c_dissect_new(proto_tree *tree,
 		return 0; // Invalid banner.
 	*/
 	
-	proto_tree_add_item(tree, hf_version, tvb, off, banlen, ENC_NA);
+	proto_tree_add_item(tree, hf_banner, tvb, off, banlen, ENC_NA);
 	off += banlen;
 	
 	if (c_from_server(data)) size = C_SIZE_HELLO_S;
@@ -2337,7 +3108,7 @@ proto_register_ceph(void)
 			FT_UINT8, BASE_HEX, VALS(c_node_type_abbr_strings), 0,
 			NULL, HFILL
 		} },
-		{ &hf_version, {
+		{ &hf_banner, {
 			"Version", "ceph.ver",
 			FT_STRINGZ, BASE_NONE, NULL, 0,
 			"The protocol version string.", HFILL
@@ -2400,6 +3171,71 @@ proto_register_ceph(void)
 		{ &hf_time_nsec, {
 			"Nanoseconds", "ceph.nanoseconds",
 			FT_UINT32, BASE_DEC, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_encoded_ver, {
+			"Encoding Version", "ceph.enc.ver",
+			FT_UINT8, BASE_DEC, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_encoded_compat, {
+			"Minimum compatible version", "ceph.enc.compat",
+			FT_UINT8, BASE_DEC, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_encoded_size, {
+			"Size", "ceph.nanoseconds",
+			FT_UINT32, BASE_DEC, NULL, 0,
+			"Size of encoded message.", HFILL
+		} },
+		{ &hf_version, {
+			"Version", "ceph.version",
+			FT_UINT64, BASE_DEC, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_epoch, {
+			"Epoch", "ceph.epoch",
+			FT_UINT32, BASE_DEC, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_pool, {
+			"Pool", "ceph.pool",
+			FT_INT64, BASE_DEC, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_key, {
+			"Object Key", "ceph.key",
+			FT_STRING, BASE_NONE, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_namespace, {
+			"Namespace", "ceph.namespace",
+			FT_STRING, BASE_NONE, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_hash, {
+			"Object Hash", "ceph.hash",
+			FT_INT64, BASE_DEC, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_pgid_ver, {
+			"Placement Group Version", "ceph.pg.ver",
+			FT_UINT8, BASE_DEC, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_pgid_pool, {
+			"Pool", "ceph.pg.pool",
+			FT_UINT64, BASE_HEX, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_pgid_seed, {
+			"Seed", "ceph.pg.seed",
+			FT_UINT32, BASE_HEX, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_pgid_preferred, {
+			"Preferred", "ceph.pg.preferred",
+			FT_INT32, BASE_DEC, NULL, 0,
 			NULL, HFILL
 		} },
 		{ &hf_connect, {
@@ -2691,6 +3527,156 @@ proto_register_ceph(void)
 			"Lossy", "ceph.flags.lossy",
 			FT_BOOLEAN, 8, TFS(&tfs_enabled_disabled), C_FLAG_LOSSY,
 			"Messages may be safely dropped.", HFILL
+		} },
+		{ &hf_osd_flags, {
+			"OSD Flags", "ceph.osd_flags",
+			FT_UINT32, BASE_HEX, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_osd_flag_ack, {
+			"ACK", "ceph.osd_flags.ack",
+			FT_BOOLEAN, 32, TFS(&tfs_yes_no), C_OSD_FLAG_ACK,
+			"want (or is) \"ack\" ack", HFILL
+		} },
+		{ &hf_osd_flag_onnvram, {
+			"ACK on NVRAM", "ceph.osd_flags.onnvram",
+			FT_BOOLEAN, 32, TFS(&tfs_yes_no), C_OSD_FLAG_ONNVRAM,
+			"want (or is) \"onnvram\" ack", HFILL
+		} },
+		{ &hf_osd_flag_ondisk, {
+			"ACK on DISK", "ceph.osd_flags.ondisk",
+			FT_BOOLEAN, 32, TFS(&tfs_yes_no), C_OSD_FLAG_ONDISK,
+			"want (or is) \"ondisk\" ack", HFILL
+		} },
+		{ &hf_osd_flag_retry, {
+			"Retry", "ceph.osd_flags.retry",
+			FT_BOOLEAN, 32, TFS(&tfs_yes_no), C_OSD_FLAG_RETRY,
+			"resend attempt", HFILL
+		} },
+		{ &hf_osd_flag_read, {
+			"Read", "ceph.osd_flags.read",
+			FT_BOOLEAN, 32, TFS(&tfs_yes_no), C_OSD_FLAG_READ,
+			"op may read", HFILL
+		} },
+		{ &hf_osd_flag_write, {
+			"Write", "ceph.osd_flags.write",
+			FT_BOOLEAN, 32, TFS(&tfs_yes_no), C_OSD_FLAG_WRITE,
+			"op may write", HFILL
+		} },
+		{ &hf_osd_flag_ordersnap, {
+			"ORDERSNAP", "ceph.osd_flags.ordersnap",
+			FT_BOOLEAN, 32, TFS(&tfs_yes_no), C_OSD_FLAG_ORDERSNAP,
+			"EOLDSNAP if snapc is out of order", HFILL
+		} },
+		{ &hf_osd_flag_peerstat_old, {
+			"PEERSTAT_OLD", "ceph.osd_flags.peerstat_old",
+			FT_BOOLEAN, 32, TFS(&tfs_yes_no), C_OSD_FLAG_PEERSTAT_OLD,
+			"DEPRECATED msg includes osd_peer_stat", HFILL
+		} },
+		{ &hf_osd_flag_balance_reads, {
+			"BALANCE_READS", "ceph.osd_flags.balance_reads",
+			FT_BOOLEAN, 32, TFS(&tfs_yes_no), C_OSD_FLAG_BALANCE_READS,
+			NULL, HFILL
+		} },
+		{ &hf_osd_flag_parallelexec, {
+			"PARALLELEXEC", "ceph.osd_flags.parallelexec",
+			FT_BOOLEAN, 32, TFS(&tfs_yes_no), C_OSD_FLAG_PARALLELEXEC,
+			"execute op in parallel", HFILL
+		} },
+		{ &hf_osd_flag_pgop, {
+			"PGOP", "ceph.osd_flags.pgop",
+			FT_BOOLEAN, 32, TFS(&tfs_yes_no), C_OSD_FLAG_PGOP,
+			"pg op, no object", HFILL
+		} },
+		{ &hf_osd_flag_exec, {
+			"EXEC", "ceph.osd_flags.exec",
+			FT_BOOLEAN, 32, TFS(&tfs_yes_no), C_OSD_FLAG_EXEC,
+			"op may exec", HFILL
+		} },
+		{ &hf_osd_flag_exec_public, {
+			"EXEC_PUBLIC", "ceph.osd_flags.exec_public",
+			FT_BOOLEAN, 32, TFS(&tfs_yes_no), C_OSD_FLAG_EXEC_PUBLIC,
+			"DEPRECATED op may exec (public)", HFILL
+		} },
+		{ &hf_osd_flag_localize_reads, {
+			"LOCALIZE_READS", "ceph.osd_flags.localize_reads",
+			FT_BOOLEAN, 32, TFS(&tfs_yes_no), C_OSD_FLAG_LOCALIZE_READS,
+			"read from nearby replica, if any", HFILL
+		} },
+		{ &hf_osd_flag_rwordered, {
+			"RWORDERED", "ceph.osd_flags.rwordered",
+			FT_BOOLEAN, 32, TFS(&tfs_yes_no), C_OSD_FLAG_RWORDERED,
+			"order wrt concurrent reads", HFILL
+		} },
+		{ &hf_osd_flag_ignore_cache, {
+			"IGNORE_CACHE", "ceph.osd_flags.ignore_cache",
+			FT_BOOLEAN, 32, TFS(&tfs_yes_no), C_OSD_FLAG_IGNORE_CACHE,
+			"ignore cache logic", HFILL
+		} },
+		{ &hf_osd_flag_skiprwlocks, {
+			"SKIPRWLOCKS", "ceph.osd_flags.skiprwlocks",
+			FT_BOOLEAN, 32, TFS(&tfs_yes_no), C_OSD_FLAG_SKIPRWLOCKS,
+			"skip rw locks", HFILL
+		} },
+		{ &hf_osd_flag_ignore_overlay, {
+			"IGNORE_OVERLAY", "ceph.osd_flags.ignore_overlay",
+			FT_BOOLEAN, 32, TFS(&tfs_yes_no), C_OSD_FLAG_IGNORE_OVERLAY,
+			"ignore pool overlay", HFILL
+		} },
+		{ &hf_osd_flag_flush, {
+			"FLUSH", "ceph.osd_flags.flush",
+			FT_BOOLEAN, 32, TFS(&tfs_yes_no), C_OSD_FLAG_FLUSH,
+			"this is part of flush", HFILL
+		} },
+		{ &hf_osd_flag_map_snap_clone, {
+			"MAP_SNAP_CLONE", "ceph.osd_flags.map_snap_clone",
+			FT_BOOLEAN, 32, TFS(&tfs_yes_no), C_OSD_FLAG_MAP_SNAP_CLONE,
+			"map snap direct to clone id", HFILL
+		} },
+		{ &hf_osd_flag_enforce_snapc, {
+			"ENFORCE_SNAPC", "ceph.osd_flags.enforce_snapc",
+			FT_BOOLEAN, 32, TFS(&tfs_yes_no), C_OSD_FLAG_ENFORCE_SNAPC,
+			"use snapc provided even if pool uses pool snaps", HFILL
+		} },
+		{ &hf_osd_op_type, {
+			"Operation", "ceph.osd_op.op",
+			FT_UINT16, BASE_HEX|BASE_EXT_STRING, VALS(&c_osd_op_strings_ext), 0,
+			NULL, HFILL
+		} },
+		{ &hf_osd_op_data, {
+			"Operation Specific Data", "ceph.osd_op.data",
+			FT_BYTES, BASE_NONE, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_osd_op_payload_len, {
+			"Payload Length", "ceph.osd_op.payload_len",
+			FT_UINT32, BASE_DEC, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_osd_redirect_oloc, {
+			"Object Locater", "ceph.osd_redirect.oloc",
+			FT_NONE, BASE_NONE, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_osd_redirect_obj, {
+			"Object Name", "ceph.osd_redirect.obj",
+			FT_BYTES, BASE_NONE, NULL, 0,
+			"Redirect to this object.", HFILL
+		} },
+		{ &hf_osd_redirect_osdinstr, {
+			"OSD Instructions", "ceph.osd_redirect.osd_instructions",
+			FT_NONE, BASE_NONE, NULL, 0,
+			"Instructions to pass to the new target.", HFILL
+		} },
+		{ &hf_osd_redirect_osdinstr_data, {
+			"Data", "ceph.osd_redirect.osd_instructions",
+			FT_BYTES, BASE_NONE, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_osd_redirect_osdinstr_len, {
+			"Length", "ceph.osd_redirect.osd_instructions_len",
+			FT_UINT32, BASE_DEC, NULL, 0,
+			NULL, HFILL
 		} },
 		{ &hf_connect_reply, {
 			"Connection Negotiation Reply", "ceph.connect_reply",
@@ -3032,8 +4018,7 @@ proto_register_ceph(void)
 			FT_UINT32, BASE_DEC, NULL, 0,
 			NULL, HFILL
 		} },
-		{ &hf_msg_mon_cmd, {
-			"Mon Command", "ceph.msg.mon_cmd",
+		{ &hf_msg_mon_cmd, { "Mon Command", "ceph.msg.mon_cmd",
 			FT_NONE, BASE_NONE, NULL, 0,
 			NULL, HFILL
 		} },
@@ -3090,6 +4075,166 @@ proto_register_ceph(void)
 		{ &hf_msg_mon_cmd_ack_data, {
 			"Data", "ceph.msg.mon_cmd_ack.data",
 			FT_STRING, BASE_NONE, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_osd_op, {
+			"OSD Operation", "ceph.msg.osd_op",
+			FT_NONE, BASE_NONE, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_osd_op_client_inc, {
+			"Client Inc", "ceph.msg.osd_op.client_inc",
+			FT_UINT32, BASE_DEC, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_osd_op_osdmap_epoch, {
+			"OSD Map Epoch", "ceph.msg.osd_op.osdmap_epoch",
+			FT_UINT32, BASE_DEC, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_osd_op_flags, {
+			"Flags", "ceph.msg.osd_op.flags",
+			FT_UINT32, BASE_HEX, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_osd_op_mtime, { //@HELP is it mod time?
+			"Modification Time", "ceph.msg.osd_op",
+			FT_ABSOLUTE_TIME, ABSOLUTE_TIME_LOCAL, NULL, 0, //@HELP: Absolute or relative?
+			NULL, HFILL
+		} },
+		{ &hf_msg_osd_op_reassert_version, {
+			"Reassert Version", "ceph.msg.osd_op.reassert_version",
+			FT_NONE, BASE_NONE, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_osd_op_oloc, {
+			"Object Locater", "ceph.msg.osd_op.oloc",
+			FT_NONE, BASE_NONE, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_osd_op_pgid, {
+			"Placement Group ID", "ceph.msg.osd_op.pgid",
+			FT_NONE, BASE_NONE, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_osd_op_oid, {
+			"Object ID", "ceph.msg.osd_op.oid",
+			FT_STRING, BASE_NONE, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_osd_op_ops_len, {
+			"Operation Count", "ceph.msg.osd_op.ops_len",
+			FT_UINT16, BASE_DEC, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_osd_op_op, {
+			"Operation", "ceph.msg.osd_op.op",
+			FT_NONE, BASE_NONE, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_osd_op_snap_id, {
+			"Snap ID", "ceph.msg.osd_op.snap_id",
+			FT_UINT64, BASE_DEC, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_osd_op_snap_seq, {
+			"Snap Sequence", "ceph.msg.osd_op.snap_seq",
+			FT_UINT64, BASE_DEC, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_osd_op_snaps_len, {
+			"Snap Count", "ceph.msg.osd_op.snaps_len",
+			FT_UINT32, BASE_DEC, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_osd_op_snap, {
+			"Snap", "ceph.msg.osd_op.snaps",
+			FT_UINT64, BASE_DEC, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_osd_op_retry_attempt, {
+			"Retry Attempt", "ceph.msg.osd_op.retry",
+			FT_INT32, BASE_DEC, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_osd_op_payload, {
+			"Operation Payload", "ceph.msg.osd_op.op_payload",
+			FT_BYTES, BASE_NONE, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_osd_opreply, {
+			"OSD Operation Reply", "ceph.msg.osd_opreply",
+			FT_NONE, BASE_NONE, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_osd_opreply_oid, {
+			"Object ID", "ceph.msg.osd_opreply.oid",
+			FT_STRING, BASE_NONE, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_osd_opreply_pgid, {
+			"Placement Group ID", "ceph.msg.osd_opreply.pgid",
+			FT_NONE, BASE_NONE, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_osd_opreply_flags, {
+			"Flags", "ceph.msg.osd_opreply.flags",
+			FT_UINT32, BASE_HEX, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_osd_opreply_result, {
+			"Result", "ceph.msg.osd_opreply.result",
+			FT_INT32, BASE_DEC, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_osd_opreply_bad_replay_ver, {
+			"Bad Replay Version", "ceph.msg.osd_opreply.bad_replay_ver",
+			FT_NONE, BASE_NONE, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_osd_opreply_replay_ver, {
+			"Replay Version", "ceph.msg.osd_opreply.replay_ver",
+			FT_NONE, BASE_NONE, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_osd_opreply_user_ver, {
+			"User Version", "ceph.msg.osd_opreply.user_ver",
+			FT_UINT64, BASE_DEC, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_osd_opreply_redirect, {
+			"Redirect", "ceph.msg.osd_opreply.user_ver",
+			FT_NONE, BASE_NONE, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_osd_opreply_osdmap_epoch, {
+			"OSD Map Epoch", "ceph.msg.osd_opreply.osdmap_epoch",
+			FT_UINT32, BASE_DEC, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_osd_opreply_ops_len, {
+			"Operation Count", "ceph.msg.osd_opreply.ops_len",
+			FT_UINT16, BASE_DEC, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_osd_opreply_op, {
+			"Operation", "ceph.msg.osd_opreply.op",
+			FT_NONE, BASE_NONE, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_osd_opreply_retry_attempt, {
+			"Retry Attempt", "ceph.msg.osd_opreply.retry",
+			FT_INT32, BASE_DEC, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_osd_opreply_rval, {
+			"Operation Return Value", "ceph.msg.osd_opreply.rval",
+			FT_INT32, BASE_DEC, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_osd_opreply_payload, {
+			"Operation Result", "ceph.msg.osd_opreply.payload",
+			FT_BYTES, BASE_NONE, NULL, 0,
 			NULL, HFILL
 		} },
 	};
