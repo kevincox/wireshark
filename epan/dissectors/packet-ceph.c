@@ -297,22 +297,18 @@ enum c_banner {
 	C_BANNER_LEN_MAX = 30,
 };
 
-typedef enum _c_inet {
-	C_IPv4 = 0x0002,
-	C_IPv6 = 0x000A
-} c_inet;
+#define c_inet_strings_VALUE_STRING_LIST(V) \
+	V(C_IPv4, 0x0002, "IPv4") \
+	V(C_IPv6, 0x000A, "IPv6")
 
-static const
-value_string c_inet_strings[] = {
-	{ C_IPv4, "IPv4" },
-	{ C_IPv6, "IPv6" },
-	{ 0     ,  NULL  }
-};
-//static
-//const char *c_inet_string(c_inet val)
-//{
-//	return val_to_str(val, c_inet_strings, "Unknown (0x%04x)");
-//}
+typedef VALUE_STRING_ENUM(c_inet_strings) c_inet;
+VALUE_STRING_ARRAY(c_inet_strings);
+
+static _U_
+const char *c_inet_string(c_inet val)
+{
+	return val_to_str(val, c_inet_strings, "Unknown (0x%04x)");
+}
 
 /***** Feature Flags *****/
 /* Transmuted from ceph:/src/include/ceph_features.h */
@@ -371,50 +367,34 @@ typedef enum _c_flags {
 } c_flags;
 
 /***** Message Tags *****/
-typedef enum _c_tag {
-	C_TAG_READY          = 0x01, /* server->client: ready for messages */
-	C_TAG_RESETSESSION   = 0x02, /* server->client: reset, try again */
-	C_TAG_WAIT           = 0x03, /* server->client: wait for racing incoming connection */
-	C_TAG_RETRY_SESSION  = 0x04, /* server->client + cseq: try again with higher cseq */
-	C_TAG_RETRY_GLOBAL   = 0x05, /* server->client + gseq: try again with higher gseq */
-	C_TAG_CLOSE          = 0x06, /* closing pipe */
-	C_TAG_MSG            = 0x07, /* message */
-	C_TAG_ACK            = 0x08, /* message ack */
-	C_TAG_KEEPALIVE      = 0x09, /* just a keepalive byte! */
-	C_TAG_BADPROTOVER    = 0x0A, /* bad protocol version */
-	C_TAG_BADAUTHORIZER  = 0x0B, /* bad authorizer */
-	C_TAG_FEATURES       = 0x0C, /* insufficient features */
-	C_TAG_SEQ            = 0x0D, /* 64-bit int follows with seen seq number */
-	C_TAG_KEEPALIVE2     = 0x0E,
-	C_TAG_KEEPALIVE2_ACK = 0x0F  /* keepalive reply */
-} c_tag;
+#define c_tag_strings_VALUE_STRING_LIST(V) \
+	V(C_TAG_READY,          0x01, "server->client: ready for messages")                  \
+	V(C_TAG_RESETSESSION,   0x02, "server->client: reset, try again")                    \
+	V(C_TAG_WAIT,           0x03, "server->client: wait for racing incoming connection") \
+	V(C_TAG_RETRY_SESSION,  0x04, "server->client + cseq: try again with higher cseq")   \
+	V(C_TAG_RETRY_GLOBAL,   0x05, "server->client + gseq: try again with higher gseq")   \
+	V(C_TAG_CLOSE,          0x06, "closing pipe")                                        \
+	V(C_TAG_MSG,            0x07, "message")                                             \
+	V(C_TAG_ACK,            0x08, "message ack")                                         \
+	V(C_TAG_KEEPALIVE,      0x09, "just a keepalive byte!")                              \
+	V(C_TAG_BADPROTOVER,    0x0A, "bad protocol version")                                \
+	V(C_TAG_BADAUTHORIZER,  0x0B, "bad authorizer")                                      \
+	V(C_TAG_FEATURES,       0x0C, "insufficient features")                               \
+	V(C_TAG_SEQ,            0x0D, "64-bit int follows with seen seq number")             \
+	V(C_TAG_KEEPALIVE2,     0x0E, "keepalive2")                                          \
+	V(C_TAG_KEEPALIVE2_ACK, 0x0F, "keepalive2 reply")                                    \
+
+typedef VALUE_STRING_ENUM(c_tag_strings) c_tag;
+VALUE_STRING_ARRAY(c_tag_strings);
 
 static const
-value_string c_tag_strings[] = {
-	{C_TAG_READY,          "Ready for messages"                       },
-	{C_TAG_RESETSESSION,   "Reset, try again"                         },
-	{C_TAG_WAIT,           "Wait for racing incoming connection"      },
-	{C_TAG_RETRY_SESSION,  "Try again with higher connection sequence"},
-	{C_TAG_RETRY_GLOBAL,   "Try again with higher global sequence."   },
-	{C_TAG_CLOSE,          "Close"                                    },
-	{C_TAG_MSG,            "Message"                                  },
-	{C_TAG_ACK,            "Message acknowledgment"                   },
-	{C_TAG_KEEPALIVE,      "Keepalive"                                },
-	{C_TAG_BADPROTOVER,    "Bad protocol version"                     },
-	{C_TAG_BADAUTHORIZER,  "Bad authorizer"                           },
-	{C_TAG_FEATURES,       "Insufficient features"                    },
-	{C_TAG_SEQ,            "Sequence number"                          },
-	{C_TAG_KEEPALIVE2,     "Keepalive"                                },
-	{C_TAG_KEEPALIVE2_ACK, "Keepalive reply"                          },
-	{0,                    NULL                                       },
-};
-static const
 value_string_ext c_tag_strings_ext = VALUE_STRING_EXT_INIT(c_tag_strings);
-//static
-//const char *c_tag_string(c_tag val)
-//{
-//	return val_to_str_ext(val, &c_tag_strings_ext, "Unknown (0x%02x)");
-//}
+
+static _U_
+const char *c_tag_string(c_tag val)
+{
+	return val_to_str_ext(val, &c_tag_strings_ext, "Unknown (0x%02x)");
+}
 
 /* Extracted from the Ceph tree.
  * 
@@ -422,270 +402,138 @@ value_string_ext c_tag_strings_ext = VALUE_STRING_EXT_INIT(c_tag_strings);
  * CEPH_MSG_* for client <-> server messages.  There is no functional
  * difference, just a naming convention.
  */
-typedef enum _c_msg_type {
-	C_MSG_UNKNOWN                     = 0x0000,
-	
-	C_CEPH_MSG_SHUTDOWN               = 0x0001,
-	C_CEPH_MSG_PING                   = 0x0002,
-	C_CEPH_MSG_MON_MAP                = 0x0004,
-	C_CEPH_MSG_MON_GET_MAP            = 0x0005,
-	C_CEPH_MSG_STATFS                 = 0x000D,
-	C_CEPH_MSG_STATFS_REPLY           = 0x000E,
-	C_CEPH_MSG_MON_SUBSCRIBE          = 0x000F,
-	C_CEPH_MSG_MON_SUBSCRIBE_ACK      = 0x0010,
-	C_CEPH_MSG_AUTH                   = 0x0011,
-	C_CEPH_MSG_AUTH_REPLY             = 0x0012,
-	C_CEPH_MSG_MON_GET_VERSION        = 0x0013,
-	C_CEPH_MSG_MON_GET_VERSION_REPLY  = 0x0014,
-	C_CEPH_MSG_MDS_MAP                = 0x0015,
-	C_CEPH_MSG_CLIENT_SESSION         = 0x0016,
-	C_CEPH_MSG_CLIENT_RECONNECT       = 0x0017,
-	C_CEPH_MSG_CLIENT_REQUEST         = 0x0018,
-	C_CEPH_MSG_CLIENT_REQUEST_FORWARD = 0x0019,
-	C_CEPH_MSG_CLIENT_REPLY           = 0x001A,
-	C_MSG_PAXOS                       = 0x0028,
-	C_CEPH_MSG_OSD_MAP                = 0x0029,
-	C_CEPH_MSG_OSD_OP                 = 0x002A,
-	C_CEPH_MSG_OSD_OPREPLY            = 0x002B,
-	C_CEPH_MSG_WATCH_NOTIFY           = 0x002C,
-	C_MSG_FORWARD                     = 0x002E,
-	C_MSG_ROUTE                       = 0x002F,
-	C_CEPH_MSG_POOLOP_REPLY           = 0x0030,
-	C_MSG_POOLOPREPLY                 = 0x0030,
-	C_CEPH_MSG_POOLOP                 = 0x0031,
-	C_MSG_POOLOP                      = 0x0031,
-	C_MSG_MON_COMMAND                 = 0x0032,
-	C_MSG_MON_COMMAND_ACK             = 0x0033,
-	C_MSG_LOG                         = 0x0034,
-	C_MSG_LOGACK                      = 0x0035,
-	C_MSG_MON_OBSERVE                 = 0x0036,
-	C_MSG_MON_OBSERVE_NOTIFY          = 0x0037,
-	C_MSG_CLASS                       = 0x0038,
-	C_MSG_CLASS_ACK                   = 0x0039,
-	C_MSG_GETPOOLSTATS                = 0x003A,
-	C_MSG_GETPOOLSTATSREPLY           = 0x003B,
-	C_MSG_MON_GLOBAL_ID               = 0x003C,
-	C_CEPH_MSG_PRIO_LOW               = 0x0040,
-	C_MSG_MON_SCRUB                   = 0x0040,
-	C_MSG_MON_ELECTION                = 0x0041,
-	C_MSG_MON_PAXOS                   = 0x0042,
-	C_MSG_MON_PROBE                   = 0x0043,
-	C_MSG_MON_JOIN                    = 0x0044,
-	C_MSG_MON_SYNC                    = 0x0045,
-	C_MSG_OSD_PING                    = 0x0046,
-	C_MSG_OSD_BOOT                    = 0x0047,
-	C_MSG_OSD_FAILURE                 = 0x0048,
-	C_MSG_OSD_ALIVE                   = 0x0049,
-	C_MSG_OSD_MARK_ME_DOWN            = 0x004A,
-	C_MSG_OSD_SUBOP                   = 0x004C,
-	C_MSG_OSD_SUBOPREPLY              = 0x004D,
-	C_MSG_OSD_PGTEMP                  = 0x004E,
-	C_MSG_OSD_PG_NOTIFY               = 0x0050,
-	C_MSG_OSD_PG_QUERY                = 0x0051,
-	C_MSG_OSD_PG_SUMMARY              = 0x0052,
-	C_MSG_OSD_PG_LOG                  = 0x0053,
-	C_MSG_OSD_PG_REMOVE               = 0x0054,
-	C_MSG_OSD_PG_INFO                 = 0x0055,
-	C_MSG_OSD_PG_TRIM                 = 0x0056,
-	C_MSG_PGSTATS                     = 0x0057,
-	C_MSG_PGSTATSACK                  = 0x0058,
-	C_MSG_OSD_PG_CREATE               = 0x0059,
-	C_MSG_REMOVE_SNAPS                = 0x005A,
-	C_MSG_OSD_SCRUB                   = 0x005B,
-	C_MSG_OSD_PG_MISSING              = 0x005C,
-	C_MSG_OSD_REP_SCRUB               = 0x005D,
-	C_MSG_OSD_PG_SCAN                 = 0x005E,
-	C_MSG_OSD_PG_BACKFILL             = 0x005F,
-	C_MSG_COMMAND                     = 0x0061,
-	C_MSG_COMMAND_REPLY               = 0x0062,
-	C_MSG_OSD_BACKFILL_RESERVE        = 0x0063,
-	C_MSG_MDS_BEACON                  = 0x0064,
-	C_MSG_MDS_SLAVE_REQUEST           = 0x0065,
-	C_MSG_MDS_TABLE_REQUEST           = 0x0066,
-	C_MSG_OSD_PG_PUSH                 = 0x0069,
-	C_MSG_OSD_PG_PULL                 = 0x006A,
-	C_MSG_OSD_PG_PUSH_REPLY           = 0x006B,
-	C_MSG_OSD_EC_WRITE                = 0x006C,
-	C_MSG_OSD_EC_WRITE_REPLY          = 0x006D,
-	C_MSG_OSD_EC_READ                 = 0x006E,
-	C_MSG_OSD_EC_READ_REPLY           = 0x006F,
-	C_CEPH_MSG_PRIO_DEFAULT           = 0x007F,
-	C_MSG_OSD_RECOVERY_RESERVE        = 0x0096,
-	C_CEPH_MSG_PRIO_HIGH              = 0x00C4,
-	C_CEPH_MSG_PRIO_HIGHEST           = 0x00FF,
-	C_MSG_MDS_RESOLVE                 = 0x0200,
-	C_MSG_MDS_RESOLVEACK              = 0x0201,
-	C_MSG_MDS_CACHEREJOIN             = 0x0202,
-	C_MSG_MDS_DISCOVER                = 0x0203,
-	C_MSG_MDS_DISCOVERREPLY           = 0x0204,
-	C_MSG_MDS_INODEUPDATE             = 0x0205,
-	C_MSG_MDS_DIRUPDATE               = 0x0206,
-	C_MSG_MDS_CACHEEXPIRE             = 0x0207,
-	C_MSG_MDS_DENTRYUNLINK            = 0x0208,
-	C_MSG_MDS_FRAGMENTNOTIFY          = 0x0209,
-	C_MSG_MDS_OFFLOAD_TARGETS         = 0x020A,
-	C_MSG_MDS_DENTRYLINK              = 0x020C,
-	C_MSG_MDS_FINDINO                 = 0x020D,
-	C_MSG_MDS_FINDINOREPLY            = 0x020E,
-	C_MSG_MDS_OPENINO                 = 0x020F,
-	C_MSG_MDS_OPENINOREPLY            = 0x0210,
-	C_MSG_MDS_LOCK                    = 0x0300,
-	C_MSG_MDS_INODEFILECAPS           = 0x0301,
-	C_CEPH_MSG_CLIENT_CAPS            = 0x0310,
-	C_CEPH_MSG_CLIENT_LEASE           = 0x0311,
-	C_CEPH_MSG_CLIENT_SNAP            = 0x0312,
-	C_CEPH_MSG_CLIENT_CAPRELEASE      = 0x0313,
-	C_MSG_MDS_EXPORTDIRDISCOVER       = 0x0449,
-	C_MSG_MDS_EXPORTDIRDISCOVERACK    = 0x0450,
-	C_MSG_MDS_EXPORTDIRCANCEL         = 0x0451,
-	C_MSG_MDS_EXPORTDIRPREP           = 0x0452,
-	C_MSG_MDS_EXPORTDIRPREPACK        = 0x0453,
-	C_MSG_MDS_EXPORTDIRWARNING        = 0x0454,
-	C_MSG_MDS_EXPORTDIRWARNINGACK     = 0x0455,
-	C_MSG_MDS_EXPORTDIR               = 0x0456,
-	C_MSG_MDS_EXPORTDIRACK            = 0x0457,
-	C_MSG_MDS_EXPORTDIRNOTIFY         = 0x0458,
-	C_MSG_MDS_EXPORTDIRNOTIFYACK      = 0x0459,
-	C_MSG_MDS_EXPORTDIRFINISH         = 0x0460,
-	C_MSG_MDS_EXPORTCAPS              = 0x0470,
-	C_MSG_MDS_EXPORTCAPSACK           = 0x0471,
-	C_MSG_MDS_HEARTBEAT               = 0x0500,
-	C_MSG_TIMECHECK                   = 0x0600,
-	C_MSG_MON_HEALTH                  = 0x0601,
-} c_msg_type;
+#define c_msg_type_strings_VALUE_STRING_LIST(V) \
+	V(C_MSG_UNKNOWN,                     0x0000, "Unknown (0x0000)")                  \
+	                                                                                  \
+	V(C_CEPH_MSG_SHUTDOWN,               0x0001, "C_CEPH_MSG_SHUTDOWN")               \
+	V(C_CEPH_MSG_PING,                   0x0002, "C_CEPH_MSG_PING")                   \
+	V(C_CEPH_MSG_MON_MAP,                0x0004, "C_CEPH_MSG_MON_MAP")                \
+	V(C_CEPH_MSG_MON_GET_MAP,            0x0005, "C_CEPH_MSG_MON_GET_MAP")            \
+	V(C_CEPH_MSG_STATFS,                 0x000D, "C_CEPH_MSG_STATFS")                 \
+	V(C_CEPH_MSG_STATFS_REPLY,           0x000E, "C_CEPH_MSG_STATFS_REPLY")           \
+	V(C_CEPH_MSG_MON_SUBSCRIBE,          0x000F, "C_CEPH_MSG_MON_SUBSCRIBE")          \
+	V(C_CEPH_MSG_MON_SUBSCRIBE_ACK,      0x0010, "C_CEPH_MSG_MON_SUBSCRIBE_ACK")      \
+	V(C_CEPH_MSG_AUTH,                   0x0011, "C_CEPH_MSG_AUTH")                   \
+	V(C_CEPH_MSG_AUTH_REPLY,             0x0012, "C_CEPH_MSG_AUTH_REPLY")             \
+	V(C_CEPH_MSG_MON_GET_VERSION,        0x0013, "C_CEPH_MSG_MON_GET_VERSION")        \
+	V(C_CEPH_MSG_MON_GET_VERSION_REPLY,  0x0014, "C_CEPH_MSG_MON_GET_VERSION_REPLY")  \
+	V(C_CEPH_MSG_MDS_MAP,                0x0015, "C_CEPH_MSG_MDS_MAP")                \
+	V(C_CEPH_MSG_CLIENT_SESSION,         0x0016, "C_CEPH_MSG_CLIENT_SESSION")         \
+	V(C_CEPH_MSG_CLIENT_RECONNECT,       0x0017, "C_CEPH_MSG_CLIENT_RECONNECT")       \
+	V(C_CEPH_MSG_CLIENT_REQUEST,         0x0018, "C_CEPH_MSG_CLIENT_REQUEST")         \
+	V(C_CEPH_MSG_CLIENT_REQUEST_FORWARD, 0x0019, "C_CEPH_MSG_CLIENT_REQUEST_FORWARD") \
+	V(C_CEPH_MSG_CLIENT_REPLY,           0x001A, "C_CEPH_MSG_CLIENT_REPLY")           \
+	V(C_MSG_PAXOS,                       0x0028, "C_MSG_PAXOS")                       \
+	V(C_CEPH_MSG_OSD_MAP,                0x0029, "C_CEPH_MSG_OSD_MAP")                \
+	V(C_CEPH_MSG_OSD_OP,                 0x002A, "C_CEPH_MSG_OSD_OP")                 \
+	V(C_CEPH_MSG_OSD_OPREPLY,            0x002B, "C_CEPH_MSG_OSD_OPREPLY")            \
+	V(C_CEPH_MSG_WATCH_NOTIFY,           0x002C, "C_CEPH_MSG_WATCH_NOTIFY")           \
+	V(C_MSG_FORWARD,                     0x002E, "C_MSG_FORWARD")                     \
+	V(C_MSG_ROUTE,                       0x002F, "C_MSG_ROUTE")                       \
+	V(C_MSG_POOLOPREPLY,                 0x0030, "C_MSG_POOLOPREPLY")                 \
+	V(C_MSG_POOLOP,                      0x0031, "C_MSG_POOLOP")                      \
+	V(C_MSG_MON_COMMAND,                 0x0032, "C_MSG_MON_COMMAND")                 \
+	V(C_MSG_MON_COMMAND_ACK,             0x0033, "C_MSG_MON_COMMAND_ACK")             \
+	V(C_MSG_LOG,                         0x0034, "C_MSG_LOG")                         \
+	V(C_MSG_LOGACK,                      0x0035, "C_MSG_LOGACK")                      \
+	V(C_MSG_MON_OBSERVE,                 0x0036, "C_MSG_MON_OBSERVE")                 \
+	V(C_MSG_MON_OBSERVE_NOTIFY,          0x0037, "C_MSG_MON_OBSERVE_NOTIFY")          \
+	V(C_MSG_CLASS,                       0x0038, "C_MSG_CLASS")                       \
+	V(C_MSG_CLASS_ACK,                   0x0039, "C_MSG_CLASS_ACK")                   \
+	V(C_MSG_GETPOOLSTATS,                0x003A, "C_MSG_GETPOOLSTATS")                \
+	V(C_MSG_GETPOOLSTATSREPLY,           0x003B, "C_MSG_GETPOOLSTATSREPLY")           \
+	V(C_MSG_MON_GLOBAL_ID,               0x003C, "C_MSG_MON_GLOBAL_ID")               \
+	V(C_CEPH_MSG_PRIO_LOW,               0x0040, "C_CEPH_MSG_PRIO_LOW")               \
+	V(C_MSG_MON_SCRUB,                   0x0040, "C_MSG_MON_SCRUB")                   \
+	V(C_MSG_MON_ELECTION,                0x0041, "C_MSG_MON_ELECTION")                \
+	V(C_MSG_MON_PAXOS,                   0x0042, "C_MSG_MON_PAXOS")                   \
+	V(C_MSG_MON_PROBE,                   0x0043, "C_MSG_MON_PROBE")                   \
+	V(C_MSG_MON_JOIN,                    0x0044, "C_MSG_MON_JOIN")                    \
+	V(C_MSG_MON_SYNC,                    0x0045, "C_MSG_MON_SYNC")                    \
+	V(C_MSG_OSD_PING,                    0x0046, "C_MSG_OSD_PING")                    \
+	V(C_MSG_OSD_BOOT,                    0x0047, "C_MSG_OSD_BOOT")                    \
+	V(C_MSG_OSD_FAILURE,                 0x0048, "C_MSG_OSD_FAILURE")                 \
+	V(C_MSG_OSD_ALIVE,                   0x0049, "C_MSG_OSD_ALIVE")                   \
+	V(C_MSG_OSD_MARK_ME_DOWN,            0x004A, "C_MSG_OSD_MARK_ME_DOWN")            \
+	V(C_MSG_OSD_SUBOP,                   0x004C, "C_MSG_OSD_SUBOP")                   \
+	V(C_MSG_OSD_SUBOPREPLY,              0x004D, "C_MSG_OSD_SUBOPREPLY")              \
+	V(C_MSG_OSD_PGTEMP,                  0x004E, "C_MSG_OSD_PGTEMP")                  \
+	V(C_MSG_OSD_PG_NOTIFY,               0x0050, "C_MSG_OSD_PG_NOTIFY")               \
+	V(C_MSG_OSD_PG_QUERY,                0x0051, "C_MSG_OSD_PG_QUERY")                \
+	V(C_MSG_OSD_PG_SUMMARY,              0x0052, "C_MSG_OSD_PG_SUMMARY")              \
+	V(C_MSG_OSD_PG_LOG,                  0x0053, "C_MSG_OSD_PG_LOG")                  \
+	V(C_MSG_OSD_PG_REMOVE,               0x0054, "C_MSG_OSD_PG_REMOVE")               \
+	V(C_MSG_OSD_PG_INFO,                 0x0055, "C_MSG_OSD_PG_INFO")                 \
+	V(C_MSG_OSD_PG_TRIM,                 0x0056, "C_MSG_OSD_PG_TRIM")                 \
+	V(C_MSG_PGSTATS,                     0x0057, "C_MSG_PGSTATS")                     \
+	V(C_MSG_PGSTATSACK,                  0x0058, "C_MSG_PGSTATSACK")                  \
+	V(C_MSG_OSD_PG_CREATE,               0x0059, "C_MSG_OSD_PG_CREATE")               \
+	V(C_MSG_REMOVE_SNAPS,                0x005A, "C_MSG_REMOVE_SNAPS")                \
+	V(C_MSG_OSD_SCRUB,                   0x005B, "C_MSG_OSD_SCRUB")                   \
+	V(C_MSG_OSD_PG_MISSING,              0x005C, "C_MSG_OSD_PG_MISSING")              \
+	V(C_MSG_OSD_REP_SCRUB,               0x005D, "C_MSG_OSD_REP_SCRUB")               \
+	V(C_MSG_OSD_PG_SCAN,                 0x005E, "C_MSG_OSD_PG_SCAN")                 \
+	V(C_MSG_OSD_PG_BACKFILL,             0x005F, "C_MSG_OSD_PG_BACKFILL")             \
+	V(C_MSG_COMMAND,                     0x0061, "C_MSG_COMMAND")                     \
+	V(C_MSG_COMMAND_REPLY,               0x0062, "C_MSG_COMMAND_REPLY")               \
+	V(C_MSG_OSD_BACKFILL_RESERVE,        0x0063, "C_MSG_OSD_BACKFILL_RESERVE")        \
+	V(C_MSG_MDS_BEACON,                  0x0064, "C_MSG_MDS_BEACON")                  \
+	V(C_MSG_MDS_SLAVE_REQUEST,           0x0065, "C_MSG_MDS_SLAVE_REQUEST")           \
+	V(C_MSG_MDS_TABLE_REQUEST,           0x0066, "C_MSG_MDS_TABLE_REQUEST")           \
+	V(C_MSG_OSD_PG_PUSH,                 0x0069, "C_MSG_OSD_PG_PUSH")                 \
+	V(C_MSG_OSD_PG_PULL,                 0x006A, "C_MSG_OSD_PG_PULL")                 \
+	V(C_MSG_OSD_PG_PUSH_REPLY,           0x006B, "C_MSG_OSD_PG_PUSH_REPLY")           \
+	V(C_MSG_OSD_EC_WRITE,                0x006C, "C_MSG_OSD_EC_WRITE")                \
+	V(C_MSG_OSD_EC_WRITE_REPLY,          0x006D, "C_MSG_OSD_EC_WRITE_REPLY")          \
+	V(C_MSG_OSD_EC_READ,                 0x006E, "C_MSG_OSD_EC_READ")                 \
+	V(C_MSG_OSD_EC_READ_REPLY,           0x006F, "C_MSG_OSD_EC_READ_REPLY")           \
+	V(C_CEPH_MSG_PRIO_DEFAULT,           0x007F, "C_CEPH_MSG_PRIO_DEFAULT")           \
+	V(C_MSG_OSD_RECOVERY_RESERVE,        0x0096, "C_MSG_OSD_RECOVERY_RESERVE")        \
+	V(C_CEPH_MSG_PRIO_HIGH,              0x00C4, "C_CEPH_MSG_PRIO_HIGH")              \
+	V(C_CEPH_MSG_PRIO_HIGHEST,           0x00FF, "C_CEPH_MSG_PRIO_HIGHEST")           \
+	V(C_MSG_MDS_RESOLVE,                 0x0200, "C_MSG_MDS_RESOLVE")                 \
+	V(C_MSG_MDS_RESOLVEACK,              0x0201, "C_MSG_MDS_RESOLVEACK")              \
+	V(C_MSG_MDS_CACHEREJOIN,             0x0202, "C_MSG_MDS_CACHEREJOIN")             \
+	V(C_MSG_MDS_DISCOVER,                0x0203, "C_MSG_MDS_DISCOVER")                \
+	V(C_MSG_MDS_DISCOVERREPLY,           0x0204, "C_MSG_MDS_DISCOVERREPLY")           \
+	V(C_MSG_MDS_INODEUPDATE,             0x0205, "C_MSG_MDS_INODEUPDATE")             \
+	V(C_MSG_MDS_DIRUPDATE,               0x0206, "C_MSG_MDS_DIRUPDATE")               \
+	V(C_MSG_MDS_CACHEEXPIRE,             0x0207, "C_MSG_MDS_CACHEEXPIRE")             \
+	V(C_MSG_MDS_DENTRYUNLINK,            0x0208, "C_MSG_MDS_DENTRYUNLINK")            \
+	V(C_MSG_MDS_FRAGMENTNOTIFY,          0x0209, "C_MSG_MDS_FRAGMENTNOTIFY")          \
+	V(C_MSG_MDS_OFFLOAD_TARGETS,         0x020A, "C_MSG_MDS_OFFLOAD_TARGETS")         \
+	V(C_MSG_MDS_DENTRYLINK,              0x020C, "C_MSG_MDS_DENTRYLINK")              \
+	V(C_MSG_MDS_FINDINO,                 0x020D, "C_MSG_MDS_FINDINO")                 \
+	V(C_MSG_MDS_FINDINOREPLY,            0x020E, "C_MSG_MDS_FINDINOREPLY")            \
+	V(C_MSG_MDS_OPENINO,                 0x020F, "C_MSG_MDS_OPENINO")                 \
+	V(C_MSG_MDS_OPENINOREPLY,            0x0210, "C_MSG_MDS_OPENINOREPLY")            \
+	V(C_MSG_MDS_LOCK,                    0x0300, "C_MSG_MDS_LOCK")                    \
+	V(C_MSG_MDS_INODEFILECAPS,           0x0301, "C_MSG_MDS_INODEFILECAPS")           \
+	V(C_CEPH_MSG_CLIENT_CAPS,            0x0310, "C_CEPH_MSG_CLIENT_CAPS")            \
+	V(C_CEPH_MSG_CLIENT_LEASE,           0x0311, "C_CEPH_MSG_CLIENT_LEASE")           \
+	V(C_CEPH_MSG_CLIENT_SNAP,            0x0312, "C_CEPH_MSG_CLIENT_SNAP")            \
+	V(C_CEPH_MSG_CLIENT_CAPRELEASE,      0x0313, "C_CEPH_MSG_CLIENT_CAPRELEASE")      \
+	V(C_MSG_MDS_EXPORTDIRDISCOVER,       0x0449, "C_MSG_MDS_EXPORTDIRDISCOVER")       \
+	V(C_MSG_MDS_EXPORTDIRDISCOVERACK,    0x0450, "C_MSG_MDS_EXPORTDIRDISCOVERACK")    \
+	V(C_MSG_MDS_EXPORTDIRCANCEL,         0x0451, "C_MSG_MDS_EXPORTDIRCANCEL")         \
+	V(C_MSG_MDS_EXPORTDIRPREP,           0x0452, "C_MSG_MDS_EXPORTDIRPREP")           \
+	V(C_MSG_MDS_EXPORTDIRPREPACK,        0x0453, "C_MSG_MDS_EXPORTDIRPREPACK")        \
+	V(C_MSG_MDS_EXPORTDIRWARNING,        0x0454, "C_MSG_MDS_EXPORTDIRWARNING")        \
+	V(C_MSG_MDS_EXPORTDIRWARNINGACK,     0x0455, "C_MSG_MDS_EXPORTDIRWARNINGACK")     \
+	V(C_MSG_MDS_EXPORTDIR,               0x0456, "C_MSG_MDS_EXPORTDIR")               \
+	V(C_MSG_MDS_EXPORTDIRACK,            0x0457, "C_MSG_MDS_EXPORTDIRACK")            \
+	V(C_MSG_MDS_EXPORTDIRNOTIFY,         0x0458, "C_MSG_MDS_EXPORTDIRNOTIFY")         \
+	V(C_MSG_MDS_EXPORTDIRNOTIFYACK,      0x0459, "C_MSG_MDS_EXPORTDIRNOTIFYACK")      \
+	V(C_MSG_MDS_EXPORTDIRFINISH,         0x0460, "C_MSG_MDS_EXPORTDIRFINISH")         \
+	V(C_MSG_MDS_EXPORTCAPS,              0x0470, "C_MSG_MDS_EXPORTCAPS")              \
+	V(C_MSG_MDS_EXPORTCAPSACK,           0x0471, "C_MSG_MDS_EXPORTCAPSACK")           \
+	V(C_MSG_MDS_HEARTBEAT,               0x0500, "C_MSG_MDS_HEARTBEAT")               \
+	V(C_MSG_TIMECHECK,                   0x0600, "C_MSG_TIMECHECK")                   \
+	V(C_MSG_MON_HEALTH,                  0x0601, "C_MSG_MON_HEALTH")
 
-static const
-value_string c_msg_type_strings[] = {
-	{C_MSG_UNKNOWN,                     "Unknown (0x0000)"                },
-	{C_CEPH_MSG_SHUTDOWN,               "CEPH_MSG_SHUTDOWN"               },
-	{C_CEPH_MSG_PING,                   "CEPH_MSG_PING"                   },
-	{C_CEPH_MSG_MON_MAP,                "CEPH_MSG_MON_MAP"                },
-	{C_CEPH_MSG_MON_GET_MAP,            "CEPH_MSG_MON_GET_MAP"            },
-	{C_CEPH_MSG_STATFS,                 "CEPH_MSG_STATFS"                 },
-	{C_CEPH_MSG_STATFS_REPLY,           "CEPH_MSG_STATFS_REPLY"           },
-	{C_CEPH_MSG_MON_SUBSCRIBE,          "CEPH_MSG_MON_SUBSCRIBE"          },
-	{C_CEPH_MSG_MON_SUBSCRIBE_ACK,      "CEPH_MSG_MON_SUBSCRIBE_ACK"      },
-	{C_CEPH_MSG_AUTH,                   "CEPH_MSG_AUTH"                   },
-	{C_CEPH_MSG_AUTH_REPLY,             "CEPH_MSG_AUTH_REPLY"             },
-	{C_CEPH_MSG_MON_GET_VERSION,        "CEPH_MSG_MON_GET_VERSION"        },
-	{C_CEPH_MSG_MON_GET_VERSION_REPLY,  "CEPH_MSG_MON_GET_VERSION_REPLY"  },
-	{C_CEPH_MSG_MDS_MAP,                "CEPH_MSG_MDS_MAP"                },
-	{C_CEPH_MSG_CLIENT_SESSION,         "CEPH_MSG_CLIENT_SESSION"         },
-	{C_CEPH_MSG_CLIENT_RECONNECT,       "CEPH_MSG_CLIENT_RECONNECT"       },
-	{C_CEPH_MSG_CLIENT_REQUEST,         "CEPH_MSG_CLIENT_REQUEST"         },
-	{C_CEPH_MSG_CLIENT_REQUEST_FORWARD, "CEPH_MSG_CLIENT_REQUEST_FORWARD" },
-	{C_CEPH_MSG_CLIENT_REPLY,           "CEPH_MSG_CLIENT_REPLY"           },
-	{C_MSG_PAXOS,                       "MSG_PAXOS"                       },
-	{C_CEPH_MSG_OSD_MAP,                "CEPH_MSG_OSD_MAP"                },
-	{C_CEPH_MSG_OSD_OP,                 "CEPH_MSG_OSD_OP"                 },
-	{C_CEPH_MSG_OSD_OPREPLY,            "CEPH_MSG_OSD_OPREPLY"            },
-	{C_CEPH_MSG_WATCH_NOTIFY,           "CEPH_MSG_WATCH_NOTIFY"           },
-	{C_MSG_FORWARD,                     "MSG_FORWARD"                     },
-	{C_MSG_ROUTE,                       "MSG_ROUTE"                       },
-	{C_CEPH_MSG_POOLOP_REPLY,           "CEPH_MSG_POOLOP_REPLY"           },
-	{C_MSG_POOLOPREPLY,                 "MSG_POOLOPREPLY"                 },
-	{C_CEPH_MSG_POOLOP,                 "CEPH_MSG_POOLOP"                 },
-	{C_MSG_POOLOP,                      "MSG_POOLOP"                      },
-	{C_MSG_MON_COMMAND,                 "MSG_MON_COMMAND"                 },
-	{C_MSG_MON_COMMAND_ACK,             "MSG_MON_COMMAND_ACK"             },
-	{C_MSG_LOG,                         "MSG_LOG"                         },
-	{C_MSG_LOGACK,                      "MSG_LOGACK"                      },
-	{C_MSG_MON_OBSERVE,                 "MSG_MON_OBSERVE"                 },
-	{C_MSG_MON_OBSERVE_NOTIFY,          "MSG_MON_OBSERVE_NOTIFY"          },
-	{C_MSG_CLASS,                       "MSG_CLASS"                       },
-	{C_MSG_CLASS_ACK,                   "MSG_CLASS_ACK"                   },
-	{C_MSG_GETPOOLSTATS,                "MSG_GETPOOLSTATS"                },
-	{C_MSG_GETPOOLSTATSREPLY,           "MSG_GETPOOLSTATSREPLY"           },
-	{C_MSG_MON_GLOBAL_ID,               "MSG_MON_GLOBAL_ID"               },
-	{C_CEPH_MSG_PRIO_LOW,               "CEPH_MSG_PRIO_LOW"               },
-	{C_MSG_MON_SCRUB,                   "MSG_MON_SCRUB"                   },
-	{C_MSG_MON_ELECTION,                "MSG_MON_ELECTION"                },
-	{C_MSG_MON_PAXOS,                   "MSG_MON_PAXOS"                   },
-	{C_MSG_MON_PROBE,                   "MSG_MON_PROBE"                   },
-	{C_MSG_MON_JOIN,                    "MSG_MON_JOIN"                    },
-	{C_MSG_MON_SYNC,                    "MSG_MON_SYNC"                    },
-	{C_MSG_OSD_PING,                    "MSG_OSD_PING"                    },
-	{C_MSG_OSD_BOOT,                    "MSG_OSD_BOOT"                    },
-	{C_MSG_OSD_FAILURE,                 "MSG_OSD_FAILURE"                 },
-	{C_MSG_OSD_ALIVE,                   "MSG_OSD_ALIVE"                   },
-	{C_MSG_OSD_MARK_ME_DOWN,            "MSG_OSD_MARK_ME_DOWN"            },
-	{C_MSG_OSD_SUBOP,                   "MSG_OSD_SUBOP"                   },
-	{C_MSG_OSD_SUBOPREPLY,              "MSG_OSD_SUBOPREPLY"              },
-	{C_MSG_OSD_PGTEMP,                  "MSG_OSD_PGTEMP"                  },
-	{C_MSG_OSD_PG_NOTIFY,               "MSG_OSD_PG_NOTIFY"               },
-	{C_MSG_OSD_PG_QUERY,                "MSG_OSD_PG_QUERY"                },
-	{C_MSG_OSD_PG_SUMMARY,              "MSG_OSD_PG_SUMMARY"              },
-	{C_MSG_OSD_PG_LOG,                  "MSG_OSD_PG_LOG"                  },
-	{C_MSG_OSD_PG_REMOVE,               "MSG_OSD_PG_REMOVE"               },
-	{C_MSG_OSD_PG_INFO,                 "MSG_OSD_PG_INFO"                 },
-	{C_MSG_OSD_PG_TRIM,                 "MSG_OSD_PG_TRIM"                 },
-	{C_MSG_PGSTATS,                     "MSG_PGSTATS"                     },
-	{C_MSG_PGSTATSACK,                  "MSG_PGSTATSACK"                  },
-	{C_MSG_OSD_PG_CREATE,               "MSG_OSD_PG_CREATE"               },
-	{C_MSG_REMOVE_SNAPS,                "MSG_REMOVE_SNAPS"                },
-	{C_MSG_OSD_SCRUB,                   "MSG_OSD_SCRUB"                   },
-	{C_MSG_OSD_PG_MISSING,              "MSG_OSD_PG_MISSING"              },
-	{C_MSG_OSD_REP_SCRUB,               "MSG_OSD_REP_SCRUB"               },
-	{C_MSG_OSD_PG_SCAN,                 "MSG_OSD_PG_SCAN"                 },
-	{C_MSG_OSD_PG_BACKFILL,             "MSG_OSD_PG_BACKFILL"             },
-	{C_MSG_COMMAND,                     "MSG_COMMAND"                     },
-	{C_MSG_COMMAND_REPLY,               "MSG_COMMAND_REPLY"               },
-	{C_MSG_OSD_BACKFILL_RESERVE,        "MSG_OSD_BACKFILL_RESERVE"        },
-	{C_MSG_MDS_BEACON,                  "MSG_MDS_BEACON"                  },
-	{C_MSG_MDS_SLAVE_REQUEST,           "MSG_MDS_SLAVE_REQUEST"           },
-	{C_MSG_MDS_TABLE_REQUEST,           "MSG_MDS_TABLE_REQUEST"           },
-	{C_MSG_OSD_PG_PUSH,                 "MSG_OSD_PG_PUSH"                 },
-	{C_MSG_OSD_PG_PULL,                 "MSG_OSD_PG_PULL"                 },
-	{C_MSG_OSD_PG_PUSH_REPLY,           "MSG_OSD_PG_PUSH_REPLY"           },
-	{C_MSG_OSD_EC_WRITE,                "MSG_OSD_EC_WRITE"                },
-	{C_MSG_OSD_EC_WRITE_REPLY,          "MSG_OSD_EC_WRITE_REPLY"          },
-	{C_MSG_OSD_EC_READ,                 "MSG_OSD_EC_READ"                 },
-	{C_MSG_OSD_EC_READ_REPLY,           "MSG_OSD_EC_READ_REPLY"           },
-	{C_CEPH_MSG_PRIO_DEFAULT,           "CEPH_MSG_PRIO_DEFAULT"           },
-	{C_MSG_OSD_RECOVERY_RESERVE,        "MSG_OSD_RECOVERY_RESERVE"        },
-	{C_CEPH_MSG_PRIO_HIGH,              "CEPH_MSG_PRIO_HIGH"              },
-	{C_CEPH_MSG_PRIO_HIGHEST,           "CEPH_MSG_PRIO_HIGHEST"           },
-	{C_MSG_MDS_RESOLVE,                 "MSG_MDS_RESOLVE"                 },
-	{C_MSG_MDS_RESOLVEACK,              "MSG_MDS_RESOLVEACK"              },
-	{C_MSG_MDS_CACHEREJOIN,             "MSG_MDS_CACHEREJOIN"             },
-	{C_MSG_MDS_DISCOVER,                "MSG_MDS_DISCOVER"                },
-	{C_MSG_MDS_DISCOVERREPLY,           "MSG_MDS_DISCOVERREPLY"           },
-	{C_MSG_MDS_INODEUPDATE,             "MSG_MDS_INODEUPDATE"             },
-	{C_MSG_MDS_DIRUPDATE,               "MSG_MDS_DIRUPDATE"               },
-	{C_MSG_MDS_CACHEEXPIRE,             "MSG_MDS_CACHEEXPIRE"             },
-	{C_MSG_MDS_DENTRYUNLINK,            "MSG_MDS_DENTRYUNLINK"            },
-	{C_MSG_MDS_FRAGMENTNOTIFY,          "MSG_MDS_FRAGMENTNOTIFY"          },
-	{C_MSG_MDS_OFFLOAD_TARGETS,         "MSG_MDS_OFFLOAD_TARGETS"         },
-	{C_MSG_MDS_DENTRYLINK,              "MSG_MDS_DENTRYLINK"              },
-	{C_MSG_MDS_FINDINO,                 "MSG_MDS_FINDINO"                 },
-	{C_MSG_MDS_FINDINOREPLY,            "MSG_MDS_FINDINOREPLY"            },
-	{C_MSG_MDS_OPENINO,                 "MSG_MDS_OPENINO"                 },
-	{C_MSG_MDS_OPENINOREPLY,            "MSG_MDS_OPENINOREPLY"            },
-	{C_MSG_MDS_LOCK,                    "MSG_MDS_LOCK"                    },
-	{C_MSG_MDS_INODEFILECAPS,           "MSG_MDS_INODEFILECAPS"           },
-	{C_CEPH_MSG_CLIENT_CAPS,            "CEPH_MSG_CLIENT_CAPS"            },
-	{C_CEPH_MSG_CLIENT_LEASE,           "CEPH_MSG_CLIENT_LEASE"           },
-	{C_CEPH_MSG_CLIENT_SNAP,            "CEPH_MSG_CLIENT_SNAP"            },
-	{C_CEPH_MSG_CLIENT_CAPRELEASE,      "CEPH_MSG_CLIENT_CAPRELEASE"      },
-	{C_MSG_MDS_EXPORTDIRDISCOVER,       "MSG_MDS_EXPORTDIRDISCOVER"       },
-	{C_MSG_MDS_EXPORTDIRDISCOVERACK,    "MSG_MDS_EXPORTDIRDISCOVERACK"    },
-	{C_MSG_MDS_EXPORTDIRCANCEL,         "MSG_MDS_EXPORTDIRCANCEL"         },
-	{C_MSG_MDS_EXPORTDIRPREP,           "MSG_MDS_EXPORTDIRPREP"           },
-	{C_MSG_MDS_EXPORTDIRPREPACK,        "MSG_MDS_EXPORTDIRPREPACK"        },
-	{C_MSG_MDS_EXPORTDIRWARNING,        "MSG_MDS_EXPORTDIRWARNING"        },
-	{C_MSG_MDS_EXPORTDIRWARNINGACK,     "MSG_MDS_EXPORTDIRWARNINGACK"     },
-	{C_MSG_MDS_EXPORTDIR,               "MSG_MDS_EXPORTDIR"               },
-	{C_MSG_MDS_EXPORTDIRACK,            "MSG_MDS_EXPORTDIRACK"            },
-	{C_MSG_MDS_EXPORTDIRNOTIFY,         "MSG_MDS_EXPORTDIRNOTIFY"         },
-	{C_MSG_MDS_EXPORTDIRNOTIFYACK,      "MSG_MDS_EXPORTDIRNOTIFYACK"      },
-	{C_MSG_MDS_EXPORTDIRFINISH,         "MSG_MDS_EXPORTDIRFINISH"         },
-	{C_MSG_MDS_EXPORTCAPS,              "MSG_MDS_EXPORTCAPS"              },
-	{C_MSG_MDS_EXPORTCAPSACK,           "MSG_MDS_EXPORTCAPSACK"           },
-	{C_MSG_MDS_HEARTBEAT,               "MSG_MDS_HEARTBEAT"               },
-	{C_MSG_TIMECHECK,                   "MSG_TIMECHECK"                   },
-	{C_MSG_MON_HEALTH,                  "MSG_MON_HEALTH"                  },
-	{0,                                 NULL                              }
-};
+typedef VALUE_STRING_ENUM(c_msg_type_strings) c_msg_type;
+VALUE_STRING_ARRAY(c_msg_type_strings);
+
 static const
 value_string_ext c_msg_type_strings_ext = VALUE_STRING_EXT_INIT(c_msg_type_strings);
 
@@ -695,185 +543,255 @@ const char *c_msg_type_string(c_msg_type val)
 	return val_to_str_ext(val, &c_msg_type_strings_ext, "Unknown (0x%04x)");
 }
 
+#define c_osd_optype_strings_VALUE_STRING_LIST(V) \
+	/*** Raw Codes ***/                                                     \
+	V(C_OSD_OP_MODE,       0xf000, "C_OSD_OP_MODE")                         \
+	V(C_OSD_OP_MODE_RD,    0x1000, "C_OSD_OP_MODE_RD")                      \
+	V(C_OSD_OP_MODE_WR,    0x2000, "C_OSD_OP_MODE_WR")                      \
+	V(C_OSD_OP_MODE_RMW,   0x3000, "C_OSD_OP_MODE_RMW")                     \
+	V(C_OSD_OP_MODE_SUB,   0x4000, "C_OSD_OP_MODE_SUB")                     \
+	V(C_OSD_OP_MODE_CACHE, 0x8000, "C_OSD_OP_MODE_CACHE")                   \
+	                                                                        \
+	V(C_OSD_OP_TYPE,       0x0f00, "C_OSD_OP_TYPE")                         \
+	V(C_OSD_OP_TYPE_LOCK,  0x0100, "C_OSD_OP_TYPE_LOCK")                    \
+	V(C_OSD_OP_TYPE_DATA,  0x0200, "C_OSD_OP_TYPE_DATA")                    \
+	V(C_OSD_OP_TYPE_ATTR,  0x0300, "C_OSD_OP_TYPE_ATTR")                    \
+	V(C_OSD_OP_TYPE_EXEC,  0x0400, "C_OSD_OP_TYPE_EXEC")                    \
+	V(C_OSD_OP_TYPE_PG,    0x0500, "C_OSD_OP_TYPE_PG")                      \
+	V(C_OSD_OP_TYPE_MULTI, 0x0600, "C_OSD_OP_TYPE_MULTI") /* multiobject */ \
+	                                                                        \
+	/*** Sorted by value, keep it that way. ***/                            \
+	V(C_OSD_OP_READ,                                                        \
+	  C_OSD_OP_MODE_RD    | C_OSD_OP_TYPE_DATA  | 0x01,                     \
+	  "C_OSD_OP_READ")                                                      \
+	V(C_OSD_OP_STAT,                                                        \
+	  C_OSD_OP_MODE_RD    | C_OSD_OP_TYPE_DATA  | 0x02,                     \
+	  "C_OSD_OP_STAT")                                                      \
+	V(C_OSD_OP_MAPEXT,                                                      \
+	  C_OSD_OP_MODE_RD    | C_OSD_OP_TYPE_DATA  | 0x03,                     \
+	  "C_OSD_OP_MAPEXT")                                                    \
+	V(C_OSD_OP_MASKTRUNC,                                                   \
+	  C_OSD_OP_MODE_RD    | C_OSD_OP_TYPE_DATA  | 0x04,                     \
+	  "C_OSD_OP_MASKTRUNC")                                                 \
+	V(C_OSD_OP_SPARSE_READ,                                                 \
+	  C_OSD_OP_MODE_RD    | C_OSD_OP_TYPE_DATA  | 0x05,                     \
+	  "C_OSD_OP_SPARSE_READ")                                               \
+	V(C_OSD_OP_NOTIFY,                                                      \
+	  C_OSD_OP_MODE_RD    | C_OSD_OP_TYPE_DATA  | 0x06,                     \
+	  "C_OSD_OP_NOTIFY")                                                    \
+	V(C_OSD_OP_NOTIFY_ACK,                                                  \
+	  C_OSD_OP_MODE_RD    | C_OSD_OP_TYPE_DATA  | 0x07,                     \
+	  "C_OSD_OP_NOTIFY_ACK")                                                \
+	V(C_OSD_OP_ASSERT_VER,                                                  \
+	  C_OSD_OP_MODE_RD    | C_OSD_OP_TYPE_DATA  | 0x08,                     \
+	  "C_OSD_OP_ASSERT_VER")                                                \
+	V(C_OSD_OP_LIST_WATCHERS,                                               \
+	  C_OSD_OP_MODE_RD    | C_OSD_OP_TYPE_DATA  | 0x09,                     \
+	  "C_OSD_OP_LIST_WATCHERS")                                             \
+	V(C_OSD_OP_LIST_SNAPS,                                                  \
+	  C_OSD_OP_MODE_RD    | C_OSD_OP_TYPE_DATA  | 0x0A,                     \
+	  "C_OSD_OP_LIST_SNAPS")                                                \
+	V(C_OSD_OP_SYNC_READ,                                                   \
+	  C_OSD_OP_MODE_RD    | C_OSD_OP_TYPE_DATA  | 0x0B,                     \
+	  "C_OSD_OP_SYNC_READ")                                                 \
+	V(C_OSD_OP_TMAPGET,                                                     \
+	  C_OSD_OP_MODE_RD    | C_OSD_OP_TYPE_DATA  | 0x0C,                     \
+	  "C_OSD_OP_TMAPGET")                                                   \
+	V(C_OSD_OP_OMAPGETKEYS,                                                 \
+	  C_OSD_OP_MODE_RD    | C_OSD_OP_TYPE_DATA  | 0x11,                     \
+	  "C_OSD_OP_OMAPGETKEYS")                                               \
+	V(C_OSD_OP_OMAPGETVALS,                                                 \
+	  C_OSD_OP_MODE_RD    | C_OSD_OP_TYPE_DATA  | 0x12,                     \
+	  "C_OSD_OP_OMAPGETVALS")                                               \
+	V(C_OSD_OP_OMAPGETHEADER,                                               \
+	  C_OSD_OP_MODE_RD    | C_OSD_OP_TYPE_DATA  | 0x13,                     \
+	  "C_OSD_OP_OMAPGETHEADER")                                             \
+	V(C_OSD_OP_OMAPGETVALSBYKEYS,                                           \
+	  C_OSD_OP_MODE_RD    | C_OSD_OP_TYPE_DATA  | 0x14,                     \
+	  "C_OSD_OP_OMAPGETVALSBYKEYS")                                         \
+	V(C_OSD_OP_OMAP_CMP,                                                    \
+	  C_OSD_OP_MODE_RD    | C_OSD_OP_TYPE_DATA  | 0x19,                     \
+	  "C_OSD_OP_OMAP_CMP")                                                  \
+	V(C_OSD_OP_COPY_GET_CLASSIC,                                            \
+	  C_OSD_OP_MODE_RD    | C_OSD_OP_TYPE_DATA  | 0x1B,                     \
+	  "C_OSD_OP_COPY_GET_CLASSIC")                                          \
+	V(C_OSD_OP_ISDIRTY,                                                     \
+	  C_OSD_OP_MODE_RD    | C_OSD_OP_TYPE_DATA  | 0x1D,                     \
+	  "C_OSD_OP_ISDIRTY")                                                   \
+	V(C_OSD_OP_COPY_GET,                                                    \
+	  C_OSD_OP_MODE_RD    | C_OSD_OP_TYPE_DATA  | 0x1E,                     \
+	  "C_OSD_OP_COPY_GET")                                                  \
+	V(C_OSD_OP_GETXATTR,                                                    \
+	  C_OSD_OP_MODE_RD    | C_OSD_OP_TYPE_ATTR  | 0x01,                     \
+	  "C_OSD_OP_GETXATTR")                                                  \
+	V(C_OSD_OP_GETXATTRS,                                                   \
+	  C_OSD_OP_MODE_RD    | C_OSD_OP_TYPE_ATTR  | 0x02,                     \
+	  "C_OSD_OP_GETXATTRS")                                                 \
+	V(C_OSD_OP_CMPXATTR,                                                    \
+	  C_OSD_OP_MODE_RD    | C_OSD_OP_TYPE_ATTR  | 0x03,                     \
+	  "C_OSD_OP_CMPXATTR")                                                  \
+	V(C_OSD_OP_CALL,                                                        \
+	  C_OSD_OP_MODE_RD    | C_OSD_OP_TYPE_EXEC  | 0x01,                     \
+	  "C_OSD_OP_CALL")                                                      \
+	V(C_OSD_OP_PGLS,                                                        \
+	  C_OSD_OP_MODE_RD    | C_OSD_OP_TYPE_PG    | 0x01,                     \
+	  "C_OSD_OP_PGLS")                                                      \
+	V(C_OSD_OP_PGLS_FILTER,                                                 \
+	  C_OSD_OP_MODE_RD    | C_OSD_OP_TYPE_PG    | 0x02,                     \
+	  "C_OSD_OP_PGLS_FILTER")                                               \
+	V(C_OSD_OP_PG_HITSET_LS,                                                \
+	  C_OSD_OP_MODE_RD    | C_OSD_OP_TYPE_PG    | 0x03,                     \
+	  "C_OSD_OP_PG_HITSET_LS")                                              \
+	V(C_OSD_OP_PG_HITSET_GET,                                               \
+	  C_OSD_OP_MODE_RD    | C_OSD_OP_TYPE_PG    | 0x04,                     \
+	  "C_OSD_OP_PG_HITSET_GET")                                             \
+	V(C_OSD_OP_ASSERT_SRC_VERSION,                                          \
+	  C_OSD_OP_MODE_RD    | C_OSD_OP_TYPE_MULTI | 0x02,                     \
+	  "C_OSD_OP_ASSERT_SRC_VERSION")                                        \
+	V(C_OSD_OP_SRC_CMPXATTR,                                                \
+	  C_OSD_OP_MODE_RD    | C_OSD_OP_TYPE_MULTI | 0x03,                     \
+	  "C_OSD_OP_SRC_CMPXATTR")                                              \
+	V(C_OSD_OP_WRLOCK,                                                      \
+	  C_OSD_OP_MODE_WR    | C_OSD_OP_TYPE_LOCK  | 0x01,                     \
+	  "C_OSD_OP_WRLOCK")                                                    \
+	V(C_OSD_OP_WRUNLOCK,                                                    \
+	  C_OSD_OP_MODE_WR    | C_OSD_OP_TYPE_LOCK  | 0x02,                     \
+	  "C_OSD_OP_WRUNLOCK")                                                  \
+	V(C_OSD_OP_RDLOCK,                                                      \
+	  C_OSD_OP_MODE_WR    | C_OSD_OP_TYPE_LOCK  | 0x03,                     \
+	  "C_OSD_OP_RDLOCK")                                                    \
+	V(C_OSD_OP_RDUNLOCK,                                                    \
+	  C_OSD_OP_MODE_WR    | C_OSD_OP_TYPE_LOCK  | 0x04,                     \
+	  "C_OSD_OP_RDUNLOCK")                                                  \
+	V(C_OSD_OP_UPLOCK,                                                      \
+	  C_OSD_OP_MODE_WR    | C_OSD_OP_TYPE_LOCK  | 0x05,                     \
+	  "C_OSD_OP_UPLOCK")                                                    \
+	V(C_OSD_OP_DNLOCK,                                                      \
+	  C_OSD_OP_MODE_WR    | C_OSD_OP_TYPE_LOCK  | 0x06,                     \
+	  "C_OSD_OP_DNLOCK")                                                    \
+	V(C_OSD_OP_WRITE,                                                       \
+	  C_OSD_OP_MODE_WR    | C_OSD_OP_TYPE_DATA  | 0x01,                     \
+	  "C_OSD_OP_WRITE")                                                     \
+	V(C_OSD_OP_WRITEFULL,                                                   \
+	  C_OSD_OP_MODE_WR    | C_OSD_OP_TYPE_DATA  | 0x02,                     \
+	  "C_OSD_OP_WRITEFULL")                                                 \
+	V(C_OSD_OP_TRUNCATE,                                                    \
+	  C_OSD_OP_MODE_WR    | C_OSD_OP_TYPE_DATA  | 0x03,                     \
+	  "C_OSD_OP_TRUNCATE")                                                  \
+	V(C_OSD_OP_ZERO,                                                        \
+	  C_OSD_OP_MODE_WR    | C_OSD_OP_TYPE_DATA  | 0x04,                     \
+	  "C_OSD_OP_ZERO")                                                      \
+	V(C_OSD_OP_DELETE,                                                      \
+	  C_OSD_OP_MODE_WR    | C_OSD_OP_TYPE_DATA  | 0x05,                     \
+	  "C_OSD_OP_DELETE")                                                    \
+	V(C_OSD_OP_APPEND,                                                      \
+	  C_OSD_OP_MODE_WR    | C_OSD_OP_TYPE_DATA  | 0x06,                     \
+	  "C_OSD_OP_APPEND")                                                    \
+	V(C_OSD_OP_STARTSYNC,                                                   \
+	  C_OSD_OP_MODE_WR    | C_OSD_OP_TYPE_DATA  | 0x07,                     \
+	  "C_OSD_OP_STARTSYNC")                                                 \
+	V(C_OSD_OP_SETTRUNC,                                                    \
+	  C_OSD_OP_MODE_WR    | C_OSD_OP_TYPE_DATA  | 0x08,                     \
+	  "C_OSD_OP_SETTRUNC")                                                  \
+	V(C_OSD_OP_TRIMTRUNC,                                                   \
+	  C_OSD_OP_MODE_WR    | C_OSD_OP_TYPE_DATA  | 0x09,                     \
+	  "C_OSD_OP_TRIMTRUNC")                                                 \
+	V(C_OSD_OP_TMAPPUT,                                                     \
+	  C_OSD_OP_MODE_WR    | C_OSD_OP_TYPE_DATA  | 0x0B,                     \
+	  "C_OSD_OP_TMAPPUT")                                                   \
+	V(C_OSD_OP_CREATE,                                                      \
+	  C_OSD_OP_MODE_WR    | C_OSD_OP_TYPE_DATA  | 0x0D,                     \
+	  "C_OSD_OP_CREATE")                                                    \
+	V(C_OSD_OP_ROLLBACK,                                                    \
+	  C_OSD_OP_MODE_WR    | C_OSD_OP_TYPE_DATA  | 0x0E,                     \
+	  "C_OSD_OP_ROLLBACK")                                                  \
+	V(C_OSD_OP_WATCH,                                                       \
+	  C_OSD_OP_MODE_WR    | C_OSD_OP_TYPE_DATA  | 0x0F,                     \
+	  "C_OSD_OP_WATCH")                                                     \
+	V(C_OSD_OP_OMAPSETVALS,                                                 \
+	  C_OSD_OP_MODE_WR    | C_OSD_OP_TYPE_DATA  | 0x15,                     \
+	  "C_OSD_OP_OMAPSETVALS")                                               \
+	V(C_OSD_OP_OMAPSETHEADER,                                               \
+	  C_OSD_OP_MODE_WR    | C_OSD_OP_TYPE_DATA  | 0x16,                     \
+	  "C_OSD_OP_OMAPSETHEADER")                                             \
+	V(C_OSD_OP_OMAPCLEAR,                                                   \
+	  C_OSD_OP_MODE_WR    | C_OSD_OP_TYPE_DATA  | 0x17,                     \
+	  "C_OSD_OP_OMAPCLEAR")                                                 \
+	V(C_OSD_OP_OMAPRMKEYS,                                                  \
+	  C_OSD_OP_MODE_WR    | C_OSD_OP_TYPE_DATA  | 0x18,                     \
+	  "C_OSD_OP_OMAPRMKEYS")                                                \
+	V(C_OSD_OP_COPY_FROM,                                                   \
+	  C_OSD_OP_MODE_WR    | C_OSD_OP_TYPE_DATA  | 0x1A,                     \
+	  "C_OSD_OP_COPY_FROM")                                                 \
+	V(C_OSD_OP_UNDIRTY,                                                     \
+	  C_OSD_OP_MODE_WR    | C_OSD_OP_TYPE_DATA  | 0x1C,                     \
+	  "C_OSD_OP_UNDIRTY")                                                   \
+	V(C_OSD_OP_SETALLOCHINT,                                                \
+	  C_OSD_OP_MODE_WR    | C_OSD_OP_TYPE_DATA  | 0x23,                     \
+	  "C_OSD_OP_SETALLOCHINT")                                              \
+	V(C_OSD_OP_SETXATTR,                                                    \
+	  C_OSD_OP_MODE_WR    | C_OSD_OP_TYPE_ATTR  | 0x01,                     \
+	  "C_OSD_OP_SETXATTR")                                                  \
+	V(C_OSD_OP_SETXATTRS,                                                   \
+	  C_OSD_OP_MODE_WR    | C_OSD_OP_TYPE_ATTR  | 0x02,                     \
+	  "C_OSD_OP_SETXATTRS")                                                 \
+	V(C_OSD_OP_RESETXATTRS,                                                 \
+	  C_OSD_OP_MODE_WR    | C_OSD_OP_TYPE_ATTR  | 0x03,                     \
+	  "C_OSD_OP_RESETXATTRS")                                               \
+	V(C_OSD_OP_RMXATTR,                                                     \
+	  C_OSD_OP_MODE_WR    | C_OSD_OP_TYPE_ATTR  | 0x04,                     \
+	  "C_OSD_OP_RMXATTR")                                                   \
+	V(C_OSD_OP_CLONERANGE,                                                  \
+	  C_OSD_OP_MODE_WR    | C_OSD_OP_TYPE_MULTI | 0x01,                     \
+	  "C_OSD_OP_CLONERANGE")                                                \
+	V(C_OSD_OP_TMAPUP,                                                      \
+	  C_OSD_OP_MODE_RMW   | C_OSD_OP_TYPE_DATA  | 0x0A,                     \
+	  "C_OSD_OP_TMAPUP")                                                    \
+	V(C_OSD_OP_TMAP2OMAP,                                                   \
+	  C_OSD_OP_MODE_RMW   | C_OSD_OP_TYPE_DATA  | 0x22,                     \
+	  "C_OSD_OP_TMAP2OMAP")                                                 \
+	V(C_OSD_OP_PULL,                                                        \
+	  C_OSD_OP_MODE_SUB                         | 0x01,                     \
+	  "C_OSD_OP_PULL")                                                      \
+	V(C_OSD_OP_PUSH,                                                        \
+	  C_OSD_OP_MODE_SUB                         | 0x02,                     \
+	  "C_OSD_OP_PUSH")                                                      \
+	V(C_OSD_OP_BALANCEREADS,                                                \
+	  C_OSD_OP_MODE_SUB                         | 0x03,                     \
+	  "C_OSD_OP_BALANCEREADS")                                              \
+	V(C_OSD_OP_UNBALANCEREADS,                                              \
+	  C_OSD_OP_MODE_SUB                         | 0x04,                     \
+	  "C_OSD_OP_UNBALANCEREADS")                                            \
+	V(C_OSD_OP_SCRUB,                                                       \
+	  C_OSD_OP_MODE_SUB                         | 0x05,                     \
+	  "C_OSD_OP_SCRUB")                                                     \
+	V(C_OSD_OP_SCRUB_RESERVE,                                               \
+	  C_OSD_OP_MODE_SUB                         | 0x06,                     \
+	  "C_OSD_OP_SCRUB_RESERVE")                                             \
+	V(C_OSD_OP_SCRUB_UNRESERVE,                                             \
+	  C_OSD_OP_MODE_SUB                         | 0x07,                     \
+	  "C_OSD_OP_SCRUB_UNRESERVE")                                           \
+	V(C_OSD_OP_SCRUB_STOP,                                                  \
+	  C_OSD_OP_MODE_SUB                         | 0x08,                     \
+	  "C_OSD_OP_SCRUB_STOP")                                                \
+	V(C_OSD_OP_SCRUB_MAP,                                                   \
+	  C_OSD_OP_MODE_SUB                         | 0x09,                     \
+	  "C_OSD_OP_SCRUB_MAP")                                                 \
+	V(C_OSD_OP_CACHE_FLUSH,                                                 \
+	  C_OSD_OP_MODE_CACHE | C_OSD_OP_TYPE_DATA  | 0x1F,                     \
+	  "C_OSD_OP_CACHE_FLUSH")                                               \
+	V(C_OSD_OP_CACHE_EVICT,                                                 \
+	  C_OSD_OP_MODE_CACHE | C_OSD_OP_TYPE_DATA  | 0x20,                     \
+	  "C_OSD_OP_CACHE_EVICT")                                               \
+	V(C_OSD_OP_CACHE_TRY_FLUSH,                                             \
+	  C_OSD_OP_MODE_CACHE | C_OSD_OP_TYPE_DATA  | 0x21,                     \
+	  "C_OSD_OP_CACHE_TRY_FLUSH")
 
-typedef enum _c_osd_optype {
-	/*** Raw Codes ***/
-	C_OSD_OP_MODE               = 0xf000,
-	C_OSD_OP_MODE_RD            = 0x1000,
-	C_OSD_OP_MODE_WR            = 0x2000,
-	C_OSD_OP_MODE_RMW           = 0x3000,
-	C_OSD_OP_MODE_SUB           = 0x4000,
-	C_OSD_OP_MODE_CACHE         = 0x8000,
-	
-	C_OSD_OP_TYPE               = 0x0f00,
-	C_OSD_OP_TYPE_LOCK          = 0x0100,
-	C_OSD_OP_TYPE_DATA          = 0x0200,
-	C_OSD_OP_TYPE_ATTR          = 0x0300,
-	C_OSD_OP_TYPE_EXEC          = 0x0400,
-	C_OSD_OP_TYPE_PG            = 0x0500,
-	C_OSD_OP_TYPE_MULTI         = 0x0600, /* multiobject */
-	
-	/*** Sorted by value, keep it that way. ***/
-	C_OSD_OP_READ               = C_OSD_OP_MODE_RD    | C_OSD_OP_TYPE_DATA  | 0x01,
-	C_OSD_OP_STAT               = C_OSD_OP_MODE_RD    | C_OSD_OP_TYPE_DATA  | 0x02,
-	C_OSD_OP_MAPEXT             = C_OSD_OP_MODE_RD    | C_OSD_OP_TYPE_DATA  | 0x03,
-	C_OSD_OP_MASKTRUNC          = C_OSD_OP_MODE_RD    | C_OSD_OP_TYPE_DATA  | 0x04,
-	C_OSD_OP_SPARSE_READ        = C_OSD_OP_MODE_RD    | C_OSD_OP_TYPE_DATA  | 0x05,
-	C_OSD_OP_NOTIFY             = C_OSD_OP_MODE_RD    | C_OSD_OP_TYPE_DATA  | 0x06,
-	C_OSD_OP_NOTIFY_ACK         = C_OSD_OP_MODE_RD    | C_OSD_OP_TYPE_DATA  | 0x07,
-	C_OSD_OP_ASSERT_VER         = C_OSD_OP_MODE_RD    | C_OSD_OP_TYPE_DATA  | 0x08,
-	C_OSD_OP_LIST_WATCHERS      = C_OSD_OP_MODE_RD    | C_OSD_OP_TYPE_DATA  | 0x09,
-	C_OSD_OP_LIST_SNAPS         = C_OSD_OP_MODE_RD    | C_OSD_OP_TYPE_DATA  | 0x0A,
-	C_OSD_OP_SYNC_READ          = C_OSD_OP_MODE_RD    | C_OSD_OP_TYPE_DATA  | 0x0B,
-	C_OSD_OP_TMAPGET            = C_OSD_OP_MODE_RD    | C_OSD_OP_TYPE_DATA  | 0x0C,
-	C_OSD_OP_OMAPGETKEYS        = C_OSD_OP_MODE_RD    | C_OSD_OP_TYPE_DATA  | 0x11,
-	C_OSD_OP_OMAPGETVALS        = C_OSD_OP_MODE_RD    | C_OSD_OP_TYPE_DATA  | 0x12,
-	C_OSD_OP_OMAPGETHEADER      = C_OSD_OP_MODE_RD    | C_OSD_OP_TYPE_DATA  | 0x13,
-	C_OSD_OP_OMAPGETVALSBYKEYS  = C_OSD_OP_MODE_RD    | C_OSD_OP_TYPE_DATA  | 0x14,
-	C_OSD_OP_OMAP_CMP           = C_OSD_OP_MODE_RD    | C_OSD_OP_TYPE_DATA  | 0x19,
-	C_OSD_OP_COPY_GET_CLASSIC   = C_OSD_OP_MODE_RD    | C_OSD_OP_TYPE_DATA  | 0x1B,
-	C_OSD_OP_ISDIRTY            = C_OSD_OP_MODE_RD    | C_OSD_OP_TYPE_DATA  | 0x1D,
-	C_OSD_OP_COPY_GET           = C_OSD_OP_MODE_RD    | C_OSD_OP_TYPE_DATA  | 0x1E,
-	C_OSD_OP_GETXATTR           = C_OSD_OP_MODE_RD    | C_OSD_OP_TYPE_ATTR  | 0x01,
-	C_OSD_OP_GETXATTRS          = C_OSD_OP_MODE_RD    | C_OSD_OP_TYPE_ATTR  | 0x02,
-	C_OSD_OP_CMPXATTR           = C_OSD_OP_MODE_RD    | C_OSD_OP_TYPE_ATTR  | 0x03,
-	C_OSD_OP_CALL               = C_OSD_OP_MODE_RD    | C_OSD_OP_TYPE_EXEC  | 0x01,
-	C_OSD_OP_PGLS               = C_OSD_OP_MODE_RD    | C_OSD_OP_TYPE_PG    | 0x01,
-	C_OSD_OP_PGLS_FILTER        = C_OSD_OP_MODE_RD    | C_OSD_OP_TYPE_PG    | 0x02,
-	C_OSD_OP_PG_HITSET_LS       = C_OSD_OP_MODE_RD    | C_OSD_OP_TYPE_PG    | 0x03,
-	C_OSD_OP_PG_HITSET_GET      = C_OSD_OP_MODE_RD    | C_OSD_OP_TYPE_PG    | 0x04,
-	C_OSD_OP_ASSERT_SRC_VERSION = C_OSD_OP_MODE_RD    | C_OSD_OP_TYPE_MULTI | 0x02,
-	C_OSD_OP_SRC_CMPXATTR       = C_OSD_OP_MODE_RD    | C_OSD_OP_TYPE_MULTI | 0x03,
-	C_OSD_OP_WRLOCK             = C_OSD_OP_MODE_WR    | C_OSD_OP_TYPE_LOCK  | 0x01,
-	C_OSD_OP_WRUNLOCK           = C_OSD_OP_MODE_WR    | C_OSD_OP_TYPE_LOCK  | 0x02,
-	C_OSD_OP_RDLOCK             = C_OSD_OP_MODE_WR    | C_OSD_OP_TYPE_LOCK  | 0x03,
-	C_OSD_OP_RDUNLOCK           = C_OSD_OP_MODE_WR    | C_OSD_OP_TYPE_LOCK  | 0x04,
-	C_OSD_OP_UPLOCK             = C_OSD_OP_MODE_WR    | C_OSD_OP_TYPE_LOCK  | 0x05,
-	C_OSD_OP_DNLOCK             = C_OSD_OP_MODE_WR    | C_OSD_OP_TYPE_LOCK  | 0x06,
-	C_OSD_OP_WRITE              = C_OSD_OP_MODE_WR    | C_OSD_OP_TYPE_DATA  | 0x01,
-	C_OSD_OP_WRITEFULL          = C_OSD_OP_MODE_WR    | C_OSD_OP_TYPE_DATA  | 0x02,
-	C_OSD_OP_TRUNCATE           = C_OSD_OP_MODE_WR    | C_OSD_OP_TYPE_DATA  | 0x03,
-	C_OSD_OP_ZERO               = C_OSD_OP_MODE_WR    | C_OSD_OP_TYPE_DATA  | 0x04,
-	C_OSD_OP_DELETE             = C_OSD_OP_MODE_WR    | C_OSD_OP_TYPE_DATA  | 0x05,
-	C_OSD_OP_APPEND             = C_OSD_OP_MODE_WR    | C_OSD_OP_TYPE_DATA  | 0x06,
-	C_OSD_OP_STARTSYNC          = C_OSD_OP_MODE_WR    | C_OSD_OP_TYPE_DATA  | 0x07,
-	C_OSD_OP_SETTRUNC           = C_OSD_OP_MODE_WR    | C_OSD_OP_TYPE_DATA  | 0x08,
-	C_OSD_OP_TRIMTRUNC          = C_OSD_OP_MODE_WR    | C_OSD_OP_TYPE_DATA  | 0x09,
-	C_OSD_OP_TMAPPUT            = C_OSD_OP_MODE_WR    | C_OSD_OP_TYPE_DATA  | 0x0B,
-	C_OSD_OP_CREATE             = C_OSD_OP_MODE_WR    | C_OSD_OP_TYPE_DATA  | 0x0D,
-	C_OSD_OP_ROLLBACK           = C_OSD_OP_MODE_WR    | C_OSD_OP_TYPE_DATA  | 0x0E,
-	C_OSD_OP_WATCH              = C_OSD_OP_MODE_WR    | C_OSD_OP_TYPE_DATA  | 0x0F,
-	C_OSD_OP_OMAPSETVALS        = C_OSD_OP_MODE_WR    | C_OSD_OP_TYPE_DATA  | 0x15,
-	C_OSD_OP_OMAPSETHEADER      = C_OSD_OP_MODE_WR    | C_OSD_OP_TYPE_DATA  | 0x16,
-	C_OSD_OP_OMAPCLEAR          = C_OSD_OP_MODE_WR    | C_OSD_OP_TYPE_DATA  | 0x17,
-	C_OSD_OP_OMAPRMKEYS         = C_OSD_OP_MODE_WR    | C_OSD_OP_TYPE_DATA  | 0x18,
-	C_OSD_OP_COPY_FROM          = C_OSD_OP_MODE_WR    | C_OSD_OP_TYPE_DATA  | 0x1A,
-	C_OSD_OP_UNDIRTY            = C_OSD_OP_MODE_WR    | C_OSD_OP_TYPE_DATA  | 0x1C,
-	C_OSD_OP_SETALLOCHINT       = C_OSD_OP_MODE_WR    | C_OSD_OP_TYPE_DATA  | 0x23,
-	C_OSD_OP_SETXATTR           = C_OSD_OP_MODE_WR    | C_OSD_OP_TYPE_ATTR  | 0x01,
-	C_OSD_OP_SETXATTRS          = C_OSD_OP_MODE_WR    | C_OSD_OP_TYPE_ATTR  | 0x02,
-	C_OSD_OP_RESETXATTRS        = C_OSD_OP_MODE_WR    | C_OSD_OP_TYPE_ATTR  | 0x03,
-	C_OSD_OP_RMXATTR            = C_OSD_OP_MODE_WR    | C_OSD_OP_TYPE_ATTR  | 0x04,
-	C_OSD_OP_CLONERANGE         = C_OSD_OP_MODE_WR    | C_OSD_OP_TYPE_MULTI | 0x01,
-	C_OSD_OP_TMAPUP             = C_OSD_OP_MODE_RMW   | C_OSD_OP_TYPE_DATA  | 0x0A,
-	C_OSD_OP_TMAP2OMAP          = C_OSD_OP_MODE_RMW   | C_OSD_OP_TYPE_DATA  | 0x22,
-	C_OSD_OP_PULL               = C_OSD_OP_MODE_SUB                         | 0x01,
-	C_OSD_OP_PUSH               = C_OSD_OP_MODE_SUB                         | 0x02,
-	C_OSD_OP_BALANCEREADS       = C_OSD_OP_MODE_SUB                         | 0x03,
-	C_OSD_OP_UNBALANCEREADS     = C_OSD_OP_MODE_SUB                         | 0x04,
-	C_OSD_OP_SCRUB              = C_OSD_OP_MODE_SUB                         | 0x05,
-	C_OSD_OP_SCRUB_RESERVE      = C_OSD_OP_MODE_SUB                         | 0x06,
-	C_OSD_OP_SCRUB_UNRESERVE    = C_OSD_OP_MODE_SUB                         | 0x07,
-	C_OSD_OP_SCRUB_STOP         = C_OSD_OP_MODE_SUB                         | 0x08,
-	C_OSD_OP_SCRUB_MAP          = C_OSD_OP_MODE_SUB                         | 0x09,
-	C_OSD_OP_CACHE_FLUSH        = C_OSD_OP_MODE_CACHE | C_OSD_OP_TYPE_DATA  | 0x1F,
-	C_OSD_OP_CACHE_EVICT        = C_OSD_OP_MODE_CACHE | C_OSD_OP_TYPE_DATA  | 0x20,
-	C_OSD_OP_CACHE_TRY_FLUSH    = C_OSD_OP_MODE_CACHE | C_OSD_OP_TYPE_DATA  | 0x21,
-} c_osd_optype;
-
+typedef VALUE_STRING_ENUM(c_osd_optype_strings) c_osd_optype;
+VALUE_STRING_ARRAY(c_osd_optype_strings);
 
 static const
-value_string c_osd_op_strings[] = {
-	/*** Sorted, like above. ***/
-	{C_OSD_OP_READ,               "C_OSD_OP_READ"              },
-	{C_OSD_OP_STAT,               "C_OSD_OP_STAT"              },
-	{C_OSD_OP_MAPEXT,             "C_OSD_OP_MAPEXT"            },
-	{C_OSD_OP_MASKTRUNC,          "C_OSD_OP_MASKTRUNC"         },
-	{C_OSD_OP_SPARSE_READ,        "C_OSD_OP_SPARSE_READ"       },
-	{C_OSD_OP_NOTIFY,             "C_OSD_OP_NOTIFY"            },
-	{C_OSD_OP_NOTIFY_ACK,         "C_OSD_OP_NOTIFY_ACK"        },
-	{C_OSD_OP_ASSERT_VER,         "C_OSD_OP_ASSERT_VER"        },
-	{C_OSD_OP_LIST_WATCHERS,      "C_OSD_OP_LIST_WATCHERS"     },
-	{C_OSD_OP_LIST_SNAPS,         "C_OSD_OP_LIST_SNAPS"        },
-	{C_OSD_OP_SYNC_READ,          "C_OSD_OP_SYNC_READ"         },
-	{C_OSD_OP_TMAPGET,            "C_OSD_OP_TMAPGET"           },
-	{C_OSD_OP_OMAPGETKEYS,        "C_OSD_OP_OMAPGETKEYS"       },
-	{C_OSD_OP_OMAPGETVALS,        "C_OSD_OP_OMAPGETVALS"       },
-	{C_OSD_OP_OMAPGETHEADER,      "C_OSD_OP_OMAPGETHEADER"     },
-	{C_OSD_OP_OMAPGETVALSBYKEYS,  "C_OSD_OP_OMAPGETVALSBYKEYS" },
-	{C_OSD_OP_OMAP_CMP,           "C_OSD_OP_OMAP_CMP"          },
-	{C_OSD_OP_COPY_GET_CLASSIC,   "C_OSD_OP_COPY_GET_CLASSIC"  },
-	{C_OSD_OP_ISDIRTY,            "C_OSD_OP_ISDIRTY"           },
-	{C_OSD_OP_COPY_GET,           "C_OSD_OP_COPY_GET"          },
-	{C_OSD_OP_GETXATTR,           "C_OSD_OP_GETXATTR"          },
-	{C_OSD_OP_GETXATTRS,          "C_OSD_OP_GETXATTRS"         },
-	{C_OSD_OP_CMPXATTR,           "C_OSD_OP_CMPXATTR"          },
-	{C_OSD_OP_CALL,               "C_OSD_OP_CALL"              },
-	{C_OSD_OP_PGLS,               "C_OSD_OP_PGLS"              },
-	{C_OSD_OP_PGLS_FILTER,        "C_OSD_OP_PGLS_FILTER"       },
-	{C_OSD_OP_PG_HITSET_LS,       "C_OSD_OP_PG_HITSET_LS"      },
-	{C_OSD_OP_PG_HITSET_GET,      "C_OSD_OP_PG_HITSET_GET"     },
-	{C_OSD_OP_ASSERT_SRC_VERSION, "C_OSD_OP_ASSERT_SRC_VERSION"},
-	{C_OSD_OP_SRC_CMPXATTR,       "C_OSD_OP_SRC_CMPXATTR"      },
-	{C_OSD_OP_WRLOCK,             "C_OSD_OP_WRLOCK"            },
-	{C_OSD_OP_WRUNLOCK,           "C_OSD_OP_WRUNLOCK"          },
-	{C_OSD_OP_RDLOCK,             "C_OSD_OP_RDLOCK"            },
-	{C_OSD_OP_RDUNLOCK,           "C_OSD_OP_RDUNLOCK"          },
-	{C_OSD_OP_UPLOCK,             "C_OSD_OP_UPLOCK"            },
-	{C_OSD_OP_DNLOCK,             "C_OSD_OP_DNLOCK"            },
-	{C_OSD_OP_WRITE,              "C_OSD_OP_WRITE"             },
-	{C_OSD_OP_WRITEFULL,          "C_OSD_OP_WRITEFULL"         },
-	{C_OSD_OP_TRUNCATE,           "C_OSD_OP_TRUNCATE"          },
-	{C_OSD_OP_ZERO,               "C_OSD_OP_ZERO"              },
-	{C_OSD_OP_DELETE,             "C_OSD_OP_DELETE"            },
-	{C_OSD_OP_APPEND,             "C_OSD_OP_APPEND"            },
-	{C_OSD_OP_STARTSYNC,          "C_OSD_OP_STARTSYNC"         },
-	{C_OSD_OP_SETTRUNC,           "C_OSD_OP_SETTRUNC"          },
-	{C_OSD_OP_TRIMTRUNC,          "C_OSD_OP_TRIMTRUNC"         },
-	{C_OSD_OP_TMAPPUT,            "C_OSD_OP_TMAPPUT"           },
-	{C_OSD_OP_CREATE,             "C_OSD_OP_CREATE"            },
-	{C_OSD_OP_ROLLBACK,           "C_OSD_OP_ROLLBACK"          },
-	{C_OSD_OP_WATCH,              "C_OSD_OP_WATCH"             },
-	{C_OSD_OP_OMAPSETVALS,        "C_OSD_OP_OMAPSETVALS"       },
-	{C_OSD_OP_OMAPSETHEADER,      "C_OSD_OP_OMAPSETHEADER"     },
-	{C_OSD_OP_OMAPCLEAR,          "C_OSD_OP_OMAPCLEAR"         },
-	{C_OSD_OP_OMAPRMKEYS,         "C_OSD_OP_OMAPRMKEYS"        },
-	{C_OSD_OP_COPY_FROM,          "C_OSD_OP_COPY_FROM"         },
-	{C_OSD_OP_UNDIRTY,            "C_OSD_OP_UNDIRTY"           },
-	{C_OSD_OP_SETALLOCHINT,       "C_OSD_OP_SETALLOCHINT"      },
-	{C_OSD_OP_SETXATTR,           "C_OSD_OP_SETXATTR"          },
-	{C_OSD_OP_SETXATTRS,          "C_OSD_OP_SETXATTRS"         },
-	{C_OSD_OP_RESETXATTRS,        "C_OSD_OP_RESETXATTRS"       },
-	{C_OSD_OP_RMXATTR,            "C_OSD_OP_RMXATTR"           },
-	{C_OSD_OP_CLONERANGE,         "C_OSD_OP_CLONERANGE"        },
-	{C_OSD_OP_TMAPUP,             "C_OSD_OP_TMAPUP"            },
-	{C_OSD_OP_TMAP2OMAP,          "C_OSD_OP_TMAP2OMAP"         },
-	{C_OSD_OP_PULL,               "C_OSD_OP_PULL"              },
-	{C_OSD_OP_PUSH,               "C_OSD_OP_PUSH"              },
-	{C_OSD_OP_BALANCEREADS,       "C_OSD_OP_BALANCEREADS"      },
-	{C_OSD_OP_UNBALANCEREADS,     "C_OSD_OP_UNBALANCEREADS"    },
-	{C_OSD_OP_SCRUB,              "C_OSD_OP_SCRUB"             },
-	{C_OSD_OP_SCRUB_RESERVE,      "C_OSD_OP_SCRUB_RESERVE"     },
-	{C_OSD_OP_SCRUB_UNRESERVE,    "C_OSD_OP_SCRUB_UNRESERVE"   },
-	{C_OSD_OP_SCRUB_STOP,         "C_OSD_OP_SCRUB_STOP"        },
-	{C_OSD_OP_SCRUB_MAP,          "C_OSD_OP_SCRUB_MAP"         },
-	{C_OSD_OP_CACHE_FLUSH,        "C_OSD_OP_CACHE_FLUSH"       },
-	{C_OSD_OP_CACHE_EVICT,        "C_OSD_OP_CACHE_EVICT"       },
-	{C_OSD_OP_CACHE_TRY_FLUSH,    "C_OSD_OP_CACHE_TRY_FLUSH"   },
-	{0,                           NULL                         }
-};
-static const
-value_string_ext c_osd_op_strings_ext = VALUE_STRING_EXT_INIT(c_osd_op_strings);
+value_string_ext c_osd_op_strings_ext = VALUE_STRING_EXT_INIT(c_osd_optype_strings);
 
 static
 const char *c_osd_op_string(c_osd_optype val)
@@ -881,40 +799,38 @@ const char *c_osd_op_string(c_osd_optype val)
 	return val_to_str_ext(val, &c_osd_op_strings_ext, "Unknown (0x%04x)");
 }
 
-typedef enum _c_node_type {
-	C_NODE_TYPE_UNKNOWN = 0x00,
-	C_NODE_TYPE_MON     = 0x01,
-	C_NODE_TYPE_MDS     = 0x02,
-	C_NODE_TYPE_OSD     = 0x04,
-	C_NODE_TYPE_CLIENT  = 0x08,
-	C_NODE_TYPE_AUTH    = 0x20
-} c_node_type;
+/** Node type database. */
+#define c_node_type_strings_LIST(V) \
+	V(C_NODE_TYPE_UNKNOWN, 0x00, "Unknown",               "unknown") \
+	V(C_NODE_TYPE_MON,     0x01, "Monitor",               "mon"    ) \
+	V(C_NODE_TYPE_MDS,     0x02, "Meta Data Server",      "mds"    ) \
+	V(C_NODE_TYPE_OSD,     0x04, "Object Storage Daemon", "osd"    ) \
+	V(C_NODE_TYPE_CLIENT,  0x08, "Client",                "client" ) \
+	V(C_NODE_TYPE_AUTH,    0x20, "Authentication Server", "auth"   ) \
 
-static const
-value_string c_node_type_strings[] = {
-	{C_NODE_TYPE_UNKNOWN, "Unknown"              },
-	{C_NODE_TYPE_MON,     "Monitor"              },
-	{C_NODE_TYPE_MDS,     "Meta Data Server"     },
-	{C_NODE_TYPE_OSD,     "Object Storage Daemon"},
-	{C_NODE_TYPE_CLIENT,  "Client"               },
-	{C_NODE_TYPE_AUTH,    "Authentication Server"},
-	{0,                   NULL                   }
-};
+#define C_EXTRACT_123(a, b, c, ...)    (a,b,c)
+#define C_EXTRACT_124(a, b, c, d, ...) (a,b,d)
+#define C_EVAL1(...) __VA_ARGS__
+
+/** Extract the full names to create a value_string list. */
+#define c_node_type_strings_VALUE_STRING_LIST(V) \
+	C_EVAL1(c_node_type_strings_LIST(V C_EXTRACT_123))
+
+/** Extract the abbreviations to create a value_string list. */
+#define c_node_type_abbr_strings_VALUE_STRING_LIST(V) \
+	C_EVAL1(c_node_type_strings_LIST(V C_EXTRACT_124))
+
+typedef VALUE_STRING_ENUM(c_node_type_strings) c_node_type;
+VALUE_STRING_ARRAY(c_node_type_strings);
+
 static
 const char *c_node_type_string(c_node_type val)
 {
 	return val_to_str(val, c_node_type_strings, "Unknown (0x%02x)");
 }
-static const
-value_string c_node_type_abbr_strings[] = {
-	{C_NODE_TYPE_UNKNOWN, "unknown"},
-	{C_NODE_TYPE_MON,     "mon"    },
-	{C_NODE_TYPE_MDS,     "mds"    },
-	{C_NODE_TYPE_OSD,     "osd"    },
-	{C_NODE_TYPE_CLIENT,  "client" },
-	{C_NODE_TYPE_AUTH,    "auth"   },
-	{0,                   NULL     }
-};
+
+VALUE_STRING_ARRAY(c_node_type_abbr_strings);
+
 static
 const char *c_node_type_abbr_string(c_node_type val)
 {
