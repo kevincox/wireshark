@@ -236,6 +236,22 @@ static int hf_msg_osd_map_data_data        = -1;
 static int hf_msg_osd_map_data_len         = -1;
 static int hf_msg_osd_map_oldest           = -1;
 static int hf_msg_osd_map_newest           = -1;
+static int hf_msg_poolopreply                  = -1;
+static int hf_msg_poolopreply_fsid                  = -1;
+static int hf_msg_poolopreply_code                  = -1;
+static int hf_msg_poolopreply_epoch                  = -1;
+static int hf_msg_poolopreply_datai                  = -1;
+static int hf_msg_poolopreply_data                  = -1;
+static int hf_msg_poolopreply_data_len                  = -1;
+static int hf_msg_poolop                  = -1;
+static int hf_msg_poolop_fsid                  = -1;
+static int hf_msg_poolop_pool                  = -1;
+static int hf_msg_poolop_type                  = -1;
+static int hf_msg_poolop_auid                  = -1;
+static int hf_msg_poolop_snapid                  = -1;
+static int hf_msg_poolop_name                  = -1;
+static int hf_msg_poolop_crush_rule                  = -1;
+static int hf_msg_poolop_crush_rule8                  = -1;
 static int hf_msg_mon_cmd                  = -1;
 static int hf_msg_mon_cmd_fsid             = -1;
 static int hf_msg_mon_cmd_arg              = -1;
@@ -799,6 +815,24 @@ const char *c_osd_op_string(c_osd_optype val)
 	return val_to_str_ext(val, &c_osd_op_strings_ext, "Unknown (0x%04x)");
 }
 
+#define c_poolop_type_strings_VALUE_STRING_LIST(V) \
+	V(POOL_OP_CREATE,                0x01, "Create")                    \
+	V(POOL_OP_DELETE,                0x02, "Delete")                    \
+	V(POOL_OP_AUID_CHANGE,           0x03, "Change Owner") /*@HELP: is this right? */ \
+	V(POOL_OP_CREATE_SNAP,           0x11, "Create Snapshot")           \
+	V(POOL_OP_DELETE_SNAP,           0x12, "Delete Snapshot")           \
+	V(POOL_OP_CREATE_UNMANAGED_SNAP, 0x21, "Create Unmanaged Snapshot") \
+	V(POOL_OP_DELETE_UNMANAGED_SNAP, 0x22, "Delete Unmanaged Snapshot") \
+
+typedef VALUE_STRING_ENUM(c_poolop_type_strings) c_poolop_type;
+VALUE_STRING_ARRAY(c_poolop_type_strings);
+
+static
+const char *c_poolop_type_string(c_poolop_type val)
+{
+	return val_to_str(val, c_poolop_type_strings, "Unknown (0x%02X)");
+}
+
 /** Node type database. */
 #define c_node_type_strings_LIST(V) \
 	V(C_NODE_TYPE_UNKNOWN, 0x00, "Unknown",               "unknown") \
@@ -1062,6 +1096,21 @@ void c_set_type(c_pkt_data *data, const char *type)
 {
 	col_set_str(data->pinfo->cinfo, COL_INFO, type);
 	proto_item_append_text(data->item_root, " %s", type);
+}
+
+static
+void c_append_text(c_pkt_data *data, proto_item *ti, const char *fmt, ...)
+{
+	va_list ap;
+	char buf[ITEM_LABEL_LENGTH];
+	va_start(ap, fmt);
+	
+	g_vsnprintf(buf, sizeof(buf), fmt, ap);
+	
+	proto_item_append_text(ti,              "%s", buf);
+	proto_item_append_text(data->item_root, "%s", buf);
+	
+	va_end(ap);
 }
 
 /***** Protocol Dissector *****/
@@ -1828,6 +1877,7 @@ guint c_dissect_msg_unknown(proto_tree *tree,
 	return off;
 }
 
+/** Dissect monmap message 0x0004 */
 static
 guint c_dissect_msg_mon_map(proto_tree *root,
                            tvbuff_t *tvb,
@@ -1851,13 +1901,14 @@ guint c_dissect_msg_mon_map(proto_tree *root,
 	//@TODO: Parse Mon Map.
 }
 
+/** Mon subscribe message 0x000F */
 static
 guint c_dissect_msg_mon_sub(proto_tree *root,
                            tvbuff_t *tvb,
                            guint front_len, guint middle_len _U_, guint data_len _U_,
                            c_pkt_data *data)
 {
-	proto_item *ti, *ti2;
+	proto_item *ti, *subti, *subti2;
 	proto_tree *tree, *subtree;
 	guint off = 0;
 	guint len;
@@ -1867,10 +1918,11 @@ guint c_dissect_msg_mon_sub(proto_tree *root,
 	/* ceph:/src/messages/MMonSubscribe.h */
 	
 	c_set_type(data, "Mon Subscribe");
-	proto_item_append_text(data->item_root, ", To:");
 	
 	ti = proto_tree_add_item(root, hf_msg_mon_sub, tvb, off, front_len, ENC_NA);
 	tree = proto_item_add_subtree(ti, hf_msg_mon_sub);
+	
+	c_append_text(data, ti, ", To:");
 	
 	len = tvb_get_letohl(tvb, off);
 	proto_tree_add_item(tree, hf_msg_mon_sub_item_len,
@@ -1893,17 +1945,15 @@ guint c_dissect_msg_mon_sub(proto_tree *root,
 		} __attribute__ ((packed));
 		*/
 		
-		ti = proto_tree_add_item(tree, hf_msg_mon_sub_item, tvb, off, -1, ENC_NA);
-		subtree = proto_item_add_subtree(ti, hf_msg_mon_sub_item);
+		subti = proto_tree_add_item(tree, hf_msg_mon_sub_item, tvb, off, -1, ENC_NA);
+		subtree = proto_item_add_subtree(subti, hf_msg_mon_sub_item);
 		
 		off = c_dissect_str(subtree, hf_msg_mon_sub_what, &str, tvb, off);
 		
-		proto_item_append_text(data->item_root, "%c%s",
-		                       first? ' ':',',
-		                       str.str);
+		c_append_text(data, ti, "%c%s", first? ' ':',', str.str);
 		first = 0;
 		
-		proto_item_append_text(ti, ", What: %s, Starting: %"G_GUINT64_FORMAT,
+		proto_item_append_text(subti, ", What: %s, Starting: %"G_GUINT64_FORMAT,
 		                       str.str,
 		                       tvb_get_letoh64(tvb, off));
 		
@@ -1912,10 +1962,10 @@ guint c_dissect_msg_mon_sub(proto_tree *root,
 		off += 8;
 		
 		/* Flags */
-		ti2 = proto_tree_add_item(subtree, hf_msg_mon_sub_flags,
-		                          tvb, off, 1, ENC_LITTLE_ENDIAN);
+		subti2 = proto_tree_add_item(subtree, hf_msg_mon_sub_flags,
+		                             tvb, off, 1, ENC_LITTLE_ENDIAN);
 		/* Reuse subtree variable for flags. */
-		subtree = proto_item_add_subtree(ti2, hf_msg_mon_sub_flags);
+		subtree = proto_item_add_subtree(subti2, hf_msg_mon_sub_flags);
 		proto_tree_add_item(subtree, hf_msg_mon_sub_flags_onetime,
 		                    tvb, off, 1, ENC_LITTLE_ENDIAN);
 		off += 1;
@@ -1926,6 +1976,7 @@ guint c_dissect_msg_mon_sub(proto_tree *root,
 	return off;
 }
 
+/** Mon subscription ack 0x0010 */
 static
 guint c_dissect_msg_mon_sub_ack(proto_tree *root,
                                tvbuff_t *tvb,
@@ -1947,12 +1998,13 @@ guint c_dissect_msg_mon_sub_ack(proto_tree *root,
 	                    tvb, off, 4, ENC_LITTLE_ENDIAN);
 	off += 4;
 	proto_tree_add_item(tree, hf_msg_mon_sub_ack_fsid,
-	                    tvb, off, 16, ENC_LITTLE_ENDIAN);
+	                    tvb, off, 16, ENC_BIG_ENDIAN);
 	off += 16;
 	
 	return off;
 }
 
+/** Authentication Request 0x0011. */
 static
 guint c_dissect_msg_auth(proto_tree *root,
                         tvbuff_t *tvb,
@@ -1972,8 +2024,7 @@ guint c_dissect_msg_auth(proto_tree *root,
 	ti = proto_tree_add_item(root, hf_msg_auth, tvb, off, front_len-off, ENC_NA);
 	tree = proto_item_add_subtree(ti, hf_msg_auth);
 	
-	proto_item_append_text(data->item_root, ", Proto: 0x%02x",
-	                       tvb_get_letohl(tvb, off));
+	c_append_text(data, ti, ", Proto: 0x%02x", tvb_get_letohl(tvb, off));
 	proto_tree_add_item(tree, hf_msg_auth_proto,
 	                    tvb, off, 4, ENC_LITTLE_ENDIAN);
 	off += 4;
@@ -1993,6 +2044,7 @@ guint c_dissect_msg_auth(proto_tree *root,
 	return off;
 }
 
+/** Authentication response. 0x0012 */
 static
 guint c_dissect_msg_auth_reply(proto_tree *root,
                               tvbuff_t *tvb,
@@ -2010,8 +2062,7 @@ guint c_dissect_msg_auth_reply(proto_tree *root,
 	ti = proto_tree_add_item(root, hf_msg_auth_reply, tvb, off, front_len, ENC_NA);
 	tree = proto_item_add_subtree(ti, hf_msg_auth_reply);
 	
-	proto_item_append_text(data->item_root, ", Proto: %x",
-	                       tvb_get_letohl(tvb, off));
+	c_append_text(data, ti, ", Proto: %x", tvb_get_letohl(tvb, off));
 	proto_tree_add_item(tree, hf_msg_auth_reply_proto,
 	                    tvb, off, 4, ENC_LITTLE_ENDIAN);
 	off += 4;
@@ -2030,6 +2081,7 @@ guint c_dissect_msg_auth_reply(proto_tree *root,
 	return off;
 }
 
+/** OSD Map 0x0029 */
 static
 guint c_dissect_msg_osd_map(proto_tree *root,
                            tvbuff_t *tvb,
@@ -2051,14 +2103,14 @@ guint c_dissect_msg_osd_map(proto_tree *root,
 	tree = proto_item_add_subtree(ti, hf_msg_osd_map);
 	
 	proto_tree_add_item(tree, hf_msg_osd_map_fsid,
-	                    tvb, off, 16, ENC_LITTLE_ENDIAN);
+	                    tvb, off, 16, ENC_BIG_ENDIAN);
 	off += 16;
 	
 	/*** Incremental Items ***/
 	i = tvb_get_letohl(tvb, off);
 	proto_tree_add_item(tree, hf_msg_osd_map_inc_len,
 	                    tvb, off, 4, ENC_LITTLE_ENDIAN);
-	proto_item_append_text(data->item_root, ", Incremental Items: %u", i);
+	c_append_text(data, ti, ", Incremental Items: %u", i);
 	
 	off += 4;
 	while (i--)
@@ -2080,7 +2132,7 @@ guint c_dissect_msg_osd_map(proto_tree *root,
 	i = tvb_get_letohl(tvb, off);
 	proto_tree_add_item(tree, hf_msg_osd_map_map_len,
 	                    tvb, off, 4, ENC_LITTLE_ENDIAN);
-	proto_item_append_text(data->item_root, ", Items: %u", i);
+	c_append_text(data, ti, ", Items: %u", i);
 	off += 4;
 	while (i--)
 	{
@@ -2153,7 +2205,7 @@ guint c_dissect_msg_osd_op(proto_tree *root,
 	off = c_dissect_str(tree, hf_msg_osd_op_oid, &str, tvb, off);
 	
 	opslen = tvb_get_letohs(tvb, off);
-	proto_item_append_text(ti, ", Operations: %"G_GINT32_MODIFIER"d", opslen);
+	c_append_text(data, ti, ", Operations: %"G_GINT32_MODIFIER"d", opslen);
 	proto_tree_add_item(tree, hf_msg_osd_op_ops_len, tvb, off, 2, ENC_LITTLE_ENDIAN);
 	off += 2;
 	ops = wmem_alloc_array(wmem_packet_scope(), c_osd_op, opslen);
@@ -2291,6 +2343,124 @@ guint c_dissect_msg_osd_opreply(proto_tree *root,
 	return off;
 }
 
+/** Pool Op Reply 0x0030 */
+static
+guint c_dissect_msg_poolopreply(proto_tree *root,
+                                tvbuff_t *tvb,
+                                guint front_len, guint middle_len _U_, guint data_len _U_,
+                                c_pkt_data *data)
+{
+	proto_item *ti;
+	proto_tree *tree;
+	guint off = 0;
+	gint32 code;
+	guint8 b;
+	
+	/* ceph:/src/messages/MPoolOp.h */
+	
+	c_set_type(data, "Pool Operation Reply");
+	
+	off = c_dissect_paxos(root, tvb, off, data);
+	
+	ti = proto_tree_add_item(root, hf_msg_poolopreply, tvb, off, front_len, ENC_NA);
+	tree = proto_item_add_subtree(ti, hf_msg_poolopreply);
+	
+	proto_tree_add_item(tree, hf_msg_poolopreply_fsid,
+	                    tvb, off, 16, ENC_BIG_ENDIAN);
+	off += 16;
+	
+	code = tvb_get_letohl(tvb, off);
+	proto_tree_add_item(tree, hf_msg_poolopreply_code,
+	                    tvb, off, 4, ENC_LITTLE_ENDIAN);
+	off += 4;
+	
+	proto_tree_add_item(tree, hf_msg_poolopreply_epoch,
+	                    tvb, off, 4, ENC_LITTLE_ENDIAN);
+	off += 4;
+	
+	b = tvb_get_guint8(tvb, off);
+	off += 1;
+	if (b)
+		off = c_dissect_blob(tree, hf_msg_poolopreply_datai,
+		                     hf_msg_poolopreply_data, hf_msg_poolopreply_data_len,
+		                     tvb, off);
+	
+	c_append_text(data, ti, ", Response Code: %"G_GINT32_MODIFIER"u", code);
+	
+	return off;
+}
+/** Pool Op 0x0031
+ * Why this is a higher value than the reply?  Who knows?
+ */
+static
+guint c_dissect_msg_poolop(proto_tree *root,
+                           tvbuff_t *tvb,
+                           guint front_len, guint middle_len _U_, guint data_len _U_,
+                           c_pkt_data *data)
+{
+	proto_item *ti;
+	proto_tree *tree;
+	guint off = 0;
+	gint32 pool;
+	c_poolop_type type;
+	c_str name;
+	
+	/* ceph:/src/messages/MPoolOp.h */
+	
+	c_set_type(data, "Pool Operation");
+	
+	off = c_dissect_paxos(root, tvb, off, data);
+	
+	ti = proto_tree_add_item(root, hf_msg_poolop, tvb, off, front_len, ENC_NA);
+	tree = proto_item_add_subtree(ti, hf_msg_poolop);
+	
+	proto_tree_add_item(tree, hf_msg_poolop_fsid,
+	                    tvb, off, 16, ENC_BIG_ENDIAN);
+	off += 16;
+	
+	pool = tvb_get_letohl(tvb, off);
+	proto_tree_add_item(tree, hf_msg_poolop_pool,
+	                    tvb, off, 4, ENC_LITTLE_ENDIAN);
+	off += 4;
+	
+	if (data->header.ver < 2)
+		off = c_dissect_str(tree, hf_msg_poolop_name, &name, tvb, off);
+	
+	type = (c_poolop_type)tvb_get_letohl(tvb, off);
+	proto_tree_add_item(tree, hf_msg_poolop_type, tvb, off, 4, ENC_LITTLE_ENDIAN);
+	off += 4;
+	
+	proto_tree_add_item(tree, hf_msg_poolop_auid, tvb, off, 8, ENC_LITTLE_ENDIAN);
+	off += 8;
+	
+	proto_tree_add_item(tree, hf_msg_poolop_snapid, tvb, off, 8, ENC_LITTLE_ENDIAN);
+	off += 8;
+	
+	if (data->header.ver >= 2)
+		off = c_dissect_str(tree, hf_msg_poolop_name, &name, tvb, off);
+	
+	if (data->header.ver >= 4)
+	{
+		off += 1; /* Skip padding byte. */
+		proto_tree_add_item(tree, hf_msg_poolop_crush_rule, tvb, off, 2, ENC_LITTLE_ENDIAN);
+		off += 2;
+	}
+	else if (data->header.ver == 3)
+	{
+		proto_tree_add_item(tree, hf_msg_poolop_crush_rule8, tvb, off, 1, ENC_LITTLE_ENDIAN);
+		off += 1;
+	}
+	
+	c_append_text(data, ti,
+	              ", Type: %s, Name: %s, Pool: %"G_GINT32_MODIFIER"d",
+	              c_poolop_type_string(type),
+	              name.str,
+	              pool);
+	
+	return off;
+}
+
+/** Monitor Command 0x0032 */
 static
 guint c_dissect_msg_mon_cmd(proto_tree *root,
                             tvbuff_t *tvb,
@@ -2313,7 +2483,7 @@ guint c_dissect_msg_mon_cmd(proto_tree *root,
 	tree = proto_item_add_subtree(ti, hf_msg_mon_cmd);
 	
 	proto_tree_add_item(tree, hf_msg_mon_cmd_fsid,
-	                    tvb, off, 16, ENC_LITTLE_ENDIAN);
+	                    tvb, off, 16, ENC_BIG_ENDIAN);
 	off += 16;
 	
 	i = tvb_get_letohl(tvb, off);
@@ -2327,7 +2497,7 @@ guint c_dissect_msg_mon_cmd(proto_tree *root,
 		
 		off = c_dissect_str(subtree, hf_msg_mon_cmd_str, &str, tvb, off);
 		
-		proto_item_append_text(ti, " %s", str.str);
+		c_append_text(data, ti, " %s", str.str);
 		
 		proto_item_set_end(ti, tvb, off);
 	}
@@ -2335,6 +2505,7 @@ guint c_dissect_msg_mon_cmd(proto_tree *root,
 	return off;
 }
 
+/** Mon Command ACK 0x0033 */
 static
 guint c_dissect_msg_mon_cmd_ack(proto_tree *root,
                                tvbuff_t *tvb,
@@ -2536,6 +2707,8 @@ guint c_dissect_msg(proto_tree *tree,
 	C_HANDLE_MSG(C_CEPH_MSG_OSD_MAP,           c_dissect_msg_osd_map)
 	C_HANDLE_MSG(C_CEPH_MSG_OSD_OP,            c_dissect_msg_osd_op)
 	C_HANDLE_MSG(C_CEPH_MSG_OSD_OPREPLY,       c_dissect_msg_osd_opreply)
+	C_HANDLE_MSG(C_MSG_POOLOPREPLY,            c_dissect_msg_poolopreply)
+	C_HANDLE_MSG(C_MSG_POOLOP,                 c_dissect_msg_poolop)
 	C_HANDLE_MSG(C_MSG_MON_COMMAND,            c_dissect_msg_mon_cmd)
 	C_HANDLE_MSG(C_MSG_MON_COMMAND_ACK,        c_dissect_msg_mon_cmd_ack)
 	
@@ -3934,7 +4107,88 @@ proto_register_ceph(void)
 			FT_UINT32, BASE_DEC, NULL, 0,
 			NULL, HFILL
 		} },
-		{ &hf_msg_mon_cmd, { "Mon Command", "ceph.msg.mon_cmd",
+		{ &hf_msg_poolopreply, {
+			"Pool Operation", "ceph.msg.poolopreply",
+			FT_NONE, BASE_NONE, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_poolopreply_fsid, {
+			"FSID", "ceph.msg.poolopreply.fsid",
+			FT_GUID, BASE_NONE, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_poolopreply_code, {
+			"Response Code", "ceph.msg.poolopreply.code",
+			FT_UINT32, BASE_DEC, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_poolopreply_epoch, {
+			"Epoch", "ceph.msg.poolopreply.epoch",
+			FT_UINT32, BASE_DEC, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_poolopreply_datai, {
+			"Data", "ceph.msg.poolopreply.datai",
+			FT_UINT32, BASE_DEC, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_poolopreply_data, {
+			"Data", "ceph.msg.poolopreply.data",
+			FT_BYTES, BASE_NONE, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_poolopreply_data_len, {
+			"Size", "ceph.msg.poolopreply.data_len",
+			FT_UINT32, BASE_DEC, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_poolop, {
+			"Pool Operation", "ceph.msg.poolop",
+			FT_NONE, BASE_NONE, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_poolop_fsid, {
+			"FSID", "ceph.msg.poolop.fsid",
+			FT_GUID, BASE_NONE, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_poolop_pool, {
+			"Pool", "ceph.msg.poolop.pool",
+			FT_UINT32, BASE_DEC, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_poolop_type, {
+			"Type", "ceph.msg.poolop.type",
+			FT_UINT32, BASE_HEX, VALS(c_poolop_type_strings), 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_poolop_auid, {
+			"AUID", "ceph.msg.poolop.auid",
+			FT_UINT64, BASE_DEC, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_poolop_snapid, {
+			"Snapshot ID", "ceph.msg.poolop.snap",
+			FT_UINT64, BASE_DEC, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_poolop_name, {
+			"Name", "ceph.msg.poolop.name",
+			FT_STRING, BASE_NONE, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_poolop_crush_rule, {
+			"Crush Rule", "ceph.msg.poolop.crush_rule",
+			FT_INT16, BASE_DEC, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_poolop_crush_rule8, {
+			"Crush Rule", "ceph.msg.poolop.crush_rule",
+			FT_UINT8, BASE_DEC, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_mon_cmd, {
+			"Mon Command", "ceph.msg.mon_cmd",
 			FT_NONE, BASE_NONE, NULL, 0,
 			NULL, HFILL
 		} },
@@ -4049,22 +4303,22 @@ proto_register_ceph(void)
 			NULL, HFILL
 		} },
 		{ &hf_msg_osd_op_snap_id, {
-			"Snap ID", "ceph.msg.osd_op.snap_id",
+			"Snapshot ID", "ceph.msg.osd_op.snap_id",
 			FT_UINT64, BASE_DEC, NULL, 0,
 			NULL, HFILL
 		} },
 		{ &hf_msg_osd_op_snap_seq, {
-			"Snap Sequence", "ceph.msg.osd_op.snap_seq",
+			"Snapshot Sequence", "ceph.msg.osd_op.snap_seq",
 			FT_UINT64, BASE_DEC, NULL, 0,
 			NULL, HFILL
 		} },
 		{ &hf_msg_osd_op_snaps_len, {
-			"Snap Count", "ceph.msg.osd_op.snaps_len",
+			"Snapshot Count", "ceph.msg.osd_op.snaps_len",
 			FT_UINT32, BASE_DEC, NULL, 0,
 			NULL, HFILL
 		} },
 		{ &hf_msg_osd_op_snap, {
-			"Snap", "ceph.msg.osd_op.snaps",
+			"Snapshot", "ceph.msg.osd_op.snaps",
 			FT_UINT64, BASE_DEC, NULL, 0,
 			NULL, HFILL
 		} },
