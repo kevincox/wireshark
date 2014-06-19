@@ -167,6 +167,27 @@ static int hf_osd_redirect_obj       = -1;
 static int hf_osd_redirect_osdinstr       = -1;
 static int hf_osd_redirect_osdinstr_data       = -1;
 static int hf_osd_redirect_osdinstr_len       = -1;
+static int hf_statsum_bytes                         = -1;
+static int hf_statsum_objects                         = -1;
+static int hf_statsum_clones                         = -1;
+static int hf_statsum_copies                         = -1;
+static int hf_statsum_missing                         = -1;
+static int hf_statsum_degraded                         = -1;
+static int hf_statsum_unfound                         = -1;
+static int hf_statsum_read_bytes                         = -1;
+static int hf_statsum_read_kbytes                         = -1;
+static int hf_statsum_written_bytes                         = -1;
+static int hf_statsum_written_kbytes                         = -1;
+static int hf_statsum_scrub_errors                         = -1;
+static int hf_statsum_recovered                         = -1;
+static int hf_statsum_bytes_recovered                         = -1;
+static int hf_statsum_keys_recovered                         = -1;
+static int hf_statsum_shallow_scrub_errors                         = -1;
+static int hf_statsum_deep_scrub_errors                         = -1;
+static int hf_statsum_dirty                         = -1;
+static int hf_statsum_whiteouts                         = -1;
+static int hf_statsum_omap                         = -1;
+static int hf_statsum_hitset_archive                         = -1;
 static int hf_connect                      = -1;
 static int hf_connect_reply                = -1;
 static int hf_tag                          = -1;
@@ -236,34 +257,6 @@ static int hf_msg_osd_map_data_data        = -1;
 static int hf_msg_osd_map_data_len         = -1;
 static int hf_msg_osd_map_oldest           = -1;
 static int hf_msg_osd_map_newest           = -1;
-static int hf_msg_poolopreply                  = -1;
-static int hf_msg_poolopreply_fsid                  = -1;
-static int hf_msg_poolopreply_code                  = -1;
-static int hf_msg_poolopreply_epoch                  = -1;
-static int hf_msg_poolopreply_datai                  = -1;
-static int hf_msg_poolopreply_data                  = -1;
-static int hf_msg_poolopreply_data_len                  = -1;
-static int hf_msg_poolop                  = -1;
-static int hf_msg_poolop_fsid                  = -1;
-static int hf_msg_poolop_pool                  = -1;
-static int hf_msg_poolop_type                  = -1;
-static int hf_msg_poolop_auid                  = -1;
-static int hf_msg_poolop_snapid                  = -1;
-static int hf_msg_poolop_name                  = -1;
-static int hf_msg_poolop_crush_rule                  = -1;
-static int hf_msg_poolop_crush_rule8                  = -1;
-static int hf_msg_mon_cmd                  = -1;
-static int hf_msg_mon_cmd_fsid             = -1;
-static int hf_msg_mon_cmd_arg              = -1;
-static int hf_msg_mon_cmd_arg_len          = -1;
-static int hf_msg_mon_cmd_str              = -1;
-static int hf_msg_mon_cmd_ack              = -1;
-static int hf_msg_mon_cmd_ack_code         = -1;
-static int hf_msg_mon_cmd_ack_res          = -1;
-static int hf_msg_mon_cmd_ack_arg          = -1;
-static int hf_msg_mon_cmd_ack_arg_len      = -1;
-static int hf_msg_mon_cmd_ack_arg_str      = -1;
-static int hf_msg_mon_cmd_ack_data         = -1;
 static int hf_msg_osd_op                   = -1;
 static int hf_msg_osd_op_client_inc        = -1;
 static int hf_msg_osd_op_osdmap_epoch      = -1;
@@ -296,6 +289,43 @@ static int hf_msg_osd_opreply_replay_ver                   = -1;
 static int hf_msg_osd_opreply_user_ver                   = -1;
 static int hf_msg_osd_opreply_redirect                   = -1;
 static int hf_msg_osd_opreply_payload                   = -1;
+static int hf_msg_poolopreply                  = -1;
+static int hf_msg_poolopreply_fsid                  = -1;
+static int hf_msg_poolopreply_code                  = -1;
+static int hf_msg_poolopreply_epoch                  = -1;
+static int hf_msg_poolopreply_datai                  = -1;
+static int hf_msg_poolopreply_data                  = -1;
+static int hf_msg_poolopreply_data_len                  = -1;
+static int hf_msg_poolop                  = -1;
+static int hf_msg_poolop_fsid                  = -1;
+static int hf_msg_poolop_pool                  = -1;
+static int hf_msg_poolop_type                  = -1;
+static int hf_msg_poolop_auid                  = -1;
+static int hf_msg_poolop_snapid                  = -1;
+static int hf_msg_poolop_name                  = -1;
+static int hf_msg_poolop_crush_rule                  = -1;
+static int hf_msg_poolop_crush_rule8                  = -1;
+static int hf_msg_mon_cmd                  = -1;
+static int hf_msg_mon_cmd_fsid             = -1;
+static int hf_msg_mon_cmd_arg              = -1;
+static int hf_msg_mon_cmd_arg_len          = -1;
+static int hf_msg_mon_cmd_str              = -1;
+static int hf_msg_mon_cmd_ack              = -1;
+static int hf_msg_mon_cmd_ack_code         = -1;
+static int hf_msg_mon_cmd_ack_res          = -1;
+static int hf_msg_mon_cmd_ack_arg          = -1;
+static int hf_msg_mon_cmd_ack_arg_len      = -1;
+static int hf_msg_mon_cmd_ack_arg_str      = -1;
+static int hf_msg_mon_cmd_ack_data         = -1;
+static int hf_msg_poolstats                         = -1;
+static int hf_msg_poolstats_fsid                         = -1;
+static int hf_msg_poolstats_pool                         = -1;
+static int hf_msg_poolstatsreply                         = -1;
+static int hf_msg_poolstatsreply_fsid                         = -1;
+static int hf_msg_poolstatsreply_stat                         = -1;
+static int hf_msg_poolstatsreply_pool                         = -1;
+static int hf_msg_poolstatsreply_log_size                         = -1;
+static int hf_msg_poolstatsreply_log_size_ondisk                         = -1;
 
 /* @TODO: Remove before release.  Just for copying convenience.
 static int hf_msg_                         = -1;
@@ -1811,6 +1841,85 @@ guint c_dissect_redirect(proto_tree *root, gint hf,
 	proto_item_set_end(ti, tvb, off);
 	return off;
 }
+
+static
+guint c_dissect_statsum(proto_tree *tree,
+                        tvbuff_t *tvb, guint off, c_pkt_data *data)
+{
+	guint offexpected;
+	c_encoded enc;
+	
+	off = c_dissect_encoded(tree, &enc, tvb, off, data);
+	
+	//@TODO: check enc.size == 21*8
+	
+	proto_tree_add_item(tree, hf_statsum_bytes,
+	                    tvb, off, 8, ENC_LITTLE_ENDIAN);
+	off += 8;
+	proto_tree_add_item(tree, hf_statsum_objects,
+	                    tvb, off, 8, ENC_LITTLE_ENDIAN);
+	off += 8;
+	proto_tree_add_item(tree, hf_statsum_clones,
+	                    tvb, off, 8, ENC_LITTLE_ENDIAN);
+	off += 8;
+	proto_tree_add_item(tree, hf_statsum_copies,
+	                    tvb, off, 8, ENC_LITTLE_ENDIAN);
+	off += 8;
+	proto_tree_add_item(tree, hf_statsum_missing,
+	                    tvb, off, 8, ENC_LITTLE_ENDIAN);
+	off += 8;
+	proto_tree_add_item(tree, hf_statsum_degraded,
+	                    tvb, off, 8, ENC_LITTLE_ENDIAN);
+	off += 8;
+	proto_tree_add_item(tree, hf_statsum_unfound,
+	                    tvb, off, 8, ENC_LITTLE_ENDIAN);
+	off += 8;
+	proto_tree_add_item(tree, hf_statsum_read_bytes,
+	                    tvb, off, 8, ENC_LITTLE_ENDIAN);
+	off += 8;
+	proto_tree_add_item(tree, hf_statsum_read_kbytes,
+	                    tvb, off, 8, ENC_LITTLE_ENDIAN);
+	off += 8;
+	proto_tree_add_item(tree, hf_statsum_written_bytes,
+	                    tvb, off, 8, ENC_LITTLE_ENDIAN);
+	off += 8;
+	proto_tree_add_item(tree, hf_statsum_written_kbytes,
+	                    tvb, off, 8, ENC_LITTLE_ENDIAN);
+	off += 8;
+	proto_tree_add_item(tree, hf_statsum_scrub_errors,
+	                    tvb, off, 8, ENC_LITTLE_ENDIAN);
+	off += 8;
+	proto_tree_add_item(tree, hf_statsum_recovered,
+	                    tvb, off, 8, ENC_LITTLE_ENDIAN);
+	off += 8;
+	proto_tree_add_item(tree, hf_statsum_bytes_recovered,
+	                    tvb, off, 8, ENC_LITTLE_ENDIAN);
+	off += 8;
+	proto_tree_add_item(tree, hf_statsum_keys_recovered,
+	                    tvb, off, 8, ENC_LITTLE_ENDIAN);
+	off += 8;
+	proto_tree_add_item(tree, hf_statsum_shallow_scrub_errors,
+	                    tvb, off, 8, ENC_LITTLE_ENDIAN);
+	off += 8;
+	proto_tree_add_item(tree, hf_statsum_deep_scrub_errors,
+	                    tvb, off, 8, ENC_LITTLE_ENDIAN);
+	off += 8;
+	proto_tree_add_item(tree, hf_statsum_dirty,
+	                    tvb, off, 8, ENC_LITTLE_ENDIAN);
+	off += 8;
+	proto_tree_add_item(tree, hf_statsum_whiteouts,
+	                    tvb, off, 8, ENC_LITTLE_ENDIAN);
+	off += 8;
+	proto_tree_add_item(tree, hf_statsum_omap,
+	                    tvb, off, 8, ENC_LITTLE_ENDIAN);
+	off += 8;
+	proto_tree_add_item(tree, hf_statsum_hitset_archive,
+	                    tvb, off, 8, ENC_LITTLE_ENDIAN);
+	off += 8;
+	
+	return off;
+}
+
 enum c_size_paxos {
 	C_SIZE_PAXOS = 18
 };
@@ -1912,7 +2021,6 @@ guint c_dissect_msg_mon_sub(proto_tree *root,
 	proto_tree *tree, *subtree;
 	guint off = 0;
 	guint len;
-	gboolean first = 1;
 	c_str str;
 	
 	/* ceph:/src/messages/MMonSubscribe.h */
@@ -1922,7 +2030,7 @@ guint c_dissect_msg_mon_sub(proto_tree *root,
 	ti = proto_tree_add_item(root, hf_msg_mon_sub, tvb, off, front_len, ENC_NA);
 	tree = proto_item_add_subtree(ti, hf_msg_mon_sub);
 	
-	c_append_text(data, ti, ", To:");
+	c_append_text(data, ti, ", To: ");
 	
 	len = tvb_get_letohl(tvb, off);
 	proto_tree_add_item(tree, hf_msg_mon_sub_item_len,
@@ -1950,10 +2058,9 @@ guint c_dissect_msg_mon_sub(proto_tree *root,
 		
 		off = c_dissect_str(subtree, hf_msg_mon_sub_what, &str, tvb, off);
 		
-		c_append_text(data, ti, "%c%s", first? ' ':',', str.str);
-		first = 0;
+		c_append_text(data, ti, "%s%s", str.str, len? ",":"");
 		
-		proto_item_append_text(subti, ", What: %s, Starting: %"G_GUINT64_FORMAT,
+		proto_item_append_text(subti, " What: %s, Starting: %"G_GUINT64_FORMAT,
 		                       str.str,
 		                       tvb_get_letoh64(tvb, off));
 		
@@ -2389,6 +2496,7 @@ guint c_dissect_msg_poolopreply(proto_tree *root,
 	
 	return off;
 }
+
 /** Pool Op 0x0031
  * Why this is a higher value than the reply?  Who knows?
  */
@@ -2523,7 +2631,8 @@ guint c_dissect_msg_mon_cmd_ack(proto_tree *root,
 	
 	off = c_dissect_paxos(root, tvb, off, data);
 	
-	ti = proto_tree_add_item(root, hf_msg_mon_cmd_ack, tvb, off, front_len, ENC_NA);
+	ti = proto_tree_add_item(root, hf_msg_mon_cmd_ack,
+	                         tvb, off, front_len+data_len, ENC_NA);
 	tree = proto_item_add_subtree(ti, hf_msg_mon_cmd_ack);
 	
 	proto_tree_add_item(tree, hf_msg_mon_cmd_ack_code,
@@ -2546,10 +2655,119 @@ guint c_dissect_msg_mon_cmd_ack(proto_tree *root,
 		proto_item_set_end(ti, tvb, off);
 	}
 	
+	//@TODO: check that off == front_len
+	
 	proto_tree_add_item(tree, hf_msg_mon_cmd_ack_data,
 	                    tvb, front_len, data_len, ENC_NA);
 	
 	return front_len+data_len;
+}
+
+/** Get Pool Stats 0x003A */
+static
+guint c_dissect_msg_poolstats(proto_tree *root,
+                              tvbuff_t *tvb,
+                              guint front_len, guint middle_len _U_, guint data_len _U_,
+                              c_pkt_data *data)
+{
+	proto_item *ti;
+	proto_tree *tree;
+	guint off = 0;
+	guint i;
+	c_str str;
+	
+	/* ceph:/src/messages/MGetPoolStats.h */
+	
+	c_set_type(data, "Pool Stats");
+	
+	off = c_dissect_paxos(root, tvb, off, data);
+	
+	ti = proto_tree_add_item(root, hf_msg_poolstats, tvb, off, front_len, ENC_NA);
+	tree = proto_item_add_subtree(ti, hf_msg_poolstats);
+	
+	c_append_text(data, ti, ", For: ");
+	
+	proto_tree_add_item(tree, hf_msg_poolstats_fsid,
+	                    tvb, off, 16, ENC_LITTLE_ENDIAN);
+	off += 16;
+	
+	i = tvb_get_letohl(tvb, off);
+	off += 4;
+	while (i--)
+	{
+		off = c_dissect_str(tree, hf_msg_poolstats_pool, &str, tvb, off);
+		c_append_text(data, ti, "%s%s", str.str, i? ",":" ");
+	}
+	
+	return off;
+}
+
+/** Pool Stats Reply 0x003B */
+static
+guint c_dissect_msg_poolstatsreply(proto_tree *root,
+                                   tvbuff_t *tvb,
+                                   guint front_len, guint middle_len _U_, guint data_len _U_,
+                                   c_pkt_data *data)
+{
+	proto_item *ti, *ti2;
+	proto_tree *tree, *subtree;
+	guint off = 0;
+	guint i, i2;
+	c_str str;
+	c_encoded enc;
+	
+	/* ceph:/src/messages/MGetPoolStatsReply.h */
+	
+	c_set_type(data, "Pool Stats Reply");
+	
+	off = c_dissect_paxos(root, tvb, off, data);
+	
+	ti = proto_tree_add_item(root, hf_msg_poolstatsreply, tvb, off, front_len, ENC_NA);
+	tree = proto_item_add_subtree(ti, hf_msg_poolstatsreply);
+	
+	c_append_text(data, ti, ", For: ");
+	
+	proto_tree_add_item(tree, hf_msg_poolstatsreply_fsid,
+	                    tvb, off, 16, ENC_LITTLE_ENDIAN);
+	off += 16;
+	
+	i = tvb_get_letohl(tvb, off);
+	off += 4;
+	while (i--)
+	{
+		ti2 = proto_tree_add_item(tree, hf_msg_poolstatsreply_stat,
+		                          tvb, off, -1, ENC_NA);
+		subtree = proto_item_add_subtree(ti2, hf_msg_poolstatsreply_stat);
+		
+		off = c_dissect_str(subtree, hf_msg_poolstatsreply_pool, &str, tvb, off);
+		c_append_text(data, ti, "%s%s", str.str, i? ",":" ");
+		proto_item_append_text(ti2, ", For: %s", str.str);
+		
+		/*** pool_stat_t ***/
+		off = c_dissect_encoded(subtree, &enc, tvb, off, data);
+		
+		/*** object_stat_collection_t ***/
+		off = c_dissect_encoded(subtree, &enc, tvb, off, data);
+		off = c_dissect_statsum(subtree, tvb, off, data);
+		i2 = tvb_get_letohl(tvb, off);
+		off += 4;
+		while (i2--)
+		{
+			off = c_dissect_str(subtree, hf_msg_poolstatsreply_pool, &str, tvb, off);
+			off = c_dissect_statsum(subtree, tvb, off, data);
+		}
+		/*** END object_stat_collection_t ***/
+		
+		proto_tree_add_item(subtree, hf_msg_poolstatsreply_log_size,
+		                    tvb, off, 8, ENC_LITTLE_ENDIAN);
+		off += 8;
+		proto_tree_add_item(subtree, hf_msg_poolstatsreply_log_size_ondisk,
+		                    tvb, off, 8, ENC_LITTLE_ENDIAN);
+		off += 8;
+		/*** END pool_stat_t ***/
+	}
+	
+	return off;
 }
 
 /*** MSGR Dissectors ***/
@@ -2711,6 +2929,8 @@ guint c_dissect_msg(proto_tree *tree,
 	C_HANDLE_MSG(C_MSG_POOLOP,                 c_dissect_msg_poolop)
 	C_HANDLE_MSG(C_MSG_MON_COMMAND,            c_dissect_msg_mon_cmd)
 	C_HANDLE_MSG(C_MSG_MON_COMMAND_ACK,        c_dissect_msg_mon_cmd_ack)
+	C_HANDLE_MSG(C_MSG_GETPOOLSTATS,           c_dissect_msg_poolstats)
+	C_HANDLE_MSG(C_MSG_GETPOOLSTATSREPLY,      c_dissect_msg_poolstatsreply)
 	
 	default:
 		parsedsize = C_CALL_MSG(c_dissect_msg_unknown);
@@ -3767,6 +3987,111 @@ proto_register_ceph(void)
 			FT_UINT32, BASE_DEC, NULL, 0,
 			NULL, HFILL
 		} },
+		{ &hf_statsum_bytes, {
+			"Bytes", "ceph.statsum.bytes",
+			FT_UINT64, BASE_DEC, NULL, 0,
+			"The space used in bytes.", HFILL
+		} },
+		{ &hf_statsum_objects, {
+			"Objects", "ceph.statsum.objects",
+			FT_UINT64, BASE_DEC, NULL, 0,
+			"The number of logical objects.", HFILL
+		} },
+		{ &hf_statsum_clones, {
+			"Clones", "ceph.statsum.clones",
+			FT_UINT64, BASE_DEC, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_statsum_copies, {
+			"Copies", "ceph.statsum.copies",
+			FT_UINT64, BASE_DEC, NULL, 0,
+			"The total number of objects including redundant copies (objects*replicas).", HFILL
+		} },
+		{ &hf_statsum_missing, {
+			"Missing Objects", "ceph.statsum.missing",
+			FT_UINT64, BASE_DEC, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_statsum_degraded, {
+			"Degraded Objects", "ceph.statsum.degraded",
+			FT_UINT64, BASE_DEC, NULL, 0,
+			"Number of objects that are on at least one OSD but less then they should be.", HFILL
+		} },
+		{ &hf_statsum_unfound, {
+			"Unfound Objects", "ceph.statsum.unfound",
+			FT_UINT64, BASE_DEC, NULL, 0,
+			"Number of objects with no copies.", HFILL
+		} },
+		{ &hf_statsum_read_bytes, {
+			"Bytes Read", "ceph.statsum.read_bytes",
+			FT_UINT64, BASE_DEC, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_statsum_read_kbytes, {
+			"Kibibytes Read", "ceph.statsum.read_kbytes",
+			FT_UINT64, BASE_DEC, NULL, 0,
+			"The number of KiB (2^10) read.", HFILL
+		} },
+		{ &hf_statsum_written_bytes, {
+			"Bytes Written", "ceph.statsum.written_bytes",
+			FT_UINT64, BASE_DEC, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_statsum_written_kbytes, {
+			"Kibibytes Written", "ceph.statsum.written_kbytes",
+			FT_UINT64, BASE_DEC, NULL, 0,
+			"The number of KiB (2^10) written.", HFILL
+		} },
+		{ &hf_statsum_scrub_errors, {
+			"Scrub Errors", "ceph.statsum.scrub_errors",
+			FT_UINT64, BASE_DEC, NULL, 0,
+			"Total scrub errors. (shallow+deep)", HFILL
+		} },
+		{ &hf_statsum_recovered, {
+			"Recovered Objects", "ceph.statsum.recovered",
+			FT_UINT64, BASE_DEC, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_statsum_bytes_recovered, {
+			"Recovered Bytes", "ceph.statsum.bytes_recovered",
+			FT_UINT64, BASE_DEC, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_statsum_keys_recovered, {
+			"Keys Recovered", "ceph.statsum.keys_recovered",
+			FT_UINT64, BASE_DEC, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_statsum_shallow_scrub_errors, {
+			"Shallow Scrub Errors", "ceph.statsum.shallow_scrub_errors",
+			FT_UINT64, BASE_DEC, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_statsum_deep_scrub_errors, {
+			"Deep Scrub Errors", "ceph.statsum.deep_scrub_errors",
+			FT_UINT64, BASE_DEC, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_statsum_dirty, {
+			"Dirty Objects", "ceph.statsum.dirty",
+			FT_UINT64, BASE_DEC, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_statsum_whiteouts, {
+			"Whiteouts", "ceph.statsum.whiteouts",
+			FT_UINT64, BASE_DEC, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_statsum_omap, {
+			"OMAP Objects", "ceph.statsum.omap",
+			FT_UINT64, BASE_DEC, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_statsum_hitset_archive, {
+			"Hit Set Archive", "ceph.statsum.hitset_archive",
+			FT_UINT64, BASE_DEC, NULL, 0,
+			NULL, HFILL
+		} },
 		{ &hf_connect_reply, {
 			"Connection Negotiation Reply", "ceph.connect_reply",
 			FT_NONE, BASE_NONE, NULL, 0,
@@ -4107,146 +4432,6 @@ proto_register_ceph(void)
 			FT_UINT32, BASE_DEC, NULL, 0,
 			NULL, HFILL
 		} },
-		{ &hf_msg_poolopreply, {
-			"Pool Operation", "ceph.msg.poolopreply",
-			FT_NONE, BASE_NONE, NULL, 0,
-			NULL, HFILL
-		} },
-		{ &hf_msg_poolopreply_fsid, {
-			"FSID", "ceph.msg.poolopreply.fsid",
-			FT_GUID, BASE_NONE, NULL, 0,
-			NULL, HFILL
-		} },
-		{ &hf_msg_poolopreply_code, {
-			"Response Code", "ceph.msg.poolopreply.code",
-			FT_UINT32, BASE_DEC, NULL, 0,
-			NULL, HFILL
-		} },
-		{ &hf_msg_poolopreply_epoch, {
-			"Epoch", "ceph.msg.poolopreply.epoch",
-			FT_UINT32, BASE_DEC, NULL, 0,
-			NULL, HFILL
-		} },
-		{ &hf_msg_poolopreply_datai, {
-			"Data", "ceph.msg.poolopreply.datai",
-			FT_UINT32, BASE_DEC, NULL, 0,
-			NULL, HFILL
-		} },
-		{ &hf_msg_poolopreply_data, {
-			"Data", "ceph.msg.poolopreply.data",
-			FT_BYTES, BASE_NONE, NULL, 0,
-			NULL, HFILL
-		} },
-		{ &hf_msg_poolopreply_data_len, {
-			"Size", "ceph.msg.poolopreply.data_len",
-			FT_UINT32, BASE_DEC, NULL, 0,
-			NULL, HFILL
-		} },
-		{ &hf_msg_poolop, {
-			"Pool Operation", "ceph.msg.poolop",
-			FT_NONE, BASE_NONE, NULL, 0,
-			NULL, HFILL
-		} },
-		{ &hf_msg_poolop_fsid, {
-			"FSID", "ceph.msg.poolop.fsid",
-			FT_GUID, BASE_NONE, NULL, 0,
-			NULL, HFILL
-		} },
-		{ &hf_msg_poolop_pool, {
-			"Pool", "ceph.msg.poolop.pool",
-			FT_UINT32, BASE_DEC, NULL, 0,
-			NULL, HFILL
-		} },
-		{ &hf_msg_poolop_type, {
-			"Type", "ceph.msg.poolop.type",
-			FT_UINT32, BASE_HEX, VALS(c_poolop_type_strings), 0,
-			NULL, HFILL
-		} },
-		{ &hf_msg_poolop_auid, {
-			"AUID", "ceph.msg.poolop.auid",
-			FT_UINT64, BASE_DEC, NULL, 0,
-			NULL, HFILL
-		} },
-		{ &hf_msg_poolop_snapid, {
-			"Snapshot ID", "ceph.msg.poolop.snap",
-			FT_UINT64, BASE_DEC, NULL, 0,
-			NULL, HFILL
-		} },
-		{ &hf_msg_poolop_name, {
-			"Name", "ceph.msg.poolop.name",
-			FT_STRING, BASE_NONE, NULL, 0,
-			NULL, HFILL
-		} },
-		{ &hf_msg_poolop_crush_rule, {
-			"Crush Rule", "ceph.msg.poolop.crush_rule",
-			FT_INT16, BASE_DEC, NULL, 0,
-			NULL, HFILL
-		} },
-		{ &hf_msg_poolop_crush_rule8, {
-			"Crush Rule", "ceph.msg.poolop.crush_rule",
-			FT_UINT8, BASE_DEC, NULL, 0,
-			NULL, HFILL
-		} },
-		{ &hf_msg_mon_cmd, {
-			"Mon Command", "ceph.msg.mon_cmd",
-			FT_NONE, BASE_NONE, NULL, 0,
-			NULL, HFILL
-		} },
-		{ &hf_msg_mon_cmd_fsid, {
-			"FSID", "ceph.msg.mon_cmd.fsid",
-			FT_GUID, BASE_NONE, NULL, 0,
-			NULL, HFILL
-		} },
-		{ &hf_msg_mon_cmd_arg, {
-			"Argument", "ceph.msg.mon_cmd.arg",
-			FT_NONE, BASE_NONE, NULL, 0,
-			NULL, HFILL
-		} },
-		{ &hf_msg_mon_cmd_arg_len, {
-			"Argument Count", "ceph.msg.mon_cmd.arg_len",
-			FT_UINT32, BASE_DEC, NULL, 0,
-			NULL, HFILL
-		} },
-		{ &hf_msg_mon_cmd_str, {
-			"String", "ceph.msg.mon_cmd.str",
-			FT_STRING, BASE_NONE, NULL, 0,
-			NULL, HFILL
-		} },
-		{ &hf_msg_mon_cmd_ack, {
-			"Mon Command Result", "ceph.msg.mon_cmd_ack",
-			FT_NONE, BASE_NONE, NULL, 0,
-			NULL, HFILL
-		} },
-		{ &hf_msg_mon_cmd_ack_code, {
-			"Result Code", "ceph.msg.mon_cmd_ack.code",
-			FT_INT32, BASE_DEC, NULL, 0,
-			NULL, HFILL
-		} },
-		{ &hf_msg_mon_cmd_ack_res, {
-			"Result String", "ceph.msg.mon_cmd_ack.result",
-			FT_STRING, BASE_NONE, NULL, 0,
-			NULL, HFILL
-		} },
-		{ &hf_msg_mon_cmd_ack_arg, {
-			"Argument", "ceph.msg.mon_cmd_ack.arg",
-			FT_NONE, BASE_NONE, NULL, 0,
-			NULL, HFILL
-		} },
-		{ &hf_msg_mon_cmd_ack_arg_len, {
-			"Argument Count", "ceph.msg.mon_cmd_ack.arg_len",
-			FT_UINT32, BASE_DEC, NULL, 0,
-			NULL, HFILL
-		} },
-		{ &hf_msg_mon_cmd_ack_arg_str, {
-			"String", "ceph.msg.mon_cmd_ack.str",
-			FT_STRING, BASE_NONE, NULL, 0,
-			NULL, HFILL
-		} },
-		{ &hf_msg_mon_cmd_ack_data, {
-			"Data", "ceph.msg.mon_cmd_ack.data",
-			FT_STRING, BASE_NONE, NULL, 0,
-			NULL, HFILL
-		} },
 		{ &hf_msg_osd_op, {
 			"OSD Operation", "ceph.msg.osd_op",
 			FT_NONE, BASE_NONE, NULL, 0,
@@ -4405,6 +4590,191 @@ proto_register_ceph(void)
 		{ &hf_msg_osd_opreply_payload, {
 			"Operation Result", "ceph.msg.osd_opreply.payload",
 			FT_BYTES, BASE_NONE, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_poolopreply, {
+			"Pool Operation", "ceph.msg.poolopreply",
+			FT_NONE, BASE_NONE, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_poolopreply_fsid, {
+			"FSID", "ceph.msg.poolopreply.fsid",
+			FT_GUID, BASE_NONE, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_poolopreply_code, {
+			"Response Code", "ceph.msg.poolopreply.code",
+			FT_UINT32, BASE_DEC, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_poolopreply_epoch, {
+			"Epoch", "ceph.msg.poolopreply.epoch",
+			FT_UINT32, BASE_DEC, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_poolopreply_datai, {
+			"Data", "ceph.msg.poolopreply.datai",
+			FT_UINT32, BASE_DEC, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_poolopreply_data, {
+			"Data", "ceph.msg.poolopreply.data",
+			FT_BYTES, BASE_NONE, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_poolopreply_data_len, {
+			"Size", "ceph.msg.poolopreply.data_len",
+			FT_UINT32, BASE_DEC, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_poolop, {
+			"Pool Operation", "ceph.msg.poolop",
+			FT_NONE, BASE_NONE, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_poolop_fsid, {
+			"FSID", "ceph.msg.poolop.fsid",
+			FT_GUID, BASE_NONE, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_poolop_pool, {
+			"Pool", "ceph.msg.poolop.pool",
+			FT_UINT32, BASE_DEC, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_poolop_type, {
+			"Type", "ceph.msg.poolop.type",
+			FT_UINT32, BASE_HEX, VALS(c_poolop_type_strings), 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_poolop_auid, {
+			"AUID", "ceph.msg.poolop.auid",
+			FT_UINT64, BASE_DEC, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_poolop_snapid, {
+			"Snapshot ID", "ceph.msg.poolop.snap",
+			FT_UINT64, BASE_DEC, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_poolop_name, {
+			"Name", "ceph.msg.poolop.name",
+			FT_STRING, BASE_NONE, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_poolop_crush_rule, {
+			"Crush Rule", "ceph.msg.poolop.crush_rule",
+			FT_INT16, BASE_DEC, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_poolop_crush_rule8, {
+			"Crush Rule", "ceph.msg.poolop.crush_rule",
+			FT_UINT8, BASE_DEC, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_mon_cmd, {
+			"Mon Command", "ceph.msg.mon_cmd",
+			FT_NONE, BASE_NONE, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_mon_cmd_fsid, {
+			"FSID", "ceph.msg.mon_cmd.fsid",
+			FT_GUID, BASE_NONE, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_mon_cmd_arg, {
+			"Argument", "ceph.msg.mon_cmd.arg",
+			FT_NONE, BASE_NONE, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_mon_cmd_arg_len, {
+			"Argument Count", "ceph.msg.mon_cmd.arg_len",
+			FT_UINT32, BASE_DEC, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_mon_cmd_str, {
+			"String", "ceph.msg.mon_cmd.str",
+			FT_STRING, BASE_NONE, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_mon_cmd_ack, {
+			"Mon Command Result", "ceph.msg.mon_cmd_ack",
+			FT_NONE, BASE_NONE, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_mon_cmd_ack_code, {
+			"Result Code", "ceph.msg.mon_cmd_ack.code",
+			FT_INT32, BASE_DEC, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_mon_cmd_ack_res, {
+			"Result String", "ceph.msg.mon_cmd_ack.result",
+			FT_STRING, BASE_NONE, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_mon_cmd_ack_arg, {
+			"Argument", "ceph.msg.mon_cmd_ack.arg",
+			FT_NONE, BASE_NONE, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_mon_cmd_ack_arg_len, {
+			"Argument Count", "ceph.msg.mon_cmd_ack.arg_len",
+			FT_UINT32, BASE_DEC, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_mon_cmd_ack_arg_str, {
+			"String", "ceph.msg.mon_cmd_ack.str",
+			FT_STRING, BASE_NONE, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_mon_cmd_ack_data, {
+			"Data", "ceph.msg.mon_cmd_ack.data",
+			FT_STRING, BASE_NONE, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_poolstats, {
+			"Pool Stats", "ceph.msg.poolstats",
+			FT_NONE, BASE_NONE, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_poolstats_fsid, {
+			"FSID", "ceph.msg.poolstats.fsid",
+			FT_GUID, BASE_NONE, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_poolstats_pool, {
+			"Pool", "ceph.msg.poolstats.pool",
+			FT_STRING, BASE_NONE, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_poolstatsreply, {
+			"Pool Stats", "ceph.msg.poolstatsreply",
+			FT_NONE, BASE_NONE, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_poolstatsreply_fsid, {
+			"FSID", "ceph.msg.poolstatsreply.fsid",
+			FT_GUID, BASE_NONE, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_poolstatsreply_stat, {
+			"Stats", "ceph.msg.poolstatsreply.pool.stat",
+			FT_NONE, BASE_NONE, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_poolstatsreply_pool, {
+			"Pool", "ceph.msg.poolstatsreply.pool",
+			FT_STRING, BASE_NONE, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_poolstatsreply_log_size, {
+			"Log Size", "ceph.msg.poolstatsreply.log_size",
+			FT_INT64, BASE_DEC, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_poolstatsreply_log_size_ondisk, {
+			"On-Disk Log Size", "ceph.msg.poolstatsreply.log_size_ondisk",
+			FT_INT64, BASE_DEC, NULL, 0,
 			NULL, HFILL
 		} },
 	};
