@@ -80,6 +80,8 @@ static int hf_pgid_ver         = -1;
 static int hf_pgid_pool         = -1;
 static int hf_pgid_seed         = -1;
 static int hf_pgid_preferred     = -1;
+static int hf_monmap_data     = -1;
+static int hf_monmap_len     = -1;
 static int hf_features_high                = -1;
 static int hf_features_low                 = -1;
 static int hf_feature_uid                  = -1;
@@ -219,8 +221,6 @@ static int hf_paxos_mon                    = -1;
 static int hf_paxos_mon_tid                = -1;
 static int hf_msg_mon_map                  = -1;
 static int hf_msg_mon_map_data             = -1;
-static int hf_msg_mon_map_data_data        = -1;
-static int hf_msg_mon_map_data_len         = -1;
 static int hf_msg_mon_sub                  = -1;
 static int hf_msg_mon_sub_item             = -1;
 static int hf_msg_mon_sub_item_len         = -1;
@@ -326,6 +326,28 @@ static int hf_msg_poolstatsreply_stat                         = -1;
 static int hf_msg_poolstatsreply_pool                         = -1;
 static int hf_msg_poolstatsreply_log_size                         = -1;
 static int hf_msg_poolstatsreply_log_size_ondisk                         = -1;
+static int hf_msg_mon_election                         = -1;
+static int hf_msg_mon_election_fsid                         = -1;
+static int hf_msg_mon_election_op                         = -1;
+static int hf_msg_mon_election_epoch                         = -1;
+static int hf_msg_mon_election_monmap                         = -1;
+static int hf_msg_mon_election_quorum                         = -1;
+static int hf_msg_mon_election_quorum_features                         = -1;
+static int hf_msg_mon_election_defunct_one                         = -1;
+static int hf_msg_mon_election_defunct_two                         = -1;
+static int hf_msg_mon_election_sharing                         = -1;
+static int hf_msg_mon_election_sharing_data                         = -1;
+static int hf_msg_mon_election_sharing_len                         = -1;
+static int hf_msg_mon_probe                         = -1;
+static int hf_msg_mon_probe_fsid                         = -1;
+static int hf_msg_mon_probe_type                         = -1;
+static int hf_msg_mon_probe_name                         = -1;
+static int hf_msg_mon_probe_quorum                         = -1;
+static int hf_msg_mon_probe_monmap                         = -1;
+static int hf_msg_mon_probe_paxos_first_ver                         = -1;
+static int hf_msg_mon_probe_paxos_last_ver                         = -1;
+static int hf_msg_mon_probe_ever_joined                         = -1;
+static int hf_msg_mon_probe_req_features                         = -1;
 
 /* @TODO: Remove before release.  Just for copying convenience.
 static int hf_msg_                         = -1;
@@ -861,6 +883,44 @@ static
 const char *c_poolop_type_string(c_poolop_type val)
 {
 	return val_to_str(val, c_poolop_type_strings, "Unknown (0x%02X)");
+}
+
+#define c_mon_election_type_strings_VALUE_STRING_LIST(V) \
+	V(C_MON_ELECTION_PROPOSE, 0x00000001, "Propose")              \
+	V(C_MON_ELECTION_ACK,     0x00000002, "Acknowledge")          \
+	V(C_MON_ELECTION_NAK,     0x00000003, "Negative Acknowledge") \
+	V(C_MON_ELECTION_VICTORY, 0x00000004, "Victory")              \
+
+typedef VALUE_STRING_ENUM(c_mon_election_type_strings) c_mon_election_type;
+VALUE_STRING_ARRAY(c_mon_election_type_strings);
+
+static const
+value_string_ext
+c_mon_election_type_strings_ext = VALUE_STRING_EXT_INIT(c_mon_election_type_strings);
+
+static
+const char *c_mon_election_type_string(c_mon_election_type val)
+{
+	return val_to_str_ext(val, &c_mon_election_type_strings_ext, "Unknown (0x%08X)");
+}
+
+#define c_mon_probe_type_strings_VALUE_STRING_LIST(V) \
+	V(C_MON_PROBE_PROBE,            0x00000001, "Probe")        \
+	V(C_MON_PROBE_REPLY,            0x00000002, "Reply")        \
+	V(C_MON_PROBE_SLURP,            0x00000003, "Slurp")        \
+	V(C_MON_PROBE_SLURP_LATEST,     0x00000004, "Slurp Latest") \
+	V(C_MON_PROBE_DATA,             0x00000005, "Data")         \
+	V(C_MON_PROBE_MISSING_FEATURES, 0x00000006, "Missing Features")
+
+typedef VALUE_STRING_ENUM(c_mon_probe_type_strings) c_mon_probe_type;
+VALUE_STRING_ARRAY(c_mon_probe_type_strings);
+static const
+value_string_ext c_mon_probe_type_strings_ext = VALUE_STRING_EXT_INIT(c_mon_probe_type_strings);
+
+static
+const char *c_mon_probe_type_string(c_mon_probe_type val)
+{
+	return val_to_str_ext(val, &c_mon_probe_type_strings_ext, "Unknown (0x%08X)");
 }
 
 /** Node type database. */
@@ -1694,6 +1754,17 @@ guint c_dissect_pgid(proto_tree *root, gint hf,
 	return off;
 }
 
+static
+guint c_dissect_monmap(proto_tree *root, gint hf,
+                       tvbuff_t *tvb, guint off, c_pkt_data *data _U_)
+{
+	//@TODO: Dissect monmap
+	
+	off = c_dissect_blob(root, hf, hf_monmap_data, hf_monmap_len, tvb, off);
+	
+	return off;
+}
+
 typedef struct _c_osd_op {
 	c_osd_optype type;
 	const char *type_str;
@@ -2003,11 +2074,7 @@ guint c_dissect_msg_mon_map(proto_tree *root,
 	ti = proto_tree_add_item(root, hf_msg_mon_map, tvb, 0, front_len, ENC_NA);
 	tree = proto_item_add_subtree(ti, hf_msg_mon_map);
 	
-	return c_dissect_blob(tree, hf_msg_mon_map_data,
-	                      hf_msg_mon_map_data_data, hf_msg_mon_map_data_len,
-	                      tvb, 0);
-	
-	//@TODO: Parse Mon Map.
+	return c_dissect_monmap(tree, hf_msg_mon_map_data, tvb, 0, data);
 }
 
 /** Mon subscribe message 0x000F */
@@ -2688,7 +2755,7 @@ guint c_dissect_msg_poolstats(proto_tree *root,
 	c_append_text(data, ti, ", For: ");
 	
 	proto_tree_add_item(tree, hf_msg_poolstats_fsid,
-	                    tvb, off, 16, ENC_LITTLE_ENDIAN);
+	                    tvb, off, 16, ENC_BIG_ENDIAN);
 	off += 16;
 	
 	i = tvb_get_letohl(tvb, off);
@@ -2728,7 +2795,7 @@ guint c_dissect_msg_poolstatsreply(proto_tree *root,
 	c_append_text(data, ti, ", For: ");
 	
 	proto_tree_add_item(tree, hf_msg_poolstatsreply_fsid,
-	                    tvb, off, 16, ENC_LITTLE_ENDIAN);
+	                    tvb, off, 16, ENC_BIG_ENDIAN);
 	off += 16;
 	
 	i = tvb_get_letohl(tvb, off);
@@ -2766,6 +2833,139 @@ guint c_dissect_msg_poolstatsreply(proto_tree *root,
 		off += 8;
 		/*** END pool_stat_t ***/
 	}
+	
+	return off;
+}
+
+/** Monitor Election 0x0041 */
+static
+guint c_dissect_msg_mon_election(proto_tree *root,
+                                 tvbuff_t *tvb,
+                                 guint front_len, guint middle_len _U_, guint data_len _U_,
+                                 c_pkt_data *data)
+{
+	proto_item *ti;
+	proto_tree *tree;
+	guint off = 0;
+	guint i;
+	c_mon_election_type type;
+	
+	/* ceph:/src/messages/MMonElection.h */
+	
+	c_set_type(data, "Mon Election");
+	
+	ti = proto_tree_add_item(root, hf_msg_mon_election,
+	                    tvb, off, front_len, ENC_NA);
+	tree = proto_item_add_subtree(ti, hf_msg_mon_election);
+	
+	proto_tree_add_item(tree, hf_msg_mon_election_fsid,
+	                    tvb, off, 16, ENC_BIG_ENDIAN);
+	off += 16;
+	
+	type = (c_mon_election_type)tvb_get_letohl(tvb, off);
+	proto_tree_add_item(tree, hf_msg_mon_election_op,
+	                    tvb, off, 4, ENC_LITTLE_ENDIAN);
+	off += 4;
+	
+	proto_tree_add_item(tree, hf_msg_mon_election_epoch,
+	                    tvb, off, 4, ENC_LITTLE_ENDIAN);
+	off += 4;
+	
+	off = c_dissect_monmap(tree, hf_msg_mon_election_monmap,
+	                    tvb, off, data);
+	
+	i = tvb_get_letohl(tvb, off);
+	off += 4;
+	while (i--)
+	{
+		proto_tree_add_item(tree, hf_msg_mon_election_quorum,
+		                    tvb, off, 4, ENC_LITTLE_ENDIAN);
+		off += 4;
+	}
+	
+	proto_tree_add_item(tree, hf_msg_mon_election_quorum_features,
+	                    tvb, off, 8, ENC_LITTLE_ENDIAN);
+	off += 8;
+	
+	proto_tree_add_item(tree, hf_msg_mon_election_defunct_one,
+	                    tvb, off, 8, ENC_LITTLE_ENDIAN);
+	off += 8;
+	proto_tree_add_item(tree, hf_msg_mon_election_defunct_two,
+	                    tvb, off, 8, ENC_LITTLE_ENDIAN);
+	off += 8;
+	
+	off = c_dissect_blob(tree, hf_msg_mon_election_sharing,
+	                     hf_msg_mon_election_sharing_data, hf_msg_mon_election_sharing_len,
+	                     tvb, off);
+	
+	c_append_text(data, ti, ", Operation: %s", c_mon_election_type_string(type));
+	
+	return off;
+}
+
+/** Monitor Probe 0x0043 */
+static
+guint c_dissect_msg_mon_probe(proto_tree *root,
+                             tvbuff_t *tvb,
+                             guint front_len, guint middle_len _U_, guint data_len _U_,
+                             c_pkt_data *data)
+{
+	proto_item *ti;
+	proto_tree *tree;
+	guint off = 0;
+	guint i;
+	c_mon_probe_type type;
+	c_str name;
+	
+	/* ceph:/src/messages/MMonProbe.h */
+	
+	c_set_type(data, "Mon Probe");
+	
+	ti = proto_tree_add_item(root, hf_msg_mon_probe, tvb, off, front_len, ENC_NA);
+	tree = proto_item_add_subtree(ti, hf_msg_mon_probe);
+	
+	proto_tree_add_item(tree, hf_msg_mon_probe_fsid,
+	                    tvb, off, 16, ENC_BIG_ENDIAN);
+	off += 16;
+	
+	type = (c_mon_probe_type)tvb_get_letohl(tvb, off);
+	proto_tree_add_item(tree, hf_msg_mon_probe_type,
+	                    tvb, off, 4, ENC_LITTLE_ENDIAN);
+	off += 4;
+	
+	off = c_dissect_str(tree, hf_msg_mon_probe_name, &name, tvb, off);
+	
+	i = tvb_get_letohl(tvb, off);
+	off += 4;
+	while (i--)
+	{
+		proto_tree_add_item(tree, hf_msg_mon_probe_quorum,
+		                    tvb, off, 4, ENC_LITTLE_ENDIAN);
+		off += 4;
+	}
+	
+	off = c_dissect_monmap(tree, hf_msg_mon_probe_monmap, tvb, off, data);
+	
+	proto_tree_add_item(tree, hf_msg_mon_probe_ever_joined,
+	                    tvb, off, 1, ENC_LITTLE_ENDIAN);
+	off += 1;
+	proto_tree_add_item(tree, hf_msg_mon_probe_paxos_first_ver,
+	                    tvb, off, 8, ENC_LITTLE_ENDIAN);
+	off += 8;
+	proto_tree_add_item(tree, hf_msg_mon_probe_paxos_last_ver,
+	                    tvb, off, 8, ENC_LITTLE_ENDIAN);
+	off += 8;
+	
+	if (data->header.ver >= 6)
+	{
+		proto_tree_add_item(tree, hf_msg_mon_probe_req_features,
+		                    tvb, off, 8, ENC_LITTLE_ENDIAN);
+		off += 8;
+	}
+	
+	c_append_text(data, ti, ", Type: %s, Name: %s",
+	              c_mon_probe_type_string(type),
+	              name.str);
 	
 	return off;
 }
@@ -2914,7 +3114,7 @@ guint c_dissect_msg(proto_tree *tree,
 	switch (type)
 	{
 #define C_CALL_MSG(name) name(tree, \
-                            subtvb, front_len, middle_len, data_len, data)
+                              subtvb, front_len, middle_len, data_len, data)
 #define C_HANDLE_MSG(tag, name) case tag: parsedsize = C_CALL_MSG(name); break;
 	
 	C_HANDLE_MSG(C_CEPH_MSG_MON_MAP,           c_dissect_msg_mon_map)
@@ -2931,6 +3131,8 @@ guint c_dissect_msg(proto_tree *tree,
 	C_HANDLE_MSG(C_MSG_MON_COMMAND_ACK,        c_dissect_msg_mon_cmd_ack)
 	C_HANDLE_MSG(C_MSG_GETPOOLSTATS,           c_dissect_msg_poolstats)
 	C_HANDLE_MSG(C_MSG_GETPOOLSTATSREPLY,      c_dissect_msg_poolstatsreply)
+	C_HANDLE_MSG(C_MSG_MON_ELECTION,           c_dissect_msg_mon_election)
+	C_HANDLE_MSG(C_MSG_MON_PROBE,              c_dissect_msg_mon_probe)
 	
 	default:
 		parsedsize = C_CALL_MSG(c_dissect_msg_unknown);
@@ -3545,6 +3747,16 @@ proto_register_ceph(void)
 		{ &hf_pgid_preferred, {
 			"Preferred", "ceph.pg.preferred",
 			FT_INT32, BASE_DEC, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_monmap_data, {
+			"Data", "ceph.monmap.data",
+			FT_BYTES, BASE_NONE, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_monmap_len, {
+			"Size", "ceph.monmap.size",
+			FT_UINT32, BASE_DEC, NULL, 0,
 			NULL, HFILL
 		} },
 		{ &hf_connect, {
@@ -4242,16 +4454,6 @@ proto_register_ceph(void)
 			FT_NONE, BASE_NONE, NULL, 0,
 			NULL, HFILL
 		} },
-		{ &hf_msg_mon_map_data_data, {
-			"Data", "ceph.msg.mon_map.data",
-			FT_BYTES, BASE_NONE, NULL, 0,
-			NULL, HFILL
-		} },
-		{ &hf_msg_mon_map_data_len, {
-			"Length", "ceph.msg.mon_map.data_len",
-			FT_UINT32, BASE_DEC, NULL, 0,
-			NULL, HFILL
-		} },
 		{ &hf_msg_mon_sub, {
 			"Mon Subscribe Message", "ceph.msg.mon_sub",
 			FT_NONE, BASE_NONE, NULL, 0,
@@ -4775,6 +4977,116 @@ proto_register_ceph(void)
 		{ &hf_msg_poolstatsreply_log_size_ondisk, {
 			"On-Disk Log Size", "ceph.msg.poolstatsreply.log_size_ondisk",
 			FT_INT64, BASE_DEC, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_mon_election, {
+			"Monitor Election", "ceph.msg.mon_election",
+			FT_NONE, BASE_NONE, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_mon_election_fsid, {
+			"FSID", "ceph.msg.mon_election.fsid",
+			FT_GUID, BASE_NONE, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_mon_election_op, {
+			"Type", "ceph.msg.mon_election.op",
+			FT_INT32, BASE_DEC|BASE_EXT_STRING, VALS(&c_mon_election_type_strings_ext), 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_mon_election_epoch, {
+			"Epoch", "ceph.msg.mon_election.epoch",
+			FT_UINT32, BASE_DEC, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_mon_election_monmap, {
+			"Monmap", "ceph.msg.mon_election.monmap",
+			FT_NONE, BASE_NONE, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_mon_election_quorum, {
+			"Quorum", "ceph.msg.mon_election.quorum",
+			FT_INT64, BASE_DEC, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_mon_election_quorum_features, {
+			"Epoch", "ceph.msg.mon_election.quorum_features",
+			FT_UINT64, BASE_HEX, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_mon_election_defunct_one, {
+			"Defunct One", "ceph.msg.mon_election.defunct_one",
+			FT_UINT64, BASE_DEC, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_mon_election_defunct_two, {
+			"Defunct Two", "ceph.msg.mon_election.defunct_two",
+			FT_UINT64, BASE_DEC, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_mon_election_sharing, {
+			"Sharing", "ceph.msg.mon_election.sharing", //@HELP: What is this?
+			FT_NONE, BASE_NONE, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_mon_election_sharing_data, {
+			"Data", "ceph.msg.mon_election.sharing_data",
+			FT_NONE, BASE_NONE, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_mon_election_sharing_len, {
+			"Size", "ceph.msg.mon_election.sharing_len",
+			FT_NONE, BASE_NONE, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_mon_probe, {
+			"Monitor Probe", "ceph.msg.mon_probe",
+			FT_NONE, BASE_NONE, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_mon_probe_fsid, {
+			"FSID", "ceph.msg.mon_probe.fsid",
+			FT_GUID, BASE_NONE, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_mon_probe_type, {
+			"Type", "ceph.msg.mon_probe.type",
+			FT_INT32, BASE_DEC|BASE_EXT_STRING, VALS(&c_mon_probe_type_strings_ext), 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_mon_probe_name, {
+			"Name", "ceph.msg.mon_probe.name",
+			FT_STRING, BASE_NONE, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_mon_probe_quorum, {
+			"Quorum", "ceph.msg.mon_probe.quorum",
+			FT_INT32, BASE_DEC, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_mon_probe_monmap, {
+			"Monmap", "ceph.msg.mon_probe.monmap",
+			FT_NONE, BASE_NONE, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_mon_probe_paxos_first_ver, {
+			"Paxos First Version", "ceph.msg.mon_probe.paxos_first_ver",
+			FT_UINT64, BASE_DEC, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_mon_probe_paxos_last_ver, {
+			"Paxos Last Version", "ceph.msg.mon_probe.paxos_last_ver",
+			FT_UINT64, BASE_DEC, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_mon_probe_ever_joined, {
+			"Has Ever Joined?", "ceph.msg.mon_probe.has_ever_joined",
+			FT_BOOLEAN, BASE_DEC, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_mon_probe_req_features, {
+			"Required Features", "ceph.msg.mon_probe.required_features",
+			FT_UINT64, BASE_HEX, NULL, 0,
 			NULL, HFILL
 		} },
 	};
