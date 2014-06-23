@@ -194,6 +194,8 @@ static int hf_connect                      = -1;
 static int hf_connect_reply                = -1;
 static int hf_tag                          = -1;
 static int hf_ack                          = -1;
+static int hf_seq_existing                          = -1;
+static int hf_seq_new                          = -1;
 static int hf_head                         = -1;
 static int hf_head_seq                     = -1;
 static int hf_head_tid                     = -1;
@@ -967,7 +969,8 @@ enum c_mon_sub_flags {
 
 typedef enum _c_state {
 	C_STATE_NEW,
-	C_STATE_OPEN
+	C_STATE_OPEN,
+	C_STATE_SEQ /* Waiting for sequence number. */
 } c_state;
 
 typedef struct _c_node_name {
@@ -3276,7 +3279,7 @@ guint c_dissect_connect_reply(proto_tree *root,
 	authlen = tvb_get_letohl(tvb, off+20);
 	
 	if (!tvb_bytes_exist(tvb, off, C_SIZE_CONNECT_REPLY + authlen))
-		return off+C_SIZE_CONNECT_REPLY+authlen; /* We need more data to dissect. */
+		return 0; /* We need more data to dissect. */
 	
 	c_set_type(data, "Connect Reply");
 	
@@ -3400,11 +3403,15 @@ guint c_dissect_msgr(proto_tree *tree,
 		off = c_dissect_connect_reply(tree, tvb, off, data);
 		break;
 	case C_TAG_SEQ:
-		if (!tvb_bytes_exist(tvb, off, C_SIZE_CONNECT_REPLY+8))
-			return off+C_SIZE_CONNECT_REPLY+8; /* We need more data to dissect. */
-		
 		off = c_dissect_connect_reply(tree, tvb, off, data);
-		off += 8; //@TODO: Read sequence number.
+		if (!off) return off;
+		if (!tvb_bytes_exist(tvb, off, 8))
+			return off+8; /* We need more data to dissect. */
+		
+		proto_tree_add_item(tree, hf_seq_existing, tvb, off, 8, ENC_LITTLE_ENDIAN);
+		off += 8;
+		
+		data->dst->state = C_STATE_SEQ;
 		break;
 	case C_TAG_CLOSE:
 		c_set_type(data, "CLOSE");
@@ -3481,10 +3488,27 @@ guint c_dissect_pdu(proto_tree *root,
 	tif = proto_tree_add_item(tree, hf_filter_data, tvb, off, -1, ENC_NA);
 	data->tree_filter = proto_item_add_subtree(tif, hf_filter_data);
 	
-	if (data->src->state == C_STATE_NEW)
-		off = c_dissect_new(tree, tvb, off, data);
-	else
-		off = c_dissect_msgr(tree, tvb, off, data);
+	switch (data->src->state)
+	{
+		case C_STATE_NEW:
+			off = c_dissect_new(tree, tvb, off, data);
+			break;
+		case C_STATE_SEQ:
+			if (!tvb_bytes_exist(tvb, off, 8))
+			{
+				off = off+8;
+				break;
+			}
+			c_set_type(data, "Sequence Number");
+			proto_item_append_text(data->item_root, ", Seq: %"G_GINT64_MODIFIER"u",
+			                       tvb_get_letoh64(tvb, off));
+			proto_tree_add_item(tree, hf_seq_new, tvb, off, 8, ENC_LITTLE_ENDIAN);
+			off += 8;
+			data->src->state = C_STATE_NEW;
+			break;
+		default:
+			off = c_dissect_msgr(tree, tvb, off, data);
+	}
 	
 	if (data->tree_filter) {
 		/*** General Filter Data ***/
@@ -4316,6 +4340,16 @@ proto_register_ceph(void)
 		} },
 		{ &hf_ack, {
 			"Acknowledgment", "ceph.ack",
+			FT_UINT64, BASE_DEC, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_seq_existing, {
+			"Existing Sequence Number", "ceph.seq_existing",
+			FT_UINT64, BASE_DEC, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_seq_new, {
+			"Newly Acknowledged Sequence Number", "ceph.seq_new",
 			FT_UINT64, BASE_DEC, NULL, 0,
 			NULL, HFILL
 		} },
