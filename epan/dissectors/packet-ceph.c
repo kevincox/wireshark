@@ -80,6 +80,18 @@ static int hf_pgid_ver                           = -1;
 static int hf_pgid_pool                          = -1;
 static int hf_pgid_seed                          = -1;
 static int hf_pgid_preferred                     = -1;
+static int hf_path_ver                     = -1;
+static int hf_path_inode                     = -1;
+static int hf_path_rel                     = -1;
+static int hf_mds_release_inode                     = -1;
+static int hf_mds_release_capid                     = -1;
+static int hf_mds_release_new                     = -1;
+static int hf_mds_release_wanted                     = -1;
+static int hf_mds_release_seq                     = -1;
+static int hf_mds_release_seq_issue                     = -1;
+static int hf_mds_release_mseq                     = -1;
+static int hf_mds_release_dname_seq                     = -1;
+static int hf_mds_release_dname                     = -1;
 static int hf_monmap_data                        = -1;
 static int hf_monmap_len                         = -1;
 static int hf_features_high                      = -1;
@@ -269,7 +281,11 @@ static int hf_msg_client_req_releases                        = -1;
 static int hf_msg_client_req_op                        = -1;
 static int hf_msg_client_req_caller_uid                        = -1;
 static int hf_msg_client_req_caller_gid                        = -1;
-static int hf_msg_client_req_ino                        = -1;
+static int hf_msg_client_req_inode                        = -1;
+static int hf_msg_client_req_path_src                        = -1;
+static int hf_msg_client_req_path_dst                        = -1;
+static int hf_msg_client_req_release                        = -1;
+static int hf_msg_client_req_time                        = -1;
 static int hf_msg_osd_map                        = -1;
 static int hf_msg_osd_map_fsid                   = -1;
 static int hf_msg_osd_map_inc                    = -1;
@@ -1712,6 +1728,7 @@ guint c_dissect_eversion(proto_tree *root, gint hf,
 	                       ", Epoch: %"G_GINT32_MODIFIER"d",
 	                       ver, epoch);
 	
+	proto_item_set_end(ti, tvb, off);
 	return off;
 }
 
@@ -1742,13 +1759,13 @@ guint c_dissect_object_locator(proto_tree *root, gint hf,
 	if (tvb_get_letohl(tvb, off))
 	{
 		off = c_dissect_str(tree, hf_key, &str, tvb, off);
-		proto_item_append_text(ti, ", Key: '%s'", str.str);
+		proto_item_append_text(ti, ", Key: \"%s\"", str.str);
 	}
 	else off += 4; /* If string is empty we should use hash. */
 	
 	off = c_dissect_str(tree, hf_namespace, &str, tvb, off);
 	if (str.size)
-		proto_item_append_text(ti, ", Namespace: '%s'", str.str);
+		proto_item_append_text(ti, ", Namespace: \"%s\"", str.str);
 	
 	hash = tvb_get_letoh64(tvb, off);
 	if (hash >= 0)
@@ -1761,6 +1778,7 @@ guint c_dissect_object_locator(proto_tree *root, gint hf,
 	//@TODO: Warn if not key or hash.
 	//@TODO: Warn if off != expectedoff
 	
+	proto_item_set_end(ti, tvb, off);
 	return off;
 }
 
@@ -1796,6 +1814,84 @@ guint c_dissect_pgid(proto_tree *root, gint hf,
 	proto_tree_add_item(tree, hf_pgid_preferred, tvb, off, 4, ENC_LITTLE_ENDIAN);
 	off += 4;
 	
+	proto_item_set_end(ti, tvb, off);
+	return off;
+}
+
+static
+guint c_dissect_path(proto_tree *root, gint hf,
+                     tvbuff_t *tvb, guint off, c_pkt_data *data _U_)
+{
+	proto_item *ti;
+	proto_tree *tree;
+	guint64 inode;
+	c_str rel;
+	guint v;
+	
+	ti   = proto_tree_add_item(root, hf, tvb, off, -1, ENC_NA);
+	tree = proto_item_add_subtree(ti, hf);
+	
+	v = tvb_get_guint8(tvb, off);
+	(void)v;
+	proto_tree_add_item(tree, hf_path_ver, tvb, off, 1, ENC_LITTLE_ENDIAN);
+	off += 1;
+	
+	inode = tvb_get_letoh64(tvb, off);
+	proto_tree_add_item(tree, hf_path_inode, tvb, off, 8, ENC_LITTLE_ENDIAN);
+	off += 8;
+	
+	off = c_dissect_str(tree, hf_path_rel, &rel, tvb, off);
+	
+	if (inode)
+		proto_item_append_text(ti, ", Inode: 0x%016"G_GINT64_MODIFIER"u", inode);
+	if (rel.size)
+		proto_item_append_text(ti, ", Rel: \"%s\"", rel.str);
+	
+	proto_item_set_end(ti, tvb, off);
+	return off;
+}
+
+static
+guint c_dissect_mds_release(proto_tree *root, gint hf,
+                            tvbuff_t *tvb, guint off, c_pkt_data *data _U_)
+{
+	proto_item *ti;
+	proto_tree *tree;
+	guint64 inode;
+	
+	ti   = proto_tree_add_item(root, hf, tvb, off, -1, ENC_NA);
+	tree = proto_item_add_subtree(ti, hf);
+	
+	inode = tvb_get_letoh64(tvb, off);
+	proto_tree_add_item(tree, hf_mds_release_inode, tvb, off, 8, ENC_LITTLE_ENDIAN);
+	off += 8;
+	
+	proto_tree_add_item(tree, hf_mds_release_capid, tvb, off, 8, ENC_LITTLE_ENDIAN);
+	off += 8;
+	
+	proto_tree_add_item(tree, hf_mds_release_new, tvb, off, 4, ENC_LITTLE_ENDIAN);
+	off += 4;
+	
+	proto_tree_add_item(tree, hf_mds_release_wanted, tvb, off, 4, ENC_LITTLE_ENDIAN);
+	off += 4;
+	
+	proto_tree_add_item(tree, hf_mds_release_seq, tvb, off, 4, ENC_LITTLE_ENDIAN);
+	off += 4;
+	
+	proto_tree_add_item(tree, hf_mds_release_seq_issue, tvb, off, 4, ENC_LITTLE_ENDIAN);
+	off += 4;
+	
+	proto_tree_add_item(tree, hf_mds_release_mseq, tvb, off, 4, ENC_LITTLE_ENDIAN);
+	off += 4;
+	
+	proto_tree_add_item(tree, hf_mds_release_dname_seq, tvb, off, 4, ENC_LITTLE_ENDIAN);
+	off += 4;
+	
+	off = c_dissect_str(tree, hf_mds_release_dname, NULL, tvb, off);
+	
+	proto_item_append_text(ti, ", Inode: 0x%016"G_GINT64_MODIFIER"u", inode);
+	
+	proto_item_set_end(ti, tvb, off);
 	return off;
 }
 
@@ -2409,6 +2505,7 @@ guint c_dissect_msg_client_req(proto_tree *root,
 	proto_tree_add_item(tree, hf_msg_client_req_forward, tvb, off, 1, ENC_LITTLE_ENDIAN);
 	off += 1;
 	
+	i = tvb_get_letohs(tvb, off);
 	proto_tree_add_item(tree, hf_msg_client_req_releases, tvb, off, 2, ENC_LITTLE_ENDIAN);
 	off += 2;
 	
@@ -2422,8 +2519,24 @@ guint c_dissect_msg_client_req(proto_tree *root,
 	proto_tree_add_item(tree, hf_msg_client_req_caller_gid, tvb, off, 4, ENC_LITTLE_ENDIAN);
 	off += 4;
 	
-	proto_tree_add_item(tree, hf_msg_client_req_ino, tvb, off, 8, ENC_LITTLE_ENDIAN);
+	proto_tree_add_item(tree, hf_msg_client_req_inode, tvb, off, 8, ENC_LITTLE_ENDIAN);
 	off += 8;
+	
+	off += 48; //@TODO: Message specific data.
+	
+	off = c_dissect_path(tree, hf_msg_client_req_path_src, tvb, off, data);
+	off = c_dissect_path(tree, hf_msg_client_req_path_dst, tvb, off, data);
+	
+	while (i--)
+	{
+		off = c_dissect_mds_release(tree, hf_msg_client_req_release, tvb, off, data);
+	}
+	
+	if (data->header.ver >= 2)
+	{
+		proto_tree_add_item(tree, hf_msg_client_req_time, tvb, off, 8, ENC_LITTLE_ENDIAN);
+		off += 8;
+	}
 	
 	c_append_text(data, ti, ", Operation: %s", c_mds_op_type_string(type));
 	
@@ -3950,6 +4063,66 @@ proto_register_ceph(void)
 			FT_INT32, BASE_DEC, NULL, 0,
 			NULL, HFILL
 		} },
+		{ &hf_path_ver, {
+			"Encoding Version", "ceph.path.ver",
+			FT_UINT8, BASE_HEX, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_path_inode, {
+			"Inode", "ceph.path.inode",
+			FT_UINT64, BASE_HEX, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_path_rel, {
+			"Relative component", "ceph.path.rel",
+			FT_STRING, BASE_NONE, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_mds_release_inode, {
+			"Inode", "ceph.mds_release.inode",
+			FT_UINT64, BASE_HEX, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_mds_release_capid, {
+			"Capability ID", "ceph.mds_release.capid",
+			FT_UINT64, BASE_HEX, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_mds_release_new, {
+			"New Capabilities", "ceph.mds_release.new",
+			FT_UINT32, BASE_HEX, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_mds_release_wanted, {
+			"Wanted Capabilities", "ceph.mds_release.wanted",
+			FT_UINT32, BASE_HEX, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_mds_release_seq, {
+			"Seq", "ceph.mds_release.seq",
+			FT_UINT32, BASE_HEX, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_mds_release_seq_issue, {
+			"Seq Issue", "ceph.mds_release.seq_issue",
+			FT_UINT32, BASE_HEX, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_mds_release_mseq, {
+			"MSeq", "ceph.mds_release.mseq", //@HELP: There must be a better name.
+			FT_UINT32, BASE_HEX, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_mds_release_dname_seq, {
+			"DName Seq", "ceph.mds_release.dname_seq",
+			FT_UINT32, BASE_HEX, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_mds_release_dname, {
+			"DName", "ceph.mds_release.dname",
+			FT_STRING, BASE_NONE, NULL, 0,
+			NULL, HFILL
+		} },
 		{ &hf_monmap_data, {
 			"Data", "ceph.monmap.data",
 			FT_BYTES, BASE_NONE, NULL, 0,
@@ -4882,7 +5055,7 @@ proto_register_ceph(void)
 		} },
 		{ &hf_msg_client_req_op, {
 			"Operation", "ceph.msg.client_req.op",
-			FT_UINT32, BASE_HEX|BASE_EXT_STRING, VALS(&c_mds_op_type_strings), 0,
+			FT_UINT32, BASE_HEX|BASE_EXT_STRING, VALS(&c_mds_op_type_strings_ext), 0,
 			NULL, HFILL
 		} },
 		{ &hf_msg_client_req_caller_uid, {
@@ -4895,9 +5068,29 @@ proto_register_ceph(void)
 			FT_UINT32, BASE_DEC, NULL, 0,
 			NULL, HFILL
 		} },
-		{ &hf_msg_client_req_ino, {
-			"INO", "ceph.msg.client_req.ino", /*@HELP: inode?*/
+		{ &hf_msg_client_req_inode, {
+			"Inode", "ceph.msg.client_req.inode",
 			FT_UINT64, BASE_DEC, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_client_req_path_src, {
+			"Path", "ceph.msg.client_req.path_src",
+			FT_NONE, BASE_NONE, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_client_req_path_dst, {
+			"Second Path", "ceph.msg.client_req.path_dst",
+			FT_NONE, BASE_NONE, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_client_req_release, {
+			"Release", "ceph.msg.client_req.release",
+			FT_NONE, BASE_NONE, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_client_req_time, {
+			"Timestamp", "ceph.msg.client_req.time",
+			FT_ABSOLUTE_TIME, ABSOLUTE_TIME_LOCAL, NULL, 0,
 			NULL, HFILL
 		} },
 		{ &hf_msg_osd_map, {
