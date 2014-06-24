@@ -2176,23 +2176,24 @@ guint c_dissect_msg_unknown(proto_tree *tree,
 	
 	c_set_type(data, "MSG");
 	proto_item_append_text(data->item_root,
-	                       ", Front Len: %u, Middle Len: %u, Data Len %u",
+	                       ", Type: %s, Front Len: %u, Middle Len: %u, Data Len %u",
+	                       c_msg_type_string(data->header.type),
 	                       front_len, middle_len, data_len);
 	expert_add_info(data->pinfo, tree, &ei_msg_unknown);
 	
-	if (front_len) {
-		proto_tree_add_item(tree, hf_msg_front,
-		                    tvb, off, front_len, ENC_NA);
+	if (front_len)
+	{
+		proto_tree_add_item(tree, hf_msg_front, tvb, off, front_len, ENC_NA);
 		off += front_len;
 	}
-	if (middle_len) {
-		proto_tree_add_item(tree, hf_msg_middle,
-		                    tvb, off, middle_len, ENC_NA);
+	if (middle_len)
+	{
+		proto_tree_add_item(tree, hf_msg_middle, tvb, off, middle_len, ENC_NA);
 		off += middle_len;
 	}
-	if (data_len) {
-		proto_tree_add_item(tree, hf_msg_data,
-		                    tvb, off, data_len, ENC_NA);
+	if (data_len)
+	{
+		proto_tree_add_item(tree, hf_msg_data, tvb, off, data_len, ENC_NA);
 		off += data_len;
 	}
 	
