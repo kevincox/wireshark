@@ -357,6 +357,7 @@ static int hf_msg_                         = -1;
 
 /* Initialize the expert items. */
 static expert_field ei_unused = EI_INIT;
+static expert_field ei_tag_unknown = EI_INIT;
 
 /* Initialize the subtree pointers */
 static gint ett_ceph = -1;
@@ -3381,13 +3382,14 @@ static
 guint c_dissect_msgr(proto_tree *tree,
                    tvbuff_t *tvb, guint off, c_pkt_data *data)
 {
+	proto_item *ti;
 	guint8 tag;
 	
 	if (!tvb_bytes_exist(tvb, off, 1))
 		return C_NEEDMORE;
 	
 	tag = tvb_get_guint8(tvb, off);
-	proto_tree_add_item(tree, hf_tag, tvb, off, 1, ENC_LITTLE_ENDIAN);
+	ti = proto_tree_add_item(tree, hf_tag, tvb, off, 1, ENC_LITTLE_ENDIAN);
 	off += 1;
 	
 	switch (tag)
@@ -3465,6 +3467,7 @@ guint c_dissect_msgr(proto_tree *tree,
 		*/
 		c_set_type(data, "UNKNOWN");
 		proto_item_append_text(data->item_root, ", Tag: %x", tag);
+		expert_add_info(data->pinfo, ti, &ei_tag_unknown);
 		//@TODO: Add expert info to allow filtering.
 	}
 	
@@ -5136,6 +5139,11 @@ proto_register_ceph(void)
 			"ceph.unused", PI_UNDECODED, PI_WARN,
 			"Unused data in message.  This usually indicates an error by the "
 			"sender or a bug in the dissector.", EXPFILL
+		} },
+		{ &ei_tag_unknown, {
+			"ceph.tag_unknown", PI_UNDECODED, PI_ERROR,
+			"Unknown tag.  This is either an error by the sender or an "
+			"indication that the dissector is out of date.", EXPFILL
 		} },
 	};
 	
