@@ -247,6 +247,12 @@ static int hf_msg_auth_reply_data                = -1;
 static int hf_msg_auth_reply_data_data           = -1;
 static int hf_msg_auth_reply_data_len            = -1;
 static int hf_msg_auth_reply_msg                 = -1;
+static int hf_msg_mds_map                        = -1;
+static int hf_msg_mds_map_fsid                        = -1;
+static int hf_msg_mds_map_epoch                        = -1;
+static int hf_msg_mds_map_datai                        = -1;
+static int hf_msg_mds_map_data                        = -1;
+static int hf_msg_mds_map_data_len                        = -1;
 static int hf_msg_osd_map                        = -1;
 static int hf_msg_osd_map_fsid                   = -1;
 static int hf_msg_osd_map_inc                    = -1;
@@ -358,6 +364,7 @@ static int hf_msg_                         = -1;
 /* Initialize the expert items. */
 static expert_field ei_unused = EI_INIT;
 static expert_field ei_tag_unknown = EI_INIT;
+static expert_field ei_msg_unknown = EI_INIT;
 
 /* Initialize the subtree pointers */
 static gint ett_ceph = -1;
@@ -2041,6 +2048,7 @@ guint c_dissect_msg_unknown(proto_tree *tree,
 	proto_item_append_text(data->item_root,
 	                       ", Front Len: %u, Middle Len: %u, Data Len %u",
 	                       front_len, middle_len, data_len);
+	expert_add_info(data->pinfo, tree, &ei_msg_unknown);
 	
 	if (front_len) {
 		proto_tree_add_item(tree, hf_msg_front,
@@ -2255,6 +2263,40 @@ guint c_dissect_msg_auth_reply(proto_tree *root,
 	                     hf_msg_auth_reply_data_data, hf_msg_auth_reply_data_len,
 	                     tvb, off);
 	off = c_dissect_str(tree, hf_msg_auth_reply_msg, NULL, tvb, off);
+	
+	return off;
+}
+
+/** MDS Map 0x0015 */
+static
+guint c_dissect_msg_mds_map(proto_tree *root,
+                           tvbuff_t *tvb,
+                           guint front_len, guint middle_len _U_, guint data_len _U_,
+                           c_pkt_data *data)
+{
+	proto_item *ti;
+	proto_tree *tree, *subtree;
+	guint off = 0;
+	guint32 i;
+	
+	/* ceph:/src/messages/MOSDMap.h */
+	
+	c_set_type(data, "MDS Map");
+	
+	ti = proto_tree_add_item(root, hf_msg_mds_map, tvb, off, front_len, ENC_NA);
+	tree = proto_item_add_subtree(ti, hf_msg_mds_map);
+	
+	proto_tree_add_item(tree, hf_msg_mds_map_fsid, tvb, off, 16, ENC_BIG_ENDIAN);
+	off += 16;
+	
+	proto_tree_add_item(tree, hf_msg_mds_map_epoch, tvb, off, 4, ENC_LITTLE_ENDIAN);
+	off += 4;
+	
+	//@TODO: Dissect map data.
+	
+	off = c_dissect_blob(tree, hf_msg_mds_map_datai,
+	                     hf_msg_mds_map_data, hf_msg_mds_map_data_len,
+	                     tvb, off);
 	
 	return off;
 }
@@ -3126,6 +3168,7 @@ guint c_dissect_msg(proto_tree *tree,
 	C_HANDLE_MSG(C_CEPH_MSG_MON_SUBSCRIBE_ACK, c_dissect_msg_mon_sub_ack)
 	C_HANDLE_MSG(C_CEPH_MSG_AUTH,              c_dissect_msg_auth)
 	C_HANDLE_MSG(C_CEPH_MSG_AUTH_REPLY,        c_dissect_msg_auth_reply)
+	C_HANDLE_MSG(C_CEPH_MSG_MDS_MAP,           c_dissect_msg_mds_map)
 	C_HANDLE_MSG(C_CEPH_MSG_OSD_MAP,           c_dissect_msg_osd_map)
 	C_HANDLE_MSG(C_CEPH_MSG_OSD_OP,            c_dissect_msg_osd_op)
 	C_HANDLE_MSG(C_CEPH_MSG_OSD_OPREPLY,       c_dissect_msg_osd_opreply)
@@ -4611,6 +4654,36 @@ proto_register_ceph(void)
 			FT_STRING, BASE_NONE, NULL, 0,
 			NULL, HFILL
 		} },
+		{ &hf_msg_mds_map, {
+			"OSD Map Message", "ceph.msg.osd_map",
+			FT_NONE, BASE_NONE, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_mds_map_fsid, {
+			"FSID", "ceph.msg.osd_map.fsid",
+			FT_GUID, BASE_NONE, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_mds_map_epoch, {
+			"Epoch", "ceph.msg.osd_map.epoch",
+			FT_UINT32, BASE_DEC, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_mds_map_datai, {
+			"OSD Map Data", "ceph.msg.osd_map.datai",
+			FT_NONE, BASE_NONE, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_mds_map_data, {
+			"Data", "ceph.msg.osd_map.data",
+			FT_BYTES, BASE_NONE, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_mds_map_data_len, {
+			"Size", "ceph.msg.osd_map.size",
+			FT_UINT32, BASE_DEC, NULL, 0,
+			NULL, HFILL
+		} },
 		{ &hf_msg_osd_map, {
 			"OSD Map Message", "ceph.msg.osd_map",
 			FT_NONE, BASE_NONE, NULL, 0,
@@ -5143,6 +5216,11 @@ proto_register_ceph(void)
 		{ &ei_tag_unknown, {
 			"ceph.tag_unknown", PI_UNDECODED, PI_ERROR,
 			"Unknown tag.  This is either an error by the sender or an "
+			"indication that the dissector is out of date.", EXPFILL
+		} },
+		{ &ei_msg_unknown, {
+			"ceph.msg_unknown", PI_UNDECODED, PI_WARN,
+			"Unknown message type.  This is either an error by the sender or an "
 			"indication that the dissector is out of date.", EXPFILL
 		} },
 	};
