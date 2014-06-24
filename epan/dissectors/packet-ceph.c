@@ -62,6 +62,8 @@ static int hf_inet_family                        = -1;
 static int hf_port                               = -1;
 static int hf_addr_ipv4                          = -1;
 static int hf_addr_ipv6                          = -1;
+static int hf_data_data                        = -1;
+static int hf_data_size                        = -1;
 static int hf_string_data                        = -1;
 static int hf_string_size                        = -1;
 static int hf_time                               = -1;
@@ -286,6 +288,20 @@ static int hf_msg_client_req_path_src                        = -1;
 static int hf_msg_client_req_path_dst                        = -1;
 static int hf_msg_client_req_release                        = -1;
 static int hf_msg_client_req_time                        = -1;
+static int hf_msg_client_reqfwd                        = -1;
+static int hf_msg_client_reqfwd_dst                        = -1;
+static int hf_msg_client_reqfwd_fwd                        = -1;
+static int hf_msg_client_reqfwd_resend                        = -1;
+static int hf_msg_client_reply                        = -1;
+static int hf_msg_client_reply_op                        = -1;
+static int hf_msg_client_reply_result                        = -1;
+static int hf_msg_client_reply_mdsmap_epoch                        = -1;
+static int hf_msg_client_reply_safe                        = -1;
+static int hf_msg_client_reply_isdentry                        = -1;
+static int hf_msg_client_reply_istarget                        = -1;
+static int hf_msg_client_reply_trace                        = -1;
+static int hf_msg_client_reply_extra                        = -1;
+static int hf_msg_client_reply_snaps                        = -1;
 static int hf_msg_osd_map                        = -1;
 static int hf_msg_osd_map_fsid                   = -1;
 static int hf_msg_osd_map_inc                    = -1;
@@ -1610,6 +1626,12 @@ guint c_dissect_blob(proto_tree *root, int hf, int hf_data, int hf_len,
 	return off;
 }
 
+static c_dissect_data(proto_tree *tree, int hf,
+                     tvbuff_t *tvb, guint off)
+{
+	return c_dissect_blob(tree, hf, hf_data_data, hf_data_size, tvb, off);
+}
+
 typedef struct _c_str {
 	char    *str;
 	guint32  size;
@@ -2479,7 +2501,7 @@ guint c_dissect_msg_client_req(proto_tree *root,
                                c_pkt_data *data)
 {
 	proto_item *ti;
-	proto_tree *tree, *subtree;
+	proto_tree *tree;
 	guint off = 0;
 	guint32 i;
 	c_mds_op_type type;
@@ -2538,6 +2560,93 @@ guint c_dissect_msg_client_req(proto_tree *root,
 		proto_tree_add_item(tree, hf_msg_client_req_time, tvb, off, 8, ENC_LITTLE_ENDIAN);
 		off += 8;
 	}
+	
+	c_append_text(data, ti, ", Operation: %s", c_mds_op_type_string(type));
+	
+	return off;
+}
+
+/** Client Request Forward 0x0019 */
+static
+guint c_dissect_msg_client_reqfwd(proto_tree *root,
+                                  tvbuff_t *tvb,
+                                  guint front_len, guint middle_len _U_, guint data_len _U_,
+                                  c_pkt_data *data)
+{
+	proto_item *ti;
+	proto_tree *tree;
+	guint off = 0;
+	guint32 to, fwd;
+	guint8 resend;
+	
+	/* ceph:/src/messages/MClientRequestForward.h */
+	
+	c_set_type(data, "Client Request Forward");
+	
+	ti = proto_tree_add_item(root, hf_msg_client_reqfwd, tvb, off, front_len, ENC_NA);
+	tree = proto_item_add_subtree(ti, hf_msg_client_reqfwd);
+	
+	to = tvb_get_letohl(tvb, off);
+	proto_tree_add_item(tree, hf_msg_client_reqfwd_dst, tvb, off, 4, ENC_LITTLE_ENDIAN);
+	off += 4;
+	
+	fwd = tvb_get_letohl(tvb, off);
+	proto_tree_add_item(tree, hf_msg_client_reqfwd_fwd, tvb, off, 4, ENC_LITTLE_ENDIAN);
+	off += 4;
+	
+	resend = tvb_get_guint8(tvb, off);
+	proto_tree_add_item(tree, hf_msg_client_reqfwd_resend, tvb, off, 1, ENC_LITTLE_ENDIAN);
+	off += 1;
+	
+	c_append_text(data, ti, ", To: mds%"G_GINT32_MODIFIER"u, Resend: %s, "
+	              "Forwards: %"G_GINT32_MODIFIER"u",
+	              to, resend? "True":"False", fwd);
+	
+	return off;
+}
+
+/** Client Reply 0x001A */
+static
+guint c_dissect_msg_client_reply(proto_tree *root,
+                                 tvbuff_t *tvb,
+                                 guint front_len, guint middle_len _U_, guint data_len _U_,
+                                 c_pkt_data *data)
+{
+	proto_item *ti;
+	proto_tree *tree;
+	guint off = 0;
+	c_mds_op_type type;
+	
+	/* ceph:/src/messages/MClientReply.h */
+	
+	c_set_type(data, "Client Reply");
+	
+	ti = proto_tree_add_item(root, hf_msg_client_reply, tvb, off, front_len, ENC_NA);
+	tree = proto_item_add_subtree(ti, hf_msg_client_reply);
+	
+	type = (c_mds_op_type)tvb_get_letohl(tvb, off);
+	proto_tree_add_item(tree, hf_msg_client_reply_op, tvb, off, 4, ENC_LITTLE_ENDIAN);
+	off += 4;
+	
+	proto_tree_add_item(tree, hf_msg_client_reply_result, tvb, off, 4, ENC_LITTLE_ENDIAN);
+	off += 4;
+	
+	proto_tree_add_item(tree, hf_msg_client_reply_mdsmap_epoch, tvb, off, 4, ENC_LITTLE_ENDIAN);
+	off += 4;
+	
+	proto_tree_add_item(tree, hf_msg_client_reply_safe, tvb, off, 1, ENC_LITTLE_ENDIAN);
+	off += 1;
+	
+	proto_tree_add_item(tree, hf_msg_client_reply_isdentry, tvb, off, 1, ENC_LITTLE_ENDIAN);
+	off += 1;
+	
+	proto_tree_add_item(tree, hf_msg_client_reply_istarget, tvb, off, 1, ENC_LITTLE_ENDIAN);
+	off += 1;
+	
+	//@TODO: Dissect these.
+	off = c_dissect_data(tree, hf_msg_client_reply_trace, tvb, off);
+	off = c_dissect_data(tree, hf_msg_client_reply_extra, tvb, off);
+	off = c_dissect_data(tree, hf_msg_client_reply_snaps, tvb, off);
 	
 	c_append_text(data, ti, ", Operation: %s", c_mds_op_type_string(type));
 	
@@ -3406,25 +3515,27 @@ guint c_dissect_msg(proto_tree *tree,
                               subtvb, front_len, middle_len, data_len, data)
 #define C_HANDLE_MSG(tag, name) case tag: parsedsize = C_CALL_MSG(name); break;
 	
-	C_HANDLE_MSG(C_CEPH_MSG_MON_MAP,           c_dissect_msg_mon_map)
-	C_HANDLE_MSG(C_CEPH_MSG_MON_SUBSCRIBE,     c_dissect_msg_mon_sub)
-	C_HANDLE_MSG(C_CEPH_MSG_MON_SUBSCRIBE_ACK, c_dissect_msg_mon_sub_ack)
-	C_HANDLE_MSG(C_CEPH_MSG_AUTH,              c_dissect_msg_auth)
-	C_HANDLE_MSG(C_CEPH_MSG_AUTH_REPLY,        c_dissect_msg_auth_reply)
-	C_HANDLE_MSG(C_CEPH_MSG_MDS_MAP,           c_dissect_msg_mds_map)
-	C_HANDLE_MSG(C_CEPH_MSG_CLIENT_SESSION,    c_dissect_msg_client_sess)
-	C_HANDLE_MSG(C_CEPH_MSG_CLIENT_REQUEST,    c_dissect_msg_client_req)
-	C_HANDLE_MSG(C_CEPH_MSG_OSD_MAP,           c_dissect_msg_osd_map)
-	C_HANDLE_MSG(C_CEPH_MSG_OSD_OP,            c_dissect_msg_osd_op)
-	C_HANDLE_MSG(C_CEPH_MSG_OSD_OPREPLY,       c_dissect_msg_osd_opreply)
-	C_HANDLE_MSG(C_MSG_POOLOPREPLY,            c_dissect_msg_poolopreply)
-	C_HANDLE_MSG(C_MSG_POOLOP,                 c_dissect_msg_poolop)
-	C_HANDLE_MSG(C_MSG_MON_COMMAND,            c_dissect_msg_mon_cmd)
-	C_HANDLE_MSG(C_MSG_MON_COMMAND_ACK,        c_dissect_msg_mon_cmd_ack)
-	C_HANDLE_MSG(C_MSG_GETPOOLSTATS,           c_dissect_msg_poolstats)
-	C_HANDLE_MSG(C_MSG_GETPOOLSTATSREPLY,      c_dissect_msg_poolstatsreply)
-	C_HANDLE_MSG(C_MSG_MON_ELECTION,           c_dissect_msg_mon_election)
-	C_HANDLE_MSG(C_MSG_MON_PROBE,              c_dissect_msg_mon_probe)
+	C_HANDLE_MSG(C_CEPH_MSG_MON_MAP,                c_dissect_msg_mon_map)
+	C_HANDLE_MSG(C_CEPH_MSG_MON_SUBSCRIBE,          c_dissect_msg_mon_sub)
+	C_HANDLE_MSG(C_CEPH_MSG_MON_SUBSCRIBE_ACK,      c_dissect_msg_mon_sub_ack)
+	C_HANDLE_MSG(C_CEPH_MSG_AUTH,                   c_dissect_msg_auth)
+	C_HANDLE_MSG(C_CEPH_MSG_AUTH_REPLY,             c_dissect_msg_auth_reply)
+	C_HANDLE_MSG(C_CEPH_MSG_MDS_MAP,                c_dissect_msg_mds_map)
+	C_HANDLE_MSG(C_CEPH_MSG_CLIENT_SESSION,         c_dissect_msg_client_sess)
+	C_HANDLE_MSG(C_CEPH_MSG_CLIENT_REQUEST,         c_dissect_msg_client_req)
+	C_HANDLE_MSG(C_CEPH_MSG_CLIENT_REQUEST_FORWARD, c_dissect_msg_client_reqfwd)
+	C_HANDLE_MSG(C_CEPH_MSG_CLIENT_REPLY,           c_dissect_msg_client_reply)
+	C_HANDLE_MSG(C_CEPH_MSG_OSD_MAP,                c_dissect_msg_osd_map)
+	C_HANDLE_MSG(C_CEPH_MSG_OSD_OP,                 c_dissect_msg_osd_op)
+	C_HANDLE_MSG(C_CEPH_MSG_OSD_OPREPLY,            c_dissect_msg_osd_opreply)
+	C_HANDLE_MSG(C_MSG_POOLOPREPLY,                 c_dissect_msg_poolopreply)
+	C_HANDLE_MSG(C_MSG_POOLOP,                      c_dissect_msg_poolop)
+	C_HANDLE_MSG(C_MSG_MON_COMMAND,                 c_dissect_msg_mon_cmd)
+	C_HANDLE_MSG(C_MSG_MON_COMMAND_ACK,             c_dissect_msg_mon_cmd_ack)
+	C_HANDLE_MSG(C_MSG_GETPOOLSTATS,                c_dissect_msg_poolstats)
+	C_HANDLE_MSG(C_MSG_GETPOOLSTATSREPLY,           c_dissect_msg_poolstatsreply)
+	C_HANDLE_MSG(C_MSG_MON_ELECTION,                c_dissect_msg_mon_election)
+	C_HANDLE_MSG(C_MSG_MON_PROBE,                   c_dissect_msg_mon_probe)
 	
 	default:
 		parsedsize = C_CALL_MSG(c_dissect_msg_unknown);
@@ -3974,8 +4085,18 @@ proto_register_ceph(void)
 			FT_IPv6, BASE_NONE, NULL, 0,
 			"The IP address of the client as seen by the server.", HFILL
 		} },
+		{ &hf_data_data, {
+			"Data", "ceph.data.data",
+			FT_BYTES, BASE_NONE, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_data_size, {
+			"Size", "ceph.data.size",
+			FT_UINT32, BASE_DEC, NULL, 0,
+			NULL, HFILL
+		} },
 		{ &hf_string_data, {
-			"Data", "ceph.string.size",
+			"Data", "ceph.string.data",
 			FT_STRING, BASE_NONE, NULL, 0,
 			NULL, HFILL
 		} },
@@ -5092,6 +5213,76 @@ proto_register_ceph(void)
 		{ &hf_msg_client_req_time, {
 			"Timestamp", "ceph.msg.client_req.time",
 			FT_ABSOLUTE_TIME, ABSOLUTE_TIME_LOCAL, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_client_reqfwd, {
+			"Client Request Forward", "ceph.msg.client_reqfwd",
+			FT_NONE, BASE_NONE, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_client_reqfwd_dst, {
+			"Destination MDS", "ceph.msg.client_reqfwd.dst",
+			FT_UINT32, BASE_DEC, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_client_reqfwd_fwd, {
+			"Number of Forwards", "ceph.msg.client_reqfwd.fwd",
+			FT_UINT32, BASE_DEC, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_client_reqfwd_resend, {
+			"Resend", "ceph.msg.client_reqfwd.resend",
+			FT_BOOLEAN, BASE_NONE, NULL, 0,
+			"Does the client have to resend the request?", HFILL
+		} },
+		{ &hf_msg_client_reply, {
+			"Client Reply", "ceph.msg.client_reply",
+			FT_NONE, BASE_NONE, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_client_reply_op, {
+			"Operation", "ceph.msg.client_reply.op",
+			FT_UINT32, BASE_DEC|BASE_EXT_STRING, VALS(&c_mds_op_type_strings_ext), 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_client_reply_result, {
+			"Result", "ceph.msg.client_reply.result",
+			FT_UINT32, BASE_DEC, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_client_reply_mdsmap_epoch, {
+			"MDS Map Epoch", "ceph.msg.client_reply.mdsmap_epoch",
+			FT_UINT32, BASE_DEC, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_client_reply_isdentry, {
+			"Is Dentry", "ceph.msg.client_reply.isdentry",
+			FT_BOOLEAN, BASE_NONE, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_client_reply_istarget, {
+			"Is Target", "ceph.msg.client_reply.istarget",
+			FT_BOOLEAN, BASE_NONE, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_client_reply_trace, {
+			"Trace", "ceph.msg.client_reply.trace",
+			FT_NONE, BASE_NONE, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_client_reply_extra, {
+			"Extra", "ceph.msg.client_reply.extra",
+			FT_NONE, BASE_NONE, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_client_reply_snaps, {
+			"Snapshots", "ceph.msg.client_reply.snaps",
+			FT_NONE, BASE_NONE, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_client_reply_safe, {
+			"Committed to Permanent Storage", "ceph.msg.client_reply.safe",
+			FT_BOOLEAN, BASE_NONE, NULL, 0,
 			NULL, HFILL
 		} },
 		{ &hf_msg_osd_map, {
