@@ -253,6 +253,23 @@ static int hf_msg_mds_map_epoch                        = -1;
 static int hf_msg_mds_map_datai                        = -1;
 static int hf_msg_mds_map_data                        = -1;
 static int hf_msg_mds_map_data_len                        = -1;
+static int hf_msg_client_sess                        = -1;
+static int hf_msg_client_sess_op                        = -1;
+static int hf_msg_client_sess_seq                        = -1;
+static int hf_msg_client_sess_time                        = -1;
+static int hf_msg_client_sess_caps_max                        = -1;
+static int hf_msg_client_sess_leases_max                        = -1;
+static int hf_msg_client_req                        = -1;
+static int hf_msg_client_req_oldest_tid                        = -1;
+static int hf_msg_client_req_mdsmap_epoch                        = -1;
+static int hf_msg_client_req_flags                        = -1;
+static int hf_msg_client_req_retry                        = -1;
+static int hf_msg_client_req_forward                        = -1;
+static int hf_msg_client_req_releases                        = -1;
+static int hf_msg_client_req_op                        = -1;
+static int hf_msg_client_req_caller_uid                        = -1;
+static int hf_msg_client_req_caller_gid                        = -1;
+static int hf_msg_client_req_ino                        = -1;
 static int hf_msg_osd_map                        = -1;
 static int hf_msg_osd_map_fsid                   = -1;
 static int hf_msg_osd_map_inc                    = -1;
@@ -444,6 +461,39 @@ typedef enum _c_flags {
 	C_FLAG_LOSSY = 1 << 0,
 } c_flags;
 
+/** Macros to create value_stings.
+ * 
+ * These are a quick wrapper around the functions in value_string.h.  They
+ * create an enum `base` with the given values, a `value_string base_strings[]`
+ * and a function `const char `base_string(base val)` which gets the string
+ * for a value.
+ * 
+ * Additionally, c_make_strings_ext creates a
+ * `value_strings_ext base_strings_ext` and uses this for the `base_string`
+ * lookup.
+ * 
+ * @param base The root name.
+ * @param chars The number of characters to use when displaying the value.
+ *              this is generally 2*bytes.
+ */
+#define c_make_strings(base, chars) \
+	typedef VALUE_STRING_ENUM(base##_strings) base; \
+	VALUE_STRING_ARRAY(base##_strings); \
+	static const char *base##_string(base val) { \
+		return val_to_str(val, base##_strings, "Unknown (0x0"#chars"X)"); \
+	}
+
+#define c_make_strings_ext(base, chars) \
+	typedef VALUE_STRING_ENUM(base##_strings) base; \
+	VALUE_STRING_ARRAY(base##_strings); \
+	\
+	static const value_string_ext \
+	base##_strings_ext = VALUE_STRING_EXT_INIT(base##_strings); \
+	\
+	static const char *base##_string(base val) { \
+		return val_to_str_ext(val, &base##_strings_ext, "Unknown (0x0"#chars"X)"); \
+	}
+
 /***** Message Tags *****/
 #define c_tag_strings_VALUE_STRING_LIST(V) \
 	V(C_TAG_READY,          0x01, "server->client: ready for messages")                  \
@@ -462,17 +512,9 @@ typedef enum _c_flags {
 	V(C_TAG_KEEPALIVE2,     0x0E, "keepalive2")                                          \
 	V(C_TAG_KEEPALIVE2_ACK, 0x0F, "keepalive2 reply")                                    \
 
-typedef VALUE_STRING_ENUM(c_tag_strings) c_tag;
+typedef VALUE_STRING_ENUM(c_tag_strings) base;
 VALUE_STRING_ARRAY(c_tag_strings);
-
-static const
-value_string_ext c_tag_strings_ext = VALUE_STRING_EXT_INIT(c_tag_strings);
-
-static _U_
-const char *c_tag_string(c_tag val)
-{
-	return val_to_str_ext(val, &c_tag_strings_ext, "Unknown (0x%02x)");
-}
+static const value_string_ext c_tag_strings_ext = VALUE_STRING_EXT_INIT(c_tag_strings);
 
 /* Extracted from the Ceph tree.
  * 
@@ -609,36 +651,20 @@ const char *c_tag_string(c_tag val)
 	V(C_MSG_TIMECHECK,                   0x0600, "C_MSG_TIMECHECK")                   \
 	V(C_MSG_MON_HEALTH,                  0x0601, "C_MSG_MON_HEALTH")
 
-typedef VALUE_STRING_ENUM(c_msg_type_strings) c_msg_type;
-VALUE_STRING_ARRAY(c_msg_type_strings);
-
-static const
-value_string_ext c_msg_type_strings_ext = VALUE_STRING_EXT_INIT(c_msg_type_strings);
-
-static
-const char *c_msg_type_string(c_msg_type val)
-{
-	return val_to_str_ext(val, &c_msg_type_strings_ext, "Unknown (0x%04x)");
-}
+c_make_strings_ext(c_msg_type, 4)
 
 #define c_osd_optype_strings_VALUE_STRING_LIST(V) \
 	/*** Raw Codes ***/                                                     \
-	V(C_OSD_OP_MODE,       0xf000, "C_OSD_OP_MODE")                         \
-	V(C_OSD_OP_MODE_RD,    0x1000, "C_OSD_OP_MODE_RD")                      \
-	V(C_OSD_OP_MODE_WR,    0x2000, "C_OSD_OP_MODE_WR")                      \
-	V(C_OSD_OP_MODE_RMW,   0x3000, "C_OSD_OP_MODE_RMW")                     \
-	V(C_OSD_OP_MODE_SUB,   0x4000, "C_OSD_OP_MODE_SUB")                     \
-	V(C_OSD_OP_MODE_CACHE, 0x8000, "C_OSD_OP_MODE_CACHE")                   \
-	                                                                        \
-	V(C_OSD_OP_TYPE,       0x0f00, "C_OSD_OP_TYPE")                         \
 	V(C_OSD_OP_TYPE_LOCK,  0x0100, "C_OSD_OP_TYPE_LOCK")                    \
 	V(C_OSD_OP_TYPE_DATA,  0x0200, "C_OSD_OP_TYPE_DATA")                    \
 	V(C_OSD_OP_TYPE_ATTR,  0x0300, "C_OSD_OP_TYPE_ATTR")                    \
 	V(C_OSD_OP_TYPE_EXEC,  0x0400, "C_OSD_OP_TYPE_EXEC")                    \
 	V(C_OSD_OP_TYPE_PG,    0x0500, "C_OSD_OP_TYPE_PG")                      \
 	V(C_OSD_OP_TYPE_MULTI, 0x0600, "C_OSD_OP_TYPE_MULTI") /* multiobject */ \
+	V(C_OSD_OP_TYPE,       0x0f00, "C_OSD_OP_TYPE")                         \
 	                                                                        \
 	/*** Sorted by value, keep it that way. ***/                            \
+	V(C_OSD_OP_MODE_RD,    0x1000, "C_OSD_OP_MODE_RD")                      \
 	V(C_OSD_OP_READ,                                                        \
 	  C_OSD_OP_MODE_RD    | C_OSD_OP_TYPE_DATA  | 0x01,                     \
 	  "C_OSD_OP_READ")                                                      \
@@ -729,6 +755,7 @@ const char *c_msg_type_string(c_msg_type val)
 	V(C_OSD_OP_SRC_CMPXATTR,                                                \
 	  C_OSD_OP_MODE_RD    | C_OSD_OP_TYPE_MULTI | 0x03,                     \
 	  "C_OSD_OP_SRC_CMPXATTR")                                              \
+	V(C_OSD_OP_MODE_WR,    0x2000, "C_OSD_OP_MODE_WR")                      \
 	V(C_OSD_OP_WRLOCK,                                                      \
 	  C_OSD_OP_MODE_WR    | C_OSD_OP_TYPE_LOCK  | 0x01,                     \
 	  "C_OSD_OP_WRLOCK")                                                    \
@@ -822,12 +849,14 @@ const char *c_msg_type_string(c_msg_type val)
 	V(C_OSD_OP_CLONERANGE,                                                  \
 	  C_OSD_OP_MODE_WR    | C_OSD_OP_TYPE_MULTI | 0x01,                     \
 	  "C_OSD_OP_CLONERANGE")                                                \
+	V(C_OSD_OP_MODE_RMW,   0x3000, "C_OSD_OP_MODE_RMW")                     \
 	V(C_OSD_OP_TMAPUP,                                                      \
 	  C_OSD_OP_MODE_RMW   | C_OSD_OP_TYPE_DATA  | 0x0A,                     \
 	  "C_OSD_OP_TMAPUP")                                                    \
 	V(C_OSD_OP_TMAP2OMAP,                                                   \
 	  C_OSD_OP_MODE_RMW   | C_OSD_OP_TYPE_DATA  | 0x22,                     \
 	  "C_OSD_OP_TMAP2OMAP")                                                 \
+	V(C_OSD_OP_MODE_SUB,   0x4000, "C_OSD_OP_MODE_SUB")                     \
 	V(C_OSD_OP_PULL,                                                        \
 	  C_OSD_OP_MODE_SUB                         | 0x01,                     \
 	  "C_OSD_OP_PULL")                                                      \
@@ -855,6 +884,7 @@ const char *c_msg_type_string(c_msg_type val)
 	V(C_OSD_OP_SCRUB_MAP,                                                   \
 	  C_OSD_OP_MODE_SUB                         | 0x09,                     \
 	  "C_OSD_OP_SCRUB_MAP")                                                 \
+	V(C_OSD_OP_MODE_CACHE, 0x8000, "C_OSD_OP_MODE_CACHE")                   \
 	V(C_OSD_OP_CACHE_FLUSH,                                                 \
 	  C_OSD_OP_MODE_CACHE | C_OSD_OP_TYPE_DATA  | 0x1F,                     \
 	  "C_OSD_OP_CACHE_FLUSH")                                               \
@@ -863,19 +893,10 @@ const char *c_msg_type_string(c_msg_type val)
 	  "C_OSD_OP_CACHE_EVICT")                                               \
 	V(C_OSD_OP_CACHE_TRY_FLUSH,                                             \
 	  C_OSD_OP_MODE_CACHE | C_OSD_OP_TYPE_DATA  | 0x21,                     \
-	  "C_OSD_OP_CACHE_TRY_FLUSH")
+	  "C_OSD_OP_CACHE_TRY_FLUSH")                                           \
+	V(C_OSD_OP_MODE,       0xf000, "C_OSD_OP_MODE")
 
-typedef VALUE_STRING_ENUM(c_osd_optype_strings) c_osd_optype;
-VALUE_STRING_ARRAY(c_osd_optype_strings);
-
-static const
-value_string_ext c_osd_op_strings_ext = VALUE_STRING_EXT_INIT(c_osd_optype_strings);
-
-static
-const char *c_osd_op_string(c_osd_optype val)
-{
-	return val_to_str_ext(val, &c_osd_op_strings_ext, "Unknown (0x%04x)");
-}
+c_make_strings_ext(c_osd_optype, 4)
 
 #define c_poolop_type_strings_VALUE_STRING_LIST(V) \
 	V(POOL_OP_CREATE,                0x01, "Create")                    \
@@ -886,14 +907,7 @@ const char *c_osd_op_string(c_osd_optype val)
 	V(POOL_OP_CREATE_UNMANAGED_SNAP, 0x21, "Create Unmanaged Snapshot") \
 	V(POOL_OP_DELETE_UNMANAGED_SNAP, 0x22, "Delete Unmanaged Snapshot") \
 
-typedef VALUE_STRING_ENUM(c_poolop_type_strings) c_poolop_type;
-VALUE_STRING_ARRAY(c_poolop_type_strings);
-
-static
-const char *c_poolop_type_string(c_poolop_type val)
-{
-	return val_to_str(val, c_poolop_type_strings, "Unknown (0x%02X)");
-}
+c_make_strings(c_poolop_type, 2)
 
 #define c_mon_election_type_strings_VALUE_STRING_LIST(V) \
 	V(C_MON_ELECTION_PROPOSE, 0x00000001, "Propose")              \
@@ -901,18 +915,7 @@ const char *c_poolop_type_string(c_poolop_type val)
 	V(C_MON_ELECTION_NAK,     0x00000003, "Negative Acknowledge") \
 	V(C_MON_ELECTION_VICTORY, 0x00000004, "Victory")              \
 
-typedef VALUE_STRING_ENUM(c_mon_election_type_strings) c_mon_election_type;
-VALUE_STRING_ARRAY(c_mon_election_type_strings);
-
-static const
-value_string_ext
-c_mon_election_type_strings_ext = VALUE_STRING_EXT_INIT(c_mon_election_type_strings);
-
-static
-const char *c_mon_election_type_string(c_mon_election_type val)
-{
-	return val_to_str_ext(val, &c_mon_election_type_strings_ext, "Unknown (0x%08X)");
-}
+c_make_strings_ext(c_mon_election_type, 8)
 
 #define c_mon_probe_type_strings_VALUE_STRING_LIST(V) \
 	V(C_MON_PROBE_PROBE,            0x00000001, "Probe")        \
@@ -922,16 +925,55 @@ const char *c_mon_election_type_string(c_mon_election_type val)
 	V(C_MON_PROBE_DATA,             0x00000005, "Data")         \
 	V(C_MON_PROBE_MISSING_FEATURES, 0x00000006, "Missing Features")
 
-typedef VALUE_STRING_ENUM(c_mon_probe_type_strings) c_mon_probe_type;
-VALUE_STRING_ARRAY(c_mon_probe_type_strings);
-static const
-value_string_ext c_mon_probe_type_strings_ext = VALUE_STRING_EXT_INIT(c_mon_probe_type_strings);
+c_make_strings_ext(c_mon_probe_type, 8)
 
-static
-const char *c_mon_probe_type_string(c_mon_probe_type val)
-{
-	return val_to_str_ext(val, &c_mon_probe_type_strings_ext, "Unknown (0x%08X)");
-}
+#define c_session_op_type_strings_VALUE_STRING_LIST(V) \
+	V(C_SESSION_REQUEST_OPEN,      0x00000000, "Request Open")       \
+	V(C_SESSION_OPEN,              0x00000001, "Open")               \
+	V(C_SESSION_REQUEST_CLOSE,     0x00000002, "Request Close")      \
+	V(C_SESSION_CLOSE,             0x00000003, "Close")              \
+	V(C_SESSION_REQUEST_RENEWCAPS, 0x00000004, "Request Renew Caps") \
+	V(C_SESSION_RENEWCAPS,         0x00000005, "Renew Caps")         \
+	V(C_SESSION_STALE,             0x00000006, "Stale")              \
+	V(C_SESSION_RECALL_STATE,      0x00000007, "Recall Stale")       \
+	V(C_SESSION_FLUSHMSG,          0x00000008, "Flush Message")      \
+	V(C_SESSION_FLUSHMSG_ACK,      0x00000009, "Flush Message Ack")  \
+
+c_make_strings_ext(c_session_op_type, 8);
+
+#define c_mds_op_type_strings_VALUE_STRING_LIST(V) \
+	V(C_MDS_OP_LOOKUP,       0x00000100, "MDS_OP_LOOKUP")       \
+	V(C_MDS_OP_GETATTR,      0x00000101, "MDS_OP_GETATTR")      \
+	V(C_MDS_OP_LOOKUPHASH,   0x00000102, "MDS_OP_LOOKUPHASH")   \
+	V(C_MDS_OP_LOOKUPPARENT, 0x00000103, "MDS_OP_LOOKUPPARENT") \
+	V(C_MDS_OP_LOOKUPINO,    0x00000104, "MDS_OP_LOOKUPINO")    \
+	V(C_MDS_OP_LOOKUPNAME,   0x00000105, "MDS_OP_LOOKUPNAME")   \
+	V(C_MDS_OP_GETFILELOCK,  0x00000110, "MDS_OP_GETFILELOCK")  \
+	V(C_MDS_OP_OPEN,         0x00000302, "MDS_OP_OPEN")         \
+	V(C_MDS_OP_READDIR,      0x00000305, "MDS_OP_READDIR")      \
+	V(C_MDS_OP_LOOKUPSNAP,   0x00000400, "MDS_OP_LOOKUPSNAP")   \
+	V(C_MDS_OP_LSSNAP,       0x00000402, "MDS_OP_LSSNAP")       \
+	V(C_MDS_OP_WRITE,        0x00001000, "MDS_OP_WRITE")        \
+	V(C_MDS_OP_SETXATTR,     0x00001105, "MDS_OP_SETXATTR")     \
+	V(C_MDS_OP_RMXATTR,      0x00001106, "MDS_OP_RMXATTR")      \
+	V(C_MDS_OP_SETLAYOUT,    0x00001107, "MDS_OP_SETLAYOUT")    \
+	V(C_MDS_OP_SETATTR,      0x00001108, "MDS_OP_SETATTR")      \
+	V(C_MDS_OP_SETFILELOCK,  0x00001109, "MDS_OP_SETFILELOCK")  \
+	V(C_MDS_OP_SETDIRLAYOUT, 0x0000110a, "MDS_OP_SETDIRLAYOUT") \
+	V(C_MDS_OP_MKNOD,        0x00001201, "MDS_OP_MKNOD")        \
+	V(C_MDS_OP_LINK,         0x00001202, "MDS_OP_LINK")         \
+	V(C_MDS_OP_UNLINK,       0x00001203, "MDS_OP_UNLINK")       \
+	V(C_MDS_OP_RENAME,       0x00001204, "MDS_OP_RENAME")       \
+	V(C_MDS_OP_MKDIR,        0x00001220, "MDS_OP_MKDIR")        \
+	V(C_MDS_OP_RMDIR,        0x00001221, "MDS_OP_RMDIR")        \
+	V(C_MDS_OP_SYMLINK,      0x00001222, "MDS_OP_SYMLINK")      \
+	V(C_MDS_OP_CREATE,       0x00001301, "MDS_OP_CREATE")       \
+	V(C_MDS_OP_MKSNAP,       0x00001400, "MDS_OP_MKSNAP")       \
+	V(C_MDS_OP_RMSNAP,       0x00001401, "MDS_OP_RMSNAP")       \
+	V(C_MDS_OP_FRAGMENTDIR,  0x00001500, "MDS_OP_FRAGMENTDIR")  \
+	V(C_MDS_OP_EXPORTDIR,    0x00001501, "MDS_OP_EXPORTDIR")
+
+c_make_strings_ext(c_mds_op_type, 8);
 
 /** Node type database. */
 #define c_node_type_strings_LIST(V) \
@@ -949,19 +991,11 @@ const char *c_mon_probe_type_string(c_mon_probe_type val)
 /** Extract the full names to create a value_string list. */
 #define c_node_type_strings_VALUE_STRING_LIST(V) \
 	C_EVAL1(c_node_type_strings_LIST(V C_EXTRACT_123))
+c_make_strings(c_node_type, 2)
 
 /** Extract the abbreviations to create a value_string list. */
 #define c_node_type_abbr_strings_VALUE_STRING_LIST(V) \
 	C_EVAL1(c_node_type_strings_LIST(V C_EXTRACT_124))
-
-typedef VALUE_STRING_ENUM(c_node_type_strings) c_node_type;
-VALUE_STRING_ARRAY(c_node_type_strings);
-
-static
-const char *c_node_type_string(c_node_type val)
-{
-	return val_to_str(val, c_node_type_strings, "Unknown (0x%02x)");
-}
 
 VALUE_STRING_ARRAY(c_node_type_abbr_strings);
 
@@ -1860,7 +1894,7 @@ guint c_dissect_osd_op(proto_tree *root, gint hf, c_osd_op *out,
 	ti   = proto_tree_add_item(root, hf, tvb, off, -1, ENC_NA);
 	tree = proto_item_add_subtree(ti, hf);
 	
-	d.type_str = c_osd_op_string(d.type);
+	d.type_str = c_osd_optype_string(d.type);
 	proto_item_append_text(ti, ", Type: %s", d.type_str);
 	proto_tree_add_item(tree, hf_osd_op_type, tvb, off, 2, ENC_LITTLE_ENDIAN);
 	off += 2;
@@ -2275,11 +2309,10 @@ guint c_dissect_msg_mds_map(proto_tree *root,
                            c_pkt_data *data)
 {
 	proto_item *ti;
-	proto_tree *tree, *subtree;
+	proto_tree *tree;
 	guint off = 0;
-	guint32 i;
 	
-	/* ceph:/src/messages/MOSDMap.h */
+	/* ceph:/src/messages/MMDSMap.h */
 	
 	c_set_type(data, "MDS Map");
 	
@@ -2297,6 +2330,102 @@ guint c_dissect_msg_mds_map(proto_tree *root,
 	off = c_dissect_blob(tree, hf_msg_mds_map_datai,
 	                     hf_msg_mds_map_data, hf_msg_mds_map_data_len,
 	                     tvb, off);
+	
+	return off;
+}
+
+/** Client Session 0x0016 */
+static
+guint c_dissect_msg_client_sess(proto_tree *root,
+                                tvbuff_t *tvb,
+                                guint front_len, guint middle_len _U_, guint data_len _U_,
+                                c_pkt_data *data)
+{
+	proto_item *ti;
+	proto_tree *tree;
+	guint off = 0;
+	c_session_op_type op;
+	
+	/* ceph:/src/messages/MClientSession.h */
+	
+	c_set_type(data, "Client Session");
+	
+	ti = proto_tree_add_item(root, hf_msg_client_sess, tvb, off, front_len, ENC_NA);
+	tree = proto_item_add_subtree(ti, hf_msg_client_sess);
+	
+	op = (c_session_op_type)tvb_get_letohl(tvb, off);
+	proto_tree_add_item(tree, hf_msg_client_sess_op, tvb, off, 4, ENC_LITTLE_ENDIAN);
+	off += 4;
+	
+	proto_tree_add_item(tree, hf_msg_client_sess_seq, tvb, off, 8, ENC_LITTLE_ENDIAN);
+	off += 8;
+	
+	proto_tree_add_item(tree, hf_msg_client_sess_time, tvb, off, 8, ENC_LITTLE_ENDIAN);
+	off += 8;
+	
+	proto_tree_add_item(tree, hf_msg_client_sess_caps_max, tvb, off, 4, ENC_LITTLE_ENDIAN);
+	off += 4;
+	
+	proto_tree_add_item(tree, hf_msg_client_sess_leases_max, tvb, off, 4, ENC_LITTLE_ENDIAN);
+	off += 4;
+	
+	c_append_text(data, ti, ", Operation: %s", c_session_op_type_string(op));
+	
+	return off;
+}
+
+/** Client Request 0x0018 */
+static
+guint c_dissect_msg_client_req(proto_tree *root,
+                               tvbuff_t *tvb,
+                               guint front_len, guint middle_len _U_, guint data_len _U_,
+                               c_pkt_data *data)
+{
+	proto_item *ti;
+	proto_tree *tree, *subtree;
+	guint off = 0;
+	guint32 i;
+	c_mds_op_type type;
+	
+	/* ceph:/src/messages/MClientRequest.h */
+	
+	c_set_type(data, "Client Request");
+	
+	ti = proto_tree_add_item(root, hf_msg_client_req, tvb, off, front_len, ENC_NA);
+	tree = proto_item_add_subtree(ti, hf_msg_client_req);
+	
+	proto_tree_add_item(tree, hf_msg_client_req_oldest_tid, tvb, off, 8, ENC_LITTLE_ENDIAN);
+	off += 8;
+	
+	proto_tree_add_item(tree, hf_msg_client_req_mdsmap_epoch, tvb, off, 4, ENC_LITTLE_ENDIAN);
+	off += 4;
+	
+	proto_tree_add_item(tree, hf_msg_client_req_flags, tvb, off, 4, ENC_LITTLE_ENDIAN);
+	off += 4;
+	
+	proto_tree_add_item(tree, hf_msg_client_req_retry, tvb, off, 1, ENC_LITTLE_ENDIAN);
+	off += 1;
+	
+	proto_tree_add_item(tree, hf_msg_client_req_forward, tvb, off, 1, ENC_LITTLE_ENDIAN);
+	off += 1;
+	
+	proto_tree_add_item(tree, hf_msg_client_req_releases, tvb, off, 2, ENC_LITTLE_ENDIAN);
+	off += 2;
+	
+	type = (c_mds_op_type)tvb_get_letohl(tvb, off);
+	proto_tree_add_item(tree, hf_msg_client_req_op, tvb, off, 4, ENC_LITTLE_ENDIAN);
+	off += 4;
+	
+	proto_tree_add_item(tree, hf_msg_client_req_caller_uid, tvb, off, 4, ENC_LITTLE_ENDIAN);
+	off += 4;
+	
+	proto_tree_add_item(tree, hf_msg_client_req_caller_gid, tvb, off, 4, ENC_LITTLE_ENDIAN);
+	off += 4;
+	
+	proto_tree_add_item(tree, hf_msg_client_req_ino, tvb, off, 8, ENC_LITTLE_ENDIAN);
+	off += 8;
+	
+	c_append_text(data, ti, ", Operation: %s", c_mds_op_type_string(type));
 	
 	return off;
 }
@@ -3169,6 +3298,8 @@ guint c_dissect_msg(proto_tree *tree,
 	C_HANDLE_MSG(C_CEPH_MSG_AUTH,              c_dissect_msg_auth)
 	C_HANDLE_MSG(C_CEPH_MSG_AUTH_REPLY,        c_dissect_msg_auth_reply)
 	C_HANDLE_MSG(C_CEPH_MSG_MDS_MAP,           c_dissect_msg_mds_map)
+	C_HANDLE_MSG(C_CEPH_MSG_CLIENT_SESSION,    c_dissect_msg_client_sess)
+	C_HANDLE_MSG(C_CEPH_MSG_CLIENT_REQUEST,    c_dissect_msg_client_req)
 	C_HANDLE_MSG(C_CEPH_MSG_OSD_MAP,           c_dissect_msg_osd_map)
 	C_HANDLE_MSG(C_CEPH_MSG_OSD_OP,            c_dissect_msg_osd_op)
 	C_HANDLE_MSG(C_CEPH_MSG_OSD_OPREPLY,       c_dissect_msg_osd_opreply)
@@ -4231,7 +4362,7 @@ proto_register_ceph(void)
 		} },
 		{ &hf_osd_op_type, {
 			"Operation", "ceph.osd_op.op",
-			FT_UINT16, BASE_HEX|BASE_EXT_STRING, VALS(&c_osd_op_strings_ext), 0,
+			FT_UINT16, BASE_HEX|BASE_EXT_STRING, VALS(&c_osd_optype_strings_ext), 0,
 			NULL, HFILL
 		} },
 		{ &hf_osd_op_data, {
@@ -4682,6 +4813,91 @@ proto_register_ceph(void)
 		{ &hf_msg_mds_map_data_len, {
 			"Size", "ceph.msg.osd_map.size",
 			FT_UINT32, BASE_DEC, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_client_sess, {
+			"Client Session", "ceph.msg.client_sess",
+			FT_NONE, BASE_NONE, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_client_sess_op, {
+			"Operation", "ceph.msg.client_sess.op",
+			FT_UINT32, BASE_HEX|BASE_EXT_STRING, VALS(&c_session_op_type_strings_ext), 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_client_sess_seq, {
+			"Sequence Number", "ceph.msg.client_sess.seq",
+			FT_UINT64, BASE_DEC, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_client_sess_time, {
+			"Timestamp", "ceph.msg.client_sess.time",
+			FT_ABSOLUTE_TIME, ABSOLUTE_TIME_LOCAL, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_client_sess_caps_max, {
+			"Maximum Capabilities", "ceph.msg.client_sess.caps_max", //@HELP: Capabilities?
+			FT_UINT32, BASE_DEC, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_client_sess_leases_max, {
+			"Maximum Leases", "ceph.msg.client_sess.leases_max",
+			FT_UINT32, BASE_DEC, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_client_req, {
+			"Client Request", "ceph.msg.client_req",
+			FT_NONE, BASE_NONE, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_client_req_oldest_tid, {
+			"Oldest TID", "ceph.msg.client_req.oldest_tid",
+			FT_UINT64, BASE_DEC, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_client_req_mdsmap_epoch, {
+			"MDS Map Epoch", "ceph.msg.client_req.mdsmap_epoch",
+			FT_UINT32, BASE_DEC, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_client_req_flags, {
+			"Flags", "ceph.msg.client_req.flags",
+			FT_UINT8, BASE_HEX, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_client_req_retry, {
+			"Number of Retries", "ceph.msg.client_req.retry",
+			FT_UINT8, BASE_DEC, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_client_req_forward, {
+			"Number of Forwards", "ceph.msg.client_req.forward",
+			FT_UINT8, BASE_DEC, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_client_req_releases, {
+			"Number of Releases", "ceph.msg.client_req.releases", /*@HELP*/
+			FT_UINT16, BASE_DEC, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_client_req_op, {
+			"Operation", "ceph.msg.client_req.op",
+			FT_UINT32, BASE_HEX|BASE_EXT_STRING, VALS(&c_mds_op_type_strings), 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_client_req_caller_uid, {
+			"Caller User ID", "ceph.msg.client_req.caller_uid",
+			FT_UINT32, BASE_DEC, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_client_req_caller_gid, {
+			"Caller Group ID", "ceph.msg.client_req.caller_gid",
+			FT_UINT32, BASE_DEC, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_client_req_ino, {
+			"INO", "ceph.msg.client_req.ino", /*@HELP: inode?*/
+			FT_UINT64, BASE_DEC, NULL, 0,
 			NULL, HFILL
 		} },
 		{ &hf_msg_osd_map, {
