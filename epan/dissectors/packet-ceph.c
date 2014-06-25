@@ -432,6 +432,7 @@ static int hf_msg_                         = -1;
 
 /* Initialize the expert items. */
 static expert_field ei_unused = EI_INIT;
+static expert_field ei_overrun = EI_INIT;
 static expert_field ei_tag_unknown = EI_INIT;
 static expert_field ei_msg_unknown = EI_INIT;
 
@@ -1317,11 +1318,57 @@ void c_append_text(c_pkt_data *data, proto_item *ti, const char *fmt, ...)
 	va_end(ap);
 }
 
-/***** Protocol Dissector *****/
-
 enum c_ressembly {
 	C_NEEDMORE = 0
 };
+
+/*** Expert info warning functions. ***/
+
+static
+gboolean c_warn_unused(proto_tree *tree,
+                       tvbuff_t *tvb, guint start, guint end, c_pkt_data *data)
+{
+	proto_item *ti;
+	guint diff;
+	
+	diff = end-start;
+	if (!diff) return 0; /* no unused space. */
+	
+	ti = proto_tree_add_text(tree, tvb, start, diff,
+	                         "%u unused byte%s",
+	                         diff,
+	                         diff == 1? "":"s");
+	expert_add_info(data->pinfo, ti, &ei_unused);
+	
+	return 1;
+}
+
+static
+gboolean c_warn_overrun(proto_tree *tree,
+                        tvbuff_t *tvb, guint start, guint end, c_pkt_data *data)
+{
+	proto_item *ti;
+	guint diff;
+	
+	diff = end-start;
+	if (!diff) return 0; /* no unused space. */
+	
+	ti = proto_tree_add_text(tree, tvb, start, diff,
+	                         "%u overrun byte%s",
+	                         diff,
+	                         diff == 1? "":"s");
+	expert_add_info(data->pinfo, ti, &ei_overrun);
+	
+	return 1;
+}
+
+static
+gboolean c_warn_length(proto_tree *tree,
+                       tvbuff_t *tvb, guint act, guint exp, c_pkt_data *data)
+{
+	if (act < exp) return c_warn_unused (tree, tvb, act, exp, data);
+	else           return c_warn_overrun(tree, tvb, exp, act, data);
+}
 
 /*** Data Structure Dissectors ***/
 
@@ -2822,7 +2869,7 @@ guint c_dissect_msg_osd_op(proto_tree *root,
 		off += 4;
 	}
 	
-	//@TODO: Check off == font_len;
+	c_warn_length(tree, tvb, off, front_len, data);
 	
 	for (i = 0; i < opslen; i++)
 	{
@@ -2916,7 +2963,8 @@ guint c_dissect_msg_osd_opreply(proto_tree *root,
 		                         tvb, off, data);
 	}
 	
-	//@TODO: Check off == font_len;
+	c_warn_length(tree, tvb, off, front_len, data);
+	off = front_len;
 	
 	if (data->header.ver >= 4)
 	{
@@ -3388,7 +3436,7 @@ guint c_dissect_msg_mon_probe(proto_tree *root,
 static
 guint c_dissect_msg_client_caps(proto_tree *root,
                                 tvbuff_t *tvb,
-                                guint front_len, guint middle_len _U_, guint data_len _U_,
+                                guint front_len, guint middle_len, guint data_len _U_,
                                 c_pkt_data *data)
 {
 	proto_item *ti;
@@ -3510,8 +3558,8 @@ guint c_dissect_msg_client_caps(proto_tree *root,
 		off = c_dissect_data(tree, hf_msg_client_caps_inline_data, tvb, off);
 	}
 	
-	//@TODO: assert(off == font_len);
-	//@TODO: assert(xattr_len == middle_len);
+	c_warn_length(tree, tvb, off, front_len, data);
+	c_warn_length(tree, tvb, front_len+xattr_len, front_len+middle_len, data);
 	
 	proto_tree_add_item(tree, hf_msg_client_caps_xattr,
 	                    tvb, front_len, middle_len, ENC_LITTLE_ENDIAN);
@@ -3699,14 +3747,7 @@ guint c_dissect_msg(proto_tree *tree,
 	size = front_len + middle_len + data_len;
 	
 	/* Did the message dissector use all the data? */
-	if (parsedsize < size)
-	{
-		ti = proto_tree_add_text(tree, tvb, off+parsedsize, size-parsedsize,
-		                         "%"G_GINT32_MODIFIER"u unused byte%s",
-		                         size-parsedsize,
-		                         size-parsedsize == 1? "":"s");
-		expert_add_info(data->pinfo, ti, &ei_unused);
-	}
+	c_warn_unused(tree, tvb, parsedsize, size, data);
 	
 	off += size;
 	
@@ -6067,6 +6108,11 @@ proto_register_ceph(void)
 			"ceph.unused", PI_UNDECODED, PI_WARN,
 			"Unused data in message.  This usually indicates an error by the "
 			"sender or a bug in the dissector.", EXPFILL
+		} },
+		{ &ei_overrun, {
+			"ceph.overrun", PI_UNDECODED, PI_WARN,
+			"There was less data then expected.  This usually indicates an "
+			"error by the sender or a bug in the dissector.", EXPFILL
 		} },
 		{ &ei_tag_unknown, {
 			"ceph.tag_unknown", PI_UNDECODED, PI_ERROR,
