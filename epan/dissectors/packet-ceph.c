@@ -66,9 +66,7 @@ static int hf_data_data                        = -1;
 static int hf_data_size                        = -1;
 static int hf_string_data                        = -1;
 static int hf_string_size                        = -1;
-static int hf_time                               = -1;
-static int hf_time_sec                           = -1;
-static int hf_time_nsec                          = -1;
+static int hf_keepalive_time                               = -1;
 static int hf_encoded_ver                        = -1;
 static int hf_encoded_compat                     = -1;
 static int hf_encoded_size                       = -1;
@@ -1626,7 +1624,8 @@ guint c_dissect_blob(proto_tree *root, int hf, int hf_data, int hf_len,
 	return off;
 }
 
-static c_dissect_data(proto_tree *tree, int hf,
+static
+guint c_dissect_data(proto_tree *tree, int hf,
                      tvbuff_t *tvb, guint off)
 {
 	return c_dissect_blob(tree, hf, hf_data_data, hf_data_size, tvb, off);
@@ -1696,28 +1695,6 @@ guint c_dissect_encoded(proto_tree *tree, c_encoded *enc,
 enum c_size_timespec {
 	C_SIZE_TIMESPEC = 4 + 4
 };
-
-static
-guint c_dissect_timespec(proto_tree *root,
-                         tvbuff_t *tvb, guint off, c_pkt_data *data _U_)
-{
-	proto_item *ti;
-	proto_tree *tree;
-	
-	//@TODO: Use FT_ABSOLUTE_TIME
-	
-	ti   = proto_tree_add_item(root, hf_time, tvb, off, C_SIZE_TIMESPEC, ENC_NA);
-	tree = proto_item_add_subtree(ti, hf_time);
-	
-	proto_tree_add_item(tree, hf_time_sec,
-	                    tvb, off, 4, ENC_LITTLE_ENDIAN);
-	off += 4;
-	proto_tree_add_item(tree, hf_time_nsec,
-	                    tvb, off, 4, ENC_LITTLE_ENDIAN);
-	off += 4;
-	
-	return off;
-}
 
 enum c_size_eversion {
 	C_SIZE_EVERSION = 12
@@ -3842,7 +3819,8 @@ guint c_dissect_msgr(proto_tree *tree,
 			return off+C_SIZE_TIMESPEC; /* We need more data to dissect. */
 		
 		c_set_type(data, "KEEPALIVE2");
-		off = c_dissect_timespec(tree, tvb, off, data);
+		proto_tree_add_item(tree, hf_keepalive_time, tvb, off, 8, ENC_LITTLE_ENDIAN);
+		off += 8;
 		break;
 	default:
 		/*
@@ -4105,19 +4083,9 @@ proto_register_ceph(void)
 			FT_UINT32, BASE_DEC, NULL, 0,
 			NULL, HFILL
 		} },
-		{ &hf_time, {
-			"Timestamp", "ceph.time",
-			FT_NONE, BASE_NONE, NULL, 0,
-			NULL, HFILL
-		} },
-		{ &hf_time_sec, {
-			"Seconds", "ceph.seconds",
-			FT_UINT32, BASE_DEC, NULL, 0,
-			NULL, HFILL
-		} },
-		{ &hf_time_nsec, {
-			"Nanoseconds", "ceph.nanoseconds",
-			FT_UINT32, BASE_DEC, NULL, 0,
+		{ &hf_keepalive_time, {
+			"Timestamp", "ceph.keepalive.time",
+			FT_ABSOLUTE_TIME, ABSOLUTE_TIME_LOCAL, NULL, 0,
 			NULL, HFILL
 		} },
 		{ &hf_encoded_ver, {
