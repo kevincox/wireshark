@@ -403,6 +403,28 @@ static int hf_msg_mon_probe_paxos_first_ver      = -1;
 static int hf_msg_mon_probe_paxos_last_ver       = -1;
 static int hf_msg_mon_probe_ever_joined          = -1;
 static int hf_msg_mon_probe_req_features         = -1;
+static int hf_msg_client_caps                         = -1;
+static int hf_msg_client_caps_op                         = -1;
+static int hf_msg_client_caps_inode                         = -1;
+static int hf_msg_client_caps_relam                         = -1;
+static int hf_msg_client_caps_cap_id                         = -1;
+static int hf_msg_client_caps_seq                         = -1;
+static int hf_msg_client_caps_seq_issue                         = -1;
+static int hf_msg_client_caps_new                         = -1;
+static int hf_msg_client_caps_wanted                         = -1;
+static int hf_msg_client_caps_dirty                         = -1;
+static int hf_msg_client_caps_seq_migrate                         = -1;
+static int hf_msg_client_caps_snap_follows                         = -1;
+static int hf_msg_client_caps_uid                         = -1;
+static int hf_msg_client_caps_gid                         = -1;
+static int hf_msg_client_caps_mode                         = -1;
+static int hf_msg_client_caps_nlink                         = -1;
+static int hf_msg_client_caps_xattr_ver                         = -1;
+static int hf_msg_client_caps_snap                         = -1;
+static int hf_msg_client_caps_flock                         = -1;
+static int hf_msg_client_caps_inline_ver                         = -1;
+static int hf_msg_client_caps_inline_data                         = -1;
+static int hf_msg_client_caps_xattr                         = -1;
 
 /* @TODO: Remove before release.  Just for copying convenience.
 static int hf_msg_                         = -1;
@@ -1004,6 +1026,23 @@ c_make_strings_ext(c_session_op_type, 8);
 	V(C_MDS_OP_EXPORTDIR,    0x00001501, "MDS_OP_EXPORTDIR")
 
 c_make_strings_ext(c_mds_op_type, 8);
+
+#define c_cap_op_type_strings_VALUE_STRING_LIST(V) \
+	V(C_CAP_OP_GRANT,         0x00000000, "mds->client grant")                    \
+	V(C_CAP_OP_REVOKE,        0x00000001, "mds->client revoke")                   \
+	V(C_CAP_OP_TRUNC,         0x00000002, "mds->client trunc notify")             \
+	V(C_CAP_OP_EXPORT,        0x00000003, "mds has exported the cap")             \
+	V(C_CAP_OP_IMPORT,        0x00000004, "mds has imported the cap")             \
+	V(C_CAP_OP_UPDATE,        0x00000005, "client->mds update")                   \
+	V(C_CAP_OP_DROP,          0x00000006, "client->mds drop cap bits")            \
+	V(C_CAP_OP_FLUSH,         0x00000007, "client->mds cap writeback")            \
+	V(C_CAP_OP_FLUSH_ACK,     0x00000008, "mds->client flushed")                  \
+	V(C_CAP_OP_FLUSHSNAP,     0x00000009, "client->mds flush snapped metadata")   \
+	V(C_CAP_OP_FLUSHSNAP_ACK, 0x0000000A, "mds->client flushed snapped metadata") \
+	V(C_CAP_OP_RELEASE,       0x0000000B, "client->mds release (clean) cap")      \
+	V(C_CAP_OP_RENEW,         0x0000000C, "client->mds renewal request")          \
+
+c_make_strings_ext(c_cap_op_type, 8)
 
 /** Node type database. */
 #define c_node_type_strings_LIST(V) \
@@ -3345,6 +3384,142 @@ guint c_dissect_msg_mon_probe(proto_tree *root,
 	return off;
 }
 
+/** Monitor Probe 0x0310 */
+static
+guint c_dissect_msg_client_caps(proto_tree *root,
+                                tvbuff_t *tvb,
+                                guint front_len, guint middle_len _U_, guint data_len _U_,
+                                c_pkt_data *data)
+{
+	proto_item *ti;
+	proto_tree *tree;
+	guint off = 0;
+	guint i;
+	c_cap_op_type op;
+	guint32 snap_trace_len, xattr_len;
+	
+	/* ceph:/src/messages/MMonProbe.h */
+	
+	c_set_type(data, "Client Capabilities");
+	
+	ti = proto_tree_add_item(root, hf_msg_client_caps, tvb, off, front_len, ENC_NA);
+	tree = proto_item_add_subtree(ti, hf_msg_client_caps);
+	
+	op = (c_cap_op_type)tvb_get_letohl(tvb, off);
+	proto_tree_add_item(tree, hf_msg_client_caps_op,
+	                    tvb, off, 4, ENC_LITTLE_ENDIAN);
+	off += 4;
+	
+	proto_tree_add_item(tree, hf_msg_client_caps_inode,
+	                    tvb, off, 8, ENC_LITTLE_ENDIAN);
+	off += 8;
+	
+	proto_tree_add_item(tree, hf_msg_client_caps_relam,
+	                    tvb, off, 8, ENC_LITTLE_ENDIAN);
+	off += 8;
+	
+	proto_tree_add_item(tree, hf_msg_client_caps_cap_id,
+	                    tvb, off, 8, ENC_LITTLE_ENDIAN);
+	off += 8;
+	
+	proto_tree_add_item(tree, hf_msg_client_caps_seq,
+	                    tvb, off, 4, ENC_LITTLE_ENDIAN);
+	off += 4;
+	
+	proto_tree_add_item(tree, hf_msg_client_caps_seq_issue,
+	                    tvb, off, 4, ENC_LITTLE_ENDIAN);
+	off += 4;
+	
+	proto_tree_add_item(tree, hf_msg_client_caps_new,
+	                    tvb, off, 4, ENC_LITTLE_ENDIAN);
+	off += 4;
+	
+	proto_tree_add_item(tree, hf_msg_client_caps_wanted,
+	                    tvb, off, 4, ENC_LITTLE_ENDIAN);
+	off += 4;
+	
+	proto_tree_add_item(tree, hf_msg_client_caps_dirty,
+	                    tvb, off, 4, ENC_LITTLE_ENDIAN);
+	off += 4;
+	
+	proto_tree_add_item(tree, hf_msg_client_caps_seq_migrate,
+	                    tvb, off, 4, ENC_LITTLE_ENDIAN);
+	off += 4;
+	
+	proto_tree_add_item(tree, hf_msg_client_caps_snap_follows,
+	                    tvb, off, 8, ENC_LITTLE_ENDIAN);
+	off += 8;
+	
+	snap_trace_len = tvb_get_letohl(tvb, off);
+	off += 4;
+	
+	proto_tree_add_item(tree, hf_msg_client_caps_uid,
+	                    tvb, off, 4, ENC_LITTLE_ENDIAN);
+	off += 4;
+	
+	proto_tree_add_item(tree, hf_msg_client_caps_gid,
+	                    tvb, off, 4, ENC_LITTLE_ENDIAN);
+	off += 4;
+	
+	proto_tree_add_item(tree, hf_msg_client_caps_mode,
+	                    tvb, off, 4, ENC_LITTLE_ENDIAN);
+	off += 4;
+	
+	proto_tree_add_item(tree, hf_msg_client_caps_nlink,
+	                    tvb, off, 4, ENC_LITTLE_ENDIAN);
+	off += 4;
+	
+	xattr_len = tvb_get_letohl(tvb, off);
+	off += 4;
+	
+	proto_tree_add_item(tree, hf_msg_client_caps_xattr_ver,
+	                    tvb, off, 8, ENC_LITTLE_ENDIAN);
+	off += 8;
+	
+	off += 84; //@TODO: Union.
+	
+	proto_tree_add_item(tree, hf_msg_client_caps_snap,
+	                    tvb, off, snap_trace_len, ENC_LITTLE_ENDIAN);
+	off += snap_trace_len;
+	
+	if (data->header.ver >= 2)
+	{
+		off = c_dissect_data(tree, hf_msg_client_caps_flock, tvb, off);
+	}
+	
+	if (data->header.ver >= 3 && op == C_CAP_OP_IMPORT)
+	{
+		/* ceph:/src/include/ceph_fs.h
+		struct ceph_mds_cap_peer {
+			__le64 cap_id;
+			__le32 seq;
+			__le32 mseq;
+			__le32 mds;
+			__u8   flags;
+		} __attribute__ ((packed));
+		*/
+		//@TODO: Parse this.
+		off += 21;
+	}
+	
+	if (data->header.ver >= 4)
+	{
+		proto_tree_add_item(tree, hf_msg_client_caps_inline_ver,
+		                    tvb, off, 8, ENC_LITTLE_ENDIAN);
+		off += 8;
+		off = c_dissect_data(tree, hf_msg_client_caps_inline_data, tvb, off);
+	}
+	
+	//@TODO: assert(off == font_len);
+	//@TODO: assert(xattr_len == middle_len);
+	
+	proto_tree_add_item(tree, hf_msg_client_caps_xattr,
+	                    tvb, front_len, middle_len, ENC_LITTLE_ENDIAN);
+	off += middle_len;
+	
+	return front_len+middle_len;
+}
+
 /*** MSGR Dissectors ***/
 
 enum c_size_msg {
@@ -3513,6 +3688,7 @@ guint c_dissect_msg(proto_tree *tree,
 	C_HANDLE_MSG(C_MSG_GETPOOLSTATSREPLY,           c_dissect_msg_poolstatsreply)
 	C_HANDLE_MSG(C_MSG_MON_ELECTION,                c_dissect_msg_mon_election)
 	C_HANDLE_MSG(C_MSG_MON_PROBE,                   c_dissect_msg_mon_probe)
+	C_HANDLE_MSG(C_CEPH_MSG_CLIENT_CAPS,            c_dissect_msg_client_caps)
 	
 	default:
 		parsedsize = C_CALL_MSG(c_dissect_msg_unknown);
@@ -5766,6 +5942,116 @@ proto_register_ceph(void)
 		{ &hf_msg_mon_probe_req_features, {
 			"Required Features", "ceph.msg.mon_probe.required_features",
 			FT_UINT64, BASE_HEX, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_client_caps, {
+			"Client Caps", "ceph.msg.client_caps",
+			FT_NONE, BASE_NONE, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_client_caps_op, {
+			"Operation", "ceph.msg.client_caps.op",
+			FT_UINT32, BASE_HEX|BASE_EXT_STRING, VALS(&c_cap_op_type_strings_ext), 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_client_caps_inode, {
+			"Inode", "ceph.msg.client_caps.inode",
+			FT_UINT64, BASE_HEX, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_client_caps_relam, {
+			"Relam", "ceph.msg.client_caps.relam",
+			FT_UINT64, BASE_DEC, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_client_caps_cap_id, {
+			"Cap ID", "ceph.msg.client_caps.cap_id",
+			FT_UINT64, BASE_DEC, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_client_caps_seq, {
+			"Sequence", "ceph.msg.client_caps.seq",
+			FT_UINT32, BASE_DEC, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_client_caps_seq_issue, {
+			"Issue Sequence", "ceph.msg.client_caps.seq_issue",
+			FT_UINT32, BASE_DEC, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_client_caps_new, {
+			"New Capabilities", "ceph.msg.client_caps.new",
+			FT_UINT32, BASE_HEX, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_client_caps_wanted, {
+			"Wanted Capabilities", "ceph.msg.client_caps.wanted",
+			FT_UINT32, BASE_DEC, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_client_caps_dirty, {
+			"Dirty Capabilities", "ceph.msg.client_caps.dirty",
+			FT_UINT32, BASE_DEC, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_client_caps_seq_migrate, {
+			"Migrate Sequence", "ceph.msg.client_caps_seq.migrate",
+			FT_UINT32, BASE_DEC, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_client_caps_snap_follows, {
+			"Snapshot Follows", "ceph.msg.client_caps.snap_follows",
+			FT_UINT64, BASE_DEC, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_client_caps_uid, {
+			"User ID", "ceph.msg.client_caps.uid",
+			FT_UINT32, BASE_DEC, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_client_caps_gid, {
+			"Group ID", "ceph.msg.client_caps.gid",
+			FT_UINT32, BASE_DEC, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_client_caps_mode, {
+			"Mode", "ceph.msg.client_caps.mode",
+			FT_UINT32, BASE_DEC, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_client_caps_nlink, {
+			"Number of Links", "ceph.msg.client_caps.nlink",
+			FT_UINT32, BASE_DEC, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_client_caps_xattr_ver, {
+			"Xattr Version", "ceph.msg.client_caps.xattr_ver",
+			FT_UINT64, BASE_DEC, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_client_caps_snap, {
+			"Snapshot Data", "ceph.msg.client_caps.snap",
+			FT_BYTES, BASE_NONE, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_client_caps_flock, {
+			"Flock", "ceph.msg.client_caps.flock",
+			FT_NONE, BASE_NONE, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_client_caps_inline_ver, {
+			"Inline Version", "ceph.msg.client_caps.inline_ver",
+			FT_UINT64, BASE_DEC, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_client_caps_inline_data, {
+			"Inline Data", "ceph.msg.client_caps.inline_data",
+			FT_NONE, BASE_NONE, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_client_caps_xattr, {
+			"Xattr", "ceph.msg.client_caps.xattr",
+			FT_BYTES, BASE_NONE, NULL, 0,
 			NULL, HFILL
 		} },
 	};
