@@ -1865,7 +1865,7 @@ guint c_dissect_object_locator(proto_tree *root, gint hf,
 	off += 8;
 	
 	//@TODO: Warn if not key or hash.
-	//@TODO: Warn if off != expectedoff
+	c_warn_length(tree, tvb, off, expectedoff, data);
 	
 	proto_item_set_end(ti, tvb, off);
 	return off;
@@ -2119,6 +2119,9 @@ guint c_dissect_osd_op(proto_tree *root, gint hf, c_osd_op *out,
 		proto_item_append_text(ti, ", Offset: %"G_GINT64_MODIFIER"u"
 		                       ", Size: %"G_GINT64_MODIFIER"u",
 		                       offset, size);
+		if (trunc_seq)
+			proto_item_append_text(ti, ", Truncate To: %"G_GINT64_MODIFIER"u",
+			                       trunc_size);
 		break;
 	default:
 		proto_tree_add_item(tree, hf_osd_op_data, tvb, off, 28, ENC_NA);
@@ -2165,7 +2168,7 @@ guint c_dissect_redirect(proto_tree *root, gint hf,
 	                     hf_osd_redirect_osdinstr_data, hf_osd_redirect_osdinstr_len,
 	                     tvb, off);
 	
-	//@TODO: check off == expectedoff
+	c_warn_length(tree, tvb, off, offexpected, data);
 	proto_item_set_end(ti, tvb, off);
 	return off;
 }
@@ -2178,8 +2181,6 @@ guint c_dissect_statsum(proto_tree *tree,
 	c_encoded enc;
 	
 	off = c_dissect_encoded(tree, &enc, tvb, off, data);
-	
-	//@TODO: check enc.size == 21*8
 	
 	proto_tree_add_item(tree, hf_statsum_bytes,
 	                    tvb, off, 8, ENC_LITTLE_ENDIAN);
@@ -3215,7 +3216,7 @@ guint c_dissect_msg_mon_cmd_ack(proto_tree *root,
 		proto_item_set_end(ti, tvb, off);
 	}
 	
-	//@TODO: check that off == front_len
+	c_warn_length(tree, tvb, off, front_len, data);
 	
 	proto_tree_add_item(tree, hf_msg_mon_cmd_ack_data,
 	                    tvb, front_len, data_len, ENC_NA);
@@ -4093,7 +4094,6 @@ guint c_dissect_msgr(proto_tree *tree,
 		c_set_type(data, "UNKNOWN");
 		proto_item_append_text(data->item_root, ", Tag: %x", tag);
 		expert_add_info(data->pinfo, ti, &ei_tag_unknown);
-		//@TODO: Add expert info to allow filtering.
 	}
 	
 	return off;
