@@ -439,6 +439,7 @@ static expert_field ei_unused = EI_INIT;
 static expert_field ei_overrun = EI_INIT;
 static expert_field ei_tag_unknown = EI_INIT;
 static expert_field ei_msg_unknown = EI_INIT;
+static expert_field ei_union_unknown = EI_INIT;
 
 /* Initialize the subtree pointers */
 static gint ett_ceph = -1;
@@ -1328,6 +1329,17 @@ enum c_ressembly {
 
 /*** Expert info warning functions. ***/
 
+/** Warn about unused data.
+ * 
+ * Check if there is unused data and if there is warn about it.
+ * 
+ * @param tree  The tree where the error should be added.
+ * @param tvb   The buffer with the data.
+ * @param start The start of the unused data.
+ * @param end   Then end of the unused data.
+ * @param data  The packet data.
+ * @return True iff there was unused data.
+ */
 static
 gboolean c_warn_unused(proto_tree *tree,
                        tvbuff_t *tvb, guint start, guint end, c_pkt_data *data)
@@ -1347,6 +1359,17 @@ gboolean c_warn_unused(proto_tree *tree,
 	return 1;
 }
 
+/** Warn about dissection using more data then expected.
+ * 
+ * Check if there is an overrun and if there is warn about it.
+ * 
+ * @param tree  The tree where the error should be added.
+ * @param tvb   The buffer with the data.
+ * @param start The start of the overun.
+ * @param end   Then end of the overrun.
+ * @param data  The packet data.
+ * @return True iff there was an overrun.
+ */
 static
 gboolean c_warn_overrun(proto_tree *tree,
                         tvbuff_t *tvb, guint start, guint end, c_pkt_data *data)
@@ -1366,9 +1389,20 @@ gboolean c_warn_overrun(proto_tree *tree,
 	return 1;
 }
 
+/** Warn about incorrect offset.
+ * 
+ * Check if the offset is at the expected location, otherwise warn about it.
+ * 
+ * @param tree The tree where the error should be added.
+ * @param tvb  The buffer with the data.
+ * @param act  The actual offset.
+ * @param exp  The expected offset.
+ * @param data The packet data.
+ * @return True iff there was a mismatch.
+ */
 static
-gboolean c_warn_length(proto_tree *tree,
-                       tvbuff_t *tvb, guint act, guint exp, c_pkt_data *data)
+gboolean c_warn_size(proto_tree *tree,
+                     tvbuff_t *tvb, guint act, guint exp, c_pkt_data *data)
 {
 	if (act < exp) return c_warn_unused (tree, tvb, act, exp, data);
 	else           return c_warn_overrun(tree, tvb, exp, act, data);
@@ -1865,7 +1899,7 @@ guint c_dissect_object_locator(proto_tree *root, gint hf,
 	off += 8;
 	
 	//@TODO: Warn if not key or hash.
-	c_warn_length(tree, tvb, off, expectedoff, data);
+	c_warn_size(tree, tvb, off, expectedoff, data);
 	
 	proto_item_set_end(ti, tvb, off);
 	return off;
@@ -2005,7 +2039,7 @@ static
 guint c_dissect_osd_op(proto_tree *root, gint hf, c_osd_op *out,
                        tvbuff_t *tvb, guint off, c_pkt_data *data _U_)
 {
-	proto_item *ti;
+	proto_item *ti, *ti2;
 	proto_tree *tree;
 	c_osd_op d;
 	
@@ -2124,8 +2158,8 @@ guint c_dissect_osd_op(proto_tree *root, gint hf, c_osd_op *out,
 			                       trunc_size);
 		break;
 	default:
-		proto_tree_add_item(tree, hf_osd_op_data, tvb, off, 28, ENC_NA);
-		//@TODO: Warn.
+		ti2 = proto_tree_add_item(tree, hf_osd_op_data, tvb, off, 28, ENC_NA);
+		expert_add_info(data->pinfo, ti2, &ei_union_unknown);
 	}
 	
 	off += 28;
@@ -2168,7 +2202,7 @@ guint c_dissect_redirect(proto_tree *root, gint hf,
 	                     hf_osd_redirect_osdinstr_data, hf_osd_redirect_osdinstr_len,
 	                     tvb, off);
 	
-	c_warn_length(tree, tvb, off, offexpected, data);
+	c_warn_size(tree, tvb, off, offexpected, data);
 	proto_item_set_end(ti, tvb, off);
 	return off;
 }
@@ -2901,7 +2935,7 @@ guint c_dissect_msg_osd_op(proto_tree *root,
 		off += 4;
 	}
 	
-	c_warn_length(tree, tvb, off, front_len, data);
+	c_warn_size(tree, tvb, off, front_len, data);
 	
 	for (i = 0; i < opslen; i++)
 	{
@@ -2995,7 +3029,7 @@ guint c_dissect_msg_osd_opreply(proto_tree *root,
 		                         tvb, off, data);
 	}
 	
-	c_warn_length(tree, tvb, off, front_len, data);
+	c_warn_size(tree, tvb, off, front_len, data);
 	off = front_len;
 	
 	if (data->header.ver >= 4)
@@ -3216,7 +3250,7 @@ guint c_dissect_msg_mon_cmd_ack(proto_tree *root,
 		proto_item_set_end(ti, tvb, off);
 	}
 	
-	c_warn_length(tree, tvb, off, front_len, data);
+	c_warn_size(tree, tvb, off, front_len, data);
 	
 	proto_tree_add_item(tree, hf_msg_mon_cmd_ack_data,
 	                    tvb, front_len, data_len, ENC_NA);
@@ -3590,8 +3624,8 @@ guint c_dissect_msg_client_caps(proto_tree *root,
 		off = c_dissect_data(tree, hf_msg_client_caps_inline_data, tvb, off);
 	}
 	
-	c_warn_length(tree, tvb, off, front_len, data);
-	c_warn_length(tree, tvb, front_len+xattr_len, front_len+middle_len, data);
+	c_warn_size(tree, tvb, off, front_len, data);
+	c_warn_size(tree, tvb, front_len+xattr_len, front_len+middle_len, data);
 	
 	proto_tree_add_item(tree, hf_msg_client_caps_xattr,
 	                    tvb, front_len, middle_len, ENC_LITTLE_ENDIAN);
@@ -6175,6 +6209,13 @@ proto_register_ceph(void)
 			"Unknown message type.  This most likely means that the dissector "
 			"is out of date.  However it could also be an error by the "
 			"sender ", EXPFILL
+		} },
+		{ &ei_union_unknown, {
+			"ceph.union_unknown", PI_UNDECODED, PI_WARN,
+			"This data's meaning depends on other information in the message "
+			"but the dissector doesn't know what type it is.  This is most "
+			"likely an indication that the dissector is not up to date but "
+			"could also be an error by the sender.", EXPFILL
 		} },
 	};
 	
