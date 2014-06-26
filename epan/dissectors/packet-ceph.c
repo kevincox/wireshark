@@ -712,247 +712,97 @@ static const value_string_ext c_tag_strings_ext = VALUE_STRING_EXT_INIT(c_tag_st
 c_make_strings_ext(c_msg_type, 4)
 
 #define c_osd_optype_strings_VALUE_STRING_LIST(V) \
-	/*** Raw Codes ***/                                                     \
-	V(C_OSD_OP_TYPE_LOCK,  0x0100, "C_OSD_OP_TYPE_LOCK")                    \
-	V(C_OSD_OP_TYPE_DATA,  0x0200, "C_OSD_OP_TYPE_DATA")                    \
-	V(C_OSD_OP_TYPE_ATTR,  0x0300, "C_OSD_OP_TYPE_ATTR")                    \
-	V(C_OSD_OP_TYPE_EXEC,  0x0400, "C_OSD_OP_TYPE_EXEC")                    \
-	V(C_OSD_OP_TYPE_PG,    0x0500, "C_OSD_OP_TYPE_PG")                      \
-	V(C_OSD_OP_TYPE_MULTI, 0x0600, "C_OSD_OP_TYPE_MULTI") /* multiobject */ \
-	V(C_OSD_OP_TYPE,       0x0f00, "C_OSD_OP_TYPE")                         \
-	                                                                        \
-	/*** Sorted by value, keep it that way. ***/                            \
-	V(C_OSD_OP_MODE_RD,    0x1000, "C_OSD_OP_MODE_RD")                      \
-	V(C_OSD_OP_READ,                                                        \
-	  C_OSD_OP_MODE_RD    | C_OSD_OP_TYPE_DATA  | 0x01,                     \
-	  "C_OSD_OP_READ")                                                      \
-	V(C_OSD_OP_STAT,                                                        \
-	  C_OSD_OP_MODE_RD    | C_OSD_OP_TYPE_DATA  | 0x02,                     \
-	  "C_OSD_OP_STAT")                                                      \
-	V(C_OSD_OP_MAPEXT,                                                      \
-	  C_OSD_OP_MODE_RD    | C_OSD_OP_TYPE_DATA  | 0x03,                     \
-	  "C_OSD_OP_MAPEXT")                                                    \
-	V(C_OSD_OP_MASKTRUNC,                                                   \
-	  C_OSD_OP_MODE_RD    | C_OSD_OP_TYPE_DATA  | 0x04,                     \
-	  "C_OSD_OP_MASKTRUNC")                                                 \
-	V(C_OSD_OP_SPARSE_READ,                                                 \
-	  C_OSD_OP_MODE_RD    | C_OSD_OP_TYPE_DATA  | 0x05,                     \
-	  "C_OSD_OP_SPARSE_READ")                                               \
-	V(C_OSD_OP_NOTIFY,                                                      \
-	  C_OSD_OP_MODE_RD    | C_OSD_OP_TYPE_DATA  | 0x06,                     \
-	  "C_OSD_OP_NOTIFY")                                                    \
-	V(C_OSD_OP_NOTIFY_ACK,                                                  \
-	  C_OSD_OP_MODE_RD    | C_OSD_OP_TYPE_DATA  | 0x07,                     \
-	  "C_OSD_OP_NOTIFY_ACK")                                                \
-	V(C_OSD_OP_ASSERT_VER,                                                  \
-	  C_OSD_OP_MODE_RD    | C_OSD_OP_TYPE_DATA  | 0x08,                     \
-	  "C_OSD_OP_ASSERT_VER")                                                \
-	V(C_OSD_OP_LIST_WATCHERS,                                               \
-	  C_OSD_OP_MODE_RD    | C_OSD_OP_TYPE_DATA  | 0x09,                     \
-	  "C_OSD_OP_LIST_WATCHERS")                                             \
-	V(C_OSD_OP_LIST_SNAPS,                                                  \
-	  C_OSD_OP_MODE_RD    | C_OSD_OP_TYPE_DATA  | 0x0A,                     \
-	  "C_OSD_OP_LIST_SNAPS")                                                \
-	V(C_OSD_OP_SYNC_READ,                                                   \
-	  C_OSD_OP_MODE_RD    | C_OSD_OP_TYPE_DATA  | 0x0B,                     \
-	  "C_OSD_OP_SYNC_READ")                                                 \
-	V(C_OSD_OP_TMAPGET,                                                     \
-	  C_OSD_OP_MODE_RD    | C_OSD_OP_TYPE_DATA  | 0x0C,                     \
-	  "C_OSD_OP_TMAPGET")                                                   \
-	V(C_OSD_OP_OMAPGETKEYS,                                                 \
-	  C_OSD_OP_MODE_RD    | C_OSD_OP_TYPE_DATA  | 0x11,                     \
-	  "C_OSD_OP_OMAPGETKEYS")                                               \
-	V(C_OSD_OP_OMAPGETVALS,                                                 \
-	  C_OSD_OP_MODE_RD    | C_OSD_OP_TYPE_DATA  | 0x12,                     \
-	  "C_OSD_OP_OMAPGETVALS")                                               \
-	V(C_OSD_OP_OMAPGETHEADER,                                               \
-	  C_OSD_OP_MODE_RD    | C_OSD_OP_TYPE_DATA  | 0x13,                     \
-	  "C_OSD_OP_OMAPGETHEADER")                                             \
-	V(C_OSD_OP_OMAPGETVALSBYKEYS,                                           \
-	  C_OSD_OP_MODE_RD    | C_OSD_OP_TYPE_DATA  | 0x14,                     \
-	  "C_OSD_OP_OMAPGETVALSBYKEYS")                                         \
-	V(C_OSD_OP_OMAP_CMP,                                                    \
-	  C_OSD_OP_MODE_RD    | C_OSD_OP_TYPE_DATA  | 0x19,                     \
-	  "C_OSD_OP_OMAP_CMP")                                                  \
-	V(C_OSD_OP_COPY_GET_CLASSIC,                                            \
-	  C_OSD_OP_MODE_RD    | C_OSD_OP_TYPE_DATA  | 0x1B,                     \
-	  "C_OSD_OP_COPY_GET_CLASSIC")                                          \
-	V(C_OSD_OP_ISDIRTY,                                                     \
-	  C_OSD_OP_MODE_RD    | C_OSD_OP_TYPE_DATA  | 0x1D,                     \
-	  "C_OSD_OP_ISDIRTY")                                                   \
-	V(C_OSD_OP_COPY_GET,                                                    \
-	  C_OSD_OP_MODE_RD    | C_OSD_OP_TYPE_DATA  | 0x1E,                     \
-	  "C_OSD_OP_COPY_GET")                                                  \
-	V(C_OSD_OP_GETXATTR,                                                    \
-	  C_OSD_OP_MODE_RD    | C_OSD_OP_TYPE_ATTR  | 0x01,                     \
-	  "C_OSD_OP_GETXATTR")                                                  \
-	V(C_OSD_OP_GETXATTRS,                                                   \
-	  C_OSD_OP_MODE_RD    | C_OSD_OP_TYPE_ATTR  | 0x02,                     \
-	  "C_OSD_OP_GETXATTRS")                                                 \
-	V(C_OSD_OP_CMPXATTR,                                                    \
-	  C_OSD_OP_MODE_RD    | C_OSD_OP_TYPE_ATTR  | 0x03,                     \
-	  "C_OSD_OP_CMPXATTR")                                                  \
-	V(C_OSD_OP_CALL,                                                        \
-	  C_OSD_OP_MODE_RD    | C_OSD_OP_TYPE_EXEC  | 0x01,                     \
-	  "C_OSD_OP_CALL")                                                      \
-	V(C_OSD_OP_PGLS,                                                        \
-	  C_OSD_OP_MODE_RD    | C_OSD_OP_TYPE_PG    | 0x01,                     \
-	  "C_OSD_OP_PGLS")                                                      \
-	V(C_OSD_OP_PGLS_FILTER,                                                 \
-	  C_OSD_OP_MODE_RD    | C_OSD_OP_TYPE_PG    | 0x02,                     \
-	  "C_OSD_OP_PGLS_FILTER")                                               \
-	V(C_OSD_OP_PG_HITSET_LS,                                                \
-	  C_OSD_OP_MODE_RD    | C_OSD_OP_TYPE_PG    | 0x03,                     \
-	  "C_OSD_OP_PG_HITSET_LS")                                              \
-	V(C_OSD_OP_PG_HITSET_GET,                                               \
-	  C_OSD_OP_MODE_RD    | C_OSD_OP_TYPE_PG    | 0x04,                     \
-	  "C_OSD_OP_PG_HITSET_GET")                                             \
-	V(C_OSD_OP_ASSERT_SRC_VERSION,                                          \
-	  C_OSD_OP_MODE_RD    | C_OSD_OP_TYPE_MULTI | 0x02,                     \
-	  "C_OSD_OP_ASSERT_SRC_VERSION")                                        \
-	V(C_OSD_OP_SRC_CMPXATTR,                                                \
-	  C_OSD_OP_MODE_RD    | C_OSD_OP_TYPE_MULTI | 0x03,                     \
-	  "C_OSD_OP_SRC_CMPXATTR")                                              \
-	V(C_OSD_OP_MODE_WR,    0x2000, "C_OSD_OP_MODE_WR")                      \
-	V(C_OSD_OP_WRLOCK,                                                      \
-	  C_OSD_OP_MODE_WR    | C_OSD_OP_TYPE_LOCK  | 0x01,                     \
-	  "C_OSD_OP_WRLOCK")                                                    \
-	V(C_OSD_OP_WRUNLOCK,                                                    \
-	  C_OSD_OP_MODE_WR    | C_OSD_OP_TYPE_LOCK  | 0x02,                     \
-	  "C_OSD_OP_WRUNLOCK")                                                  \
-	V(C_OSD_OP_RDLOCK,                                                      \
-	  C_OSD_OP_MODE_WR    | C_OSD_OP_TYPE_LOCK  | 0x03,                     \
-	  "C_OSD_OP_RDLOCK")                                                    \
-	V(C_OSD_OP_RDUNLOCK,                                                    \
-	  C_OSD_OP_MODE_WR    | C_OSD_OP_TYPE_LOCK  | 0x04,                     \
-	  "C_OSD_OP_RDUNLOCK")                                                  \
-	V(C_OSD_OP_UPLOCK,                                                      \
-	  C_OSD_OP_MODE_WR    | C_OSD_OP_TYPE_LOCK  | 0x05,                     \
-	  "C_OSD_OP_UPLOCK")                                                    \
-	V(C_OSD_OP_DNLOCK,                                                      \
-	  C_OSD_OP_MODE_WR    | C_OSD_OP_TYPE_LOCK  | 0x06,                     \
-	  "C_OSD_OP_DNLOCK")                                                    \
-	V(C_OSD_OP_WRITE,                                                       \
-	  C_OSD_OP_MODE_WR    | C_OSD_OP_TYPE_DATA  | 0x01,                     \
-	  "C_OSD_OP_WRITE")                                                     \
-	V(C_OSD_OP_WRITEFULL,                                                   \
-	  C_OSD_OP_MODE_WR    | C_OSD_OP_TYPE_DATA  | 0x02,                     \
-	  "C_OSD_OP_WRITEFULL")                                                 \
-	V(C_OSD_OP_TRUNCATE,                                                    \
-	  C_OSD_OP_MODE_WR    | C_OSD_OP_TYPE_DATA  | 0x03,                     \
-	  "C_OSD_OP_TRUNCATE")                                                  \
-	V(C_OSD_OP_ZERO,                                                        \
-	  C_OSD_OP_MODE_WR    | C_OSD_OP_TYPE_DATA  | 0x04,                     \
-	  "C_OSD_OP_ZERO")                                                      \
-	V(C_OSD_OP_DELETE,                                                      \
-	  C_OSD_OP_MODE_WR    | C_OSD_OP_TYPE_DATA  | 0x05,                     \
-	  "C_OSD_OP_DELETE")                                                    \
-	V(C_OSD_OP_APPEND,                                                      \
-	  C_OSD_OP_MODE_WR    | C_OSD_OP_TYPE_DATA  | 0x06,                     \
-	  "C_OSD_OP_APPEND")                                                    \
-	V(C_OSD_OP_STARTSYNC,                                                   \
-	  C_OSD_OP_MODE_WR    | C_OSD_OP_TYPE_DATA  | 0x07,                     \
-	  "C_OSD_OP_STARTSYNC")                                                 \
-	V(C_OSD_OP_SETTRUNC,                                                    \
-	  C_OSD_OP_MODE_WR    | C_OSD_OP_TYPE_DATA  | 0x08,                     \
-	  "C_OSD_OP_SETTRUNC")                                                  \
-	V(C_OSD_OP_TRIMTRUNC,                                                   \
-	  C_OSD_OP_MODE_WR    | C_OSD_OP_TYPE_DATA  | 0x09,                     \
-	  "C_OSD_OP_TRIMTRUNC")                                                 \
-	V(C_OSD_OP_TMAPPUT,                                                     \
-	  C_OSD_OP_MODE_WR    | C_OSD_OP_TYPE_DATA  | 0x0B,                     \
-	  "C_OSD_OP_TMAPPUT")                                                   \
-	V(C_OSD_OP_CREATE,                                                      \
-	  C_OSD_OP_MODE_WR    | C_OSD_OP_TYPE_DATA  | 0x0D,                     \
-	  "C_OSD_OP_CREATE")                                                    \
-	V(C_OSD_OP_ROLLBACK,                                                    \
-	  C_OSD_OP_MODE_WR    | C_OSD_OP_TYPE_DATA  | 0x0E,                     \
-	  "C_OSD_OP_ROLLBACK")                                                  \
-	V(C_OSD_OP_WATCH,                                                       \
-	  C_OSD_OP_MODE_WR    | C_OSD_OP_TYPE_DATA  | 0x0F,                     \
-	  "C_OSD_OP_WATCH")                                                     \
-	V(C_OSD_OP_OMAPSETVALS,                                                 \
-	  C_OSD_OP_MODE_WR    | C_OSD_OP_TYPE_DATA  | 0x15,                     \
-	  "C_OSD_OP_OMAPSETVALS")                                               \
-	V(C_OSD_OP_OMAPSETHEADER,                                               \
-	  C_OSD_OP_MODE_WR    | C_OSD_OP_TYPE_DATA  | 0x16,                     \
-	  "C_OSD_OP_OMAPSETHEADER")                                             \
-	V(C_OSD_OP_OMAPCLEAR,                                                   \
-	  C_OSD_OP_MODE_WR    | C_OSD_OP_TYPE_DATA  | 0x17,                     \
-	  "C_OSD_OP_OMAPCLEAR")                                                 \
-	V(C_OSD_OP_OMAPRMKEYS,                                                  \
-	  C_OSD_OP_MODE_WR    | C_OSD_OP_TYPE_DATA  | 0x18,                     \
-	  "C_OSD_OP_OMAPRMKEYS")                                                \
-	V(C_OSD_OP_COPY_FROM,                                                   \
-	  C_OSD_OP_MODE_WR    | C_OSD_OP_TYPE_DATA  | 0x1A,                     \
-	  "C_OSD_OP_COPY_FROM")                                                 \
-	V(C_OSD_OP_UNDIRTY,                                                     \
-	  C_OSD_OP_MODE_WR    | C_OSD_OP_TYPE_DATA  | 0x1C,                     \
-	  "C_OSD_OP_UNDIRTY")                                                   \
-	V(C_OSD_OP_SETALLOCHINT,                                                \
-	  C_OSD_OP_MODE_WR    | C_OSD_OP_TYPE_DATA  | 0x23,                     \
-	  "C_OSD_OP_SETALLOCHINT")                                              \
-	V(C_OSD_OP_SETXATTR,                                                    \
-	  C_OSD_OP_MODE_WR    | C_OSD_OP_TYPE_ATTR  | 0x01,                     \
-	  "C_OSD_OP_SETXATTR")                                                  \
-	V(C_OSD_OP_SETXATTRS,                                                   \
-	  C_OSD_OP_MODE_WR    | C_OSD_OP_TYPE_ATTR  | 0x02,                     \
-	  "C_OSD_OP_SETXATTRS")                                                 \
-	V(C_OSD_OP_RESETXATTRS,                                                 \
-	  C_OSD_OP_MODE_WR    | C_OSD_OP_TYPE_ATTR  | 0x03,                     \
-	  "C_OSD_OP_RESETXATTRS")                                               \
-	V(C_OSD_OP_RMXATTR,                                                     \
-	  C_OSD_OP_MODE_WR    | C_OSD_OP_TYPE_ATTR  | 0x04,                     \
-	  "C_OSD_OP_RMXATTR")                                                   \
-	V(C_OSD_OP_CLONERANGE,                                                  \
-	  C_OSD_OP_MODE_WR    | C_OSD_OP_TYPE_MULTI | 0x01,                     \
-	  "C_OSD_OP_CLONERANGE")                                                \
-	V(C_OSD_OP_MODE_RMW,   0x3000, "C_OSD_OP_MODE_RMW")                     \
-	V(C_OSD_OP_TMAPUP,                                                      \
-	  C_OSD_OP_MODE_RMW   | C_OSD_OP_TYPE_DATA  | 0x0A,                     \
-	  "C_OSD_OP_TMAPUP")                                                    \
-	V(C_OSD_OP_TMAP2OMAP,                                                   \
-	  C_OSD_OP_MODE_RMW   | C_OSD_OP_TYPE_DATA  | 0x22,                     \
-	  "C_OSD_OP_TMAP2OMAP")                                                 \
-	V(C_OSD_OP_MODE_SUB,   0x4000, "C_OSD_OP_MODE_SUB")                     \
-	V(C_OSD_OP_PULL,                                                        \
-	  C_OSD_OP_MODE_SUB                         | 0x01,                     \
-	  "C_OSD_OP_PULL")                                                      \
-	V(C_OSD_OP_PUSH,                                                        \
-	  C_OSD_OP_MODE_SUB                         | 0x02,                     \
-	  "C_OSD_OP_PUSH")                                                      \
-	V(C_OSD_OP_BALANCEREADS,                                                \
-	  C_OSD_OP_MODE_SUB                         | 0x03,                     \
-	  "C_OSD_OP_BALANCEREADS")                                              \
-	V(C_OSD_OP_UNBALANCEREADS,                                              \
-	  C_OSD_OP_MODE_SUB                         | 0x04,                     \
-	  "C_OSD_OP_UNBALANCEREADS")                                            \
-	V(C_OSD_OP_SCRUB,                                                       \
-	  C_OSD_OP_MODE_SUB                         | 0x05,                     \
-	  "C_OSD_OP_SCRUB")                                                     \
-	V(C_OSD_OP_SCRUB_RESERVE,                                               \
-	  C_OSD_OP_MODE_SUB                         | 0x06,                     \
-	  "C_OSD_OP_SCRUB_RESERVE")                                             \
-	V(C_OSD_OP_SCRUB_UNRESERVE,                                             \
-	  C_OSD_OP_MODE_SUB                         | 0x07,                     \
-	  "C_OSD_OP_SCRUB_UNRESERVE")                                           \
-	V(C_OSD_OP_SCRUB_STOP,                                                  \
-	  C_OSD_OP_MODE_SUB                         | 0x08,                     \
-	  "C_OSD_OP_SCRUB_STOP")                                                \
-	V(C_OSD_OP_SCRUB_MAP,                                                   \
-	  C_OSD_OP_MODE_SUB                         | 0x09,                     \
-	  "C_OSD_OP_SCRUB_MAP")                                                 \
-	V(C_OSD_OP_MODE_CACHE, 0x8000, "C_OSD_OP_MODE_CACHE")                   \
-	V(C_OSD_OP_CACHE_FLUSH,                                                 \
-	  C_OSD_OP_MODE_CACHE | C_OSD_OP_TYPE_DATA  | 0x1F,                     \
-	  "C_OSD_OP_CACHE_FLUSH")                                               \
-	V(C_OSD_OP_CACHE_EVICT,                                                 \
-	  C_OSD_OP_MODE_CACHE | C_OSD_OP_TYPE_DATA  | 0x20,                     \
-	  "C_OSD_OP_CACHE_EVICT")                                               \
-	V(C_OSD_OP_CACHE_TRY_FLUSH,                                             \
-	  C_OSD_OP_MODE_CACHE | C_OSD_OP_TYPE_DATA  | 0x21,                     \
-	  "C_OSD_OP_CACHE_TRY_FLUSH")                                           \
-	V(C_OSD_OP_MODE,       0xf000, "C_OSD_OP_MODE")
+	/*** Raw Codes ***/                                                                                             \
+	V(C_OSD_OP_TYPE_LOCK,  0x0100, "C_OSD_OP_TYPE_LOCK")                                                            \
+	V(C_OSD_OP_TYPE_DATA,  0x0200, "C_OSD_OP_TYPE_DATA")                                                            \
+	V(C_OSD_OP_TYPE_ATTR,  0x0300, "C_OSD_OP_TYPE_ATTR")                                                            \
+	V(C_OSD_OP_TYPE_EXEC,  0x0400, "C_OSD_OP_TYPE_EXEC")                                                            \
+	V(C_OSD_OP_TYPE_PG,    0x0500, "C_OSD_OP_TYPE_PG")                                                              \
+	V(C_OSD_OP_TYPE_MULTI, 0x0600, "C_OSD_OP_TYPE_MULTI") /* multiobject */                                         \
+	V(C_OSD_OP_TYPE,       0x0f00, "C_OSD_OP_TYPE")                                                                 \
+	                                                                                                                \
+	/*** Sorted by value, keep it that way. ***/                                                                    \
+	V(C_OSD_OP_MODE_RD,            0x1000,                                           "C_OSD_OP_MODE_RD")            \
+	V(C_OSD_OP_READ,               C_OSD_OP_MODE_RD    | C_OSD_OP_TYPE_DATA  | 0x01, "C_OSD_OP_READ")               \
+	V(C_OSD_OP_STAT,               C_OSD_OP_MODE_RD    | C_OSD_OP_TYPE_DATA  | 0x02, "C_OSD_OP_STAT")               \
+	V(C_OSD_OP_MAPEXT,             C_OSD_OP_MODE_RD    | C_OSD_OP_TYPE_DATA  | 0x03, "C_OSD_OP_MAPEXT")             \
+	V(C_OSD_OP_MASKTRUNC,          C_OSD_OP_MODE_RD    | C_OSD_OP_TYPE_DATA  | 0x04, "C_OSD_OP_MASKTRUNC")          \
+	V(C_OSD_OP_SPARSE_READ,        C_OSD_OP_MODE_RD    | C_OSD_OP_TYPE_DATA  | 0x05, "C_OSD_OP_SPARSE_READ")        \
+	V(C_OSD_OP_NOTIFY,             C_OSD_OP_MODE_RD    | C_OSD_OP_TYPE_DATA  | 0x06, "C_OSD_OP_NOTIFY")             \
+	V(C_OSD_OP_NOTIFY_ACK,         C_OSD_OP_MODE_RD    | C_OSD_OP_TYPE_DATA  | 0x07, "C_OSD_OP_NOTIFY_ACK")         \
+	V(C_OSD_OP_ASSERT_VER,         C_OSD_OP_MODE_RD    | C_OSD_OP_TYPE_DATA  | 0x08, "C_OSD_OP_ASSERT_VER")         \
+	V(C_OSD_OP_LIST_WATCHERS,      C_OSD_OP_MODE_RD    | C_OSD_OP_TYPE_DATA  | 0x09, "C_OSD_OP_LIST_WATCHERS")      \
+	V(C_OSD_OP_LIST_SNAPS,         C_OSD_OP_MODE_RD    | C_OSD_OP_TYPE_DATA  | 0x0A, "C_OSD_OP_LIST_SNAPS")         \
+	V(C_OSD_OP_SYNC_READ,          C_OSD_OP_MODE_RD    | C_OSD_OP_TYPE_DATA  | 0x0B, "C_OSD_OP_SYNC_READ")          \
+	V(C_OSD_OP_TMAPGET,            C_OSD_OP_MODE_RD    | C_OSD_OP_TYPE_DATA  | 0x0C, "C_OSD_OP_TMAPGET")            \
+	V(C_OSD_OP_OMAPGETKEYS,        C_OSD_OP_MODE_RD    | C_OSD_OP_TYPE_DATA  | 0x11, "C_OSD_OP_OMAPGETKEYS")        \
+	V(C_OSD_OP_OMAPGETVALS,        C_OSD_OP_MODE_RD    | C_OSD_OP_TYPE_DATA  | 0x12, "C_OSD_OP_OMAPGETVALS")        \
+	V(C_OSD_OP_OMAPGETHEADER,      C_OSD_OP_MODE_RD    | C_OSD_OP_TYPE_DATA  | 0x13, "C_OSD_OP_OMAPGETHEADER")      \
+	V(C_OSD_OP_OMAPGETVALSBYKEYS,  C_OSD_OP_MODE_RD    | C_OSD_OP_TYPE_DATA  | 0x14, "C_OSD_OP_OMAPGETVALSBYKEYS")  \
+	V(C_OSD_OP_OMAP_CMP,           C_OSD_OP_MODE_RD    | C_OSD_OP_TYPE_DATA  | 0x19, "C_OSD_OP_OMAP_CMP")           \
+	V(C_OSD_OP_COPY_GET_CLASSIC,   C_OSD_OP_MODE_RD    | C_OSD_OP_TYPE_DATA  | 0x1B, "C_OSD_OP_COPY_GET_CLASSIC")   \
+	V(C_OSD_OP_ISDIRTY,            C_OSD_OP_MODE_RD    | C_OSD_OP_TYPE_DATA  | 0x1D, "C_OSD_OP_ISDIRTY")            \
+	V(C_OSD_OP_COPY_GET,           C_OSD_OP_MODE_RD    | C_OSD_OP_TYPE_DATA  | 0x1E, "C_OSD_OP_COPY_GET")           \
+	V(C_OSD_OP_GETXATTR,           C_OSD_OP_MODE_RD    | C_OSD_OP_TYPE_ATTR  | 0x01, "C_OSD_OP_GETXATTR")           \
+	V(C_OSD_OP_GETXATTRS,          C_OSD_OP_MODE_RD    | C_OSD_OP_TYPE_ATTR  | 0x02, "C_OSD_OP_GETXATTRS")          \
+	V(C_OSD_OP_CMPXATTR,           C_OSD_OP_MODE_RD    | C_OSD_OP_TYPE_ATTR  | 0x03, "C_OSD_OP_CMPXATTR")           \
+	V(C_OSD_OP_CALL,               C_OSD_OP_MODE_RD    | C_OSD_OP_TYPE_EXEC  | 0x01, "C_OSD_OP_CALL")               \
+	V(C_OSD_OP_PGLS,               C_OSD_OP_MODE_RD    | C_OSD_OP_TYPE_PG    | 0x01, "C_OSD_OP_PGLS")               \
+	V(C_OSD_OP_PGLS_FILTER,        C_OSD_OP_MODE_RD    | C_OSD_OP_TYPE_PG    | 0x02, "C_OSD_OP_PGLS_FILTER")        \
+	V(C_OSD_OP_PG_HITSET_LS,       C_OSD_OP_MODE_RD    | C_OSD_OP_TYPE_PG    | 0x03, "C_OSD_OP_PG_HITSET_LS")       \
+	V(C_OSD_OP_PG_HITSET_GET,      C_OSD_OP_MODE_RD    | C_OSD_OP_TYPE_PG    | 0x04, "C_OSD_OP_PG_HITSET_GET")      \
+	V(C_OSD_OP_ASSERT_SRC_VERSION, C_OSD_OP_MODE_RD    | C_OSD_OP_TYPE_MULTI | 0x02, "C_OSD_OP_ASSERT_SRC_VERSION") \
+	V(C_OSD_OP_SRC_CMPXATTR,       C_OSD_OP_MODE_RD    | C_OSD_OP_TYPE_MULTI | 0x03, "C_OSD_OP_SRC_CMPXATTR")       \
+	V(C_OSD_OP_MODE_WR,            0x2000,                                           "C_OSD_OP_MODE_WR")            \
+	V(C_OSD_OP_WRLOCK,             C_OSD_OP_MODE_WR    | C_OSD_OP_TYPE_LOCK  | 0x01, "C_OSD_OP_WRLOCK")             \
+	V(C_OSD_OP_WRUNLOCK,           C_OSD_OP_MODE_WR    | C_OSD_OP_TYPE_LOCK  | 0x02, "C_OSD_OP_WRUNLOCK")           \
+	V(C_OSD_OP_RDLOCK,             C_OSD_OP_MODE_WR    | C_OSD_OP_TYPE_LOCK  | 0x03, "C_OSD_OP_RDLOCK")             \
+	V(C_OSD_OP_RDUNLOCK,           C_OSD_OP_MODE_WR    | C_OSD_OP_TYPE_LOCK  | 0x04, "C_OSD_OP_RDUNLOCK")           \
+	V(C_OSD_OP_UPLOCK,             C_OSD_OP_MODE_WR    | C_OSD_OP_TYPE_LOCK  | 0x05, "C_OSD_OP_UPLOCK")             \
+	V(C_OSD_OP_DNLOCK,             C_OSD_OP_MODE_WR    | C_OSD_OP_TYPE_LOCK  | 0x06, "C_OSD_OP_DNLOCK")             \
+	V(C_OSD_OP_WRITE,              C_OSD_OP_MODE_WR    | C_OSD_OP_TYPE_DATA  | 0x01, "C_OSD_OP_WRITE")              \
+	V(C_OSD_OP_WRITEFULL,          C_OSD_OP_MODE_WR    | C_OSD_OP_TYPE_DATA  | 0x02, "C_OSD_OP_WRITEFULL")          \
+	V(C_OSD_OP_TRUNCATE,           C_OSD_OP_MODE_WR    | C_OSD_OP_TYPE_DATA  | 0x03, "C_OSD_OP_TRUNCATE")           \
+	V(C_OSD_OP_ZERO,               C_OSD_OP_MODE_WR    | C_OSD_OP_TYPE_DATA  | 0x04, "C_OSD_OP_ZERO")               \
+	V(C_OSD_OP_DELETE,             C_OSD_OP_MODE_WR    | C_OSD_OP_TYPE_DATA  | 0x05, "C_OSD_OP_DELETE")             \
+	V(C_OSD_OP_APPEND,             C_OSD_OP_MODE_WR    | C_OSD_OP_TYPE_DATA  | 0x06, "C_OSD_OP_APPEND")             \
+	V(C_OSD_OP_STARTSYNC,          C_OSD_OP_MODE_WR    | C_OSD_OP_TYPE_DATA  | 0x07, "C_OSD_OP_STARTSYNC")          \
+	V(C_OSD_OP_SETTRUNC,           C_OSD_OP_MODE_WR    | C_OSD_OP_TYPE_DATA  | 0x08, "C_OSD_OP_SETTRUNC")           \
+	V(C_OSD_OP_TRIMTRUNC,          C_OSD_OP_MODE_WR    | C_OSD_OP_TYPE_DATA  | 0x09, "C_OSD_OP_TRIMTRUNC")          \
+	V(C_OSD_OP_TMAPPUT,            C_OSD_OP_MODE_WR    | C_OSD_OP_TYPE_DATA  | 0x0B, "C_OSD_OP_TMAPPUT")            \
+	V(C_OSD_OP_CREATE,             C_OSD_OP_MODE_WR    | C_OSD_OP_TYPE_DATA  | 0x0D, "C_OSD_OP_CREATE")             \
+	V(C_OSD_OP_ROLLBACK,           C_OSD_OP_MODE_WR    | C_OSD_OP_TYPE_DATA  | 0x0E, "C_OSD_OP_ROLLBACK")           \
+	V(C_OSD_OP_WATCH,              C_OSD_OP_MODE_WR    | C_OSD_OP_TYPE_DATA  | 0x0F, "C_OSD_OP_WATCH")              \
+	V(C_OSD_OP_OMAPSETVALS,        C_OSD_OP_MODE_WR    | C_OSD_OP_TYPE_DATA  | 0x15, "C_OSD_OP_OMAPSETVALS")        \
+	V(C_OSD_OP_OMAPSETHEADER,      C_OSD_OP_MODE_WR    | C_OSD_OP_TYPE_DATA  | 0x16, "C_OSD_OP_OMAPSETHEADER")      \
+	V(C_OSD_OP_OMAPCLEAR,          C_OSD_OP_MODE_WR    | C_OSD_OP_TYPE_DATA  | 0x17, "C_OSD_OP_OMAPCLEAR")          \
+	V(C_OSD_OP_OMAPRMKEYS,         C_OSD_OP_MODE_WR    | C_OSD_OP_TYPE_DATA  | 0x18, "C_OSD_OP_OMAPRMKEYS")         \
+	V(C_OSD_OP_COPY_FROM,          C_OSD_OP_MODE_WR    | C_OSD_OP_TYPE_DATA  | 0x1A, "C_OSD_OP_COPY_FROM")          \
+	V(C_OSD_OP_UNDIRTY,            C_OSD_OP_MODE_WR    | C_OSD_OP_TYPE_DATA  | 0x1C, "C_OSD_OP_UNDIRTY")            \
+	V(C_OSD_OP_SETALLOCHINT,       C_OSD_OP_MODE_WR    | C_OSD_OP_TYPE_DATA  | 0x23, "C_OSD_OP_SETALLOCHINT")       \
+	V(C_OSD_OP_SETXATTR,           C_OSD_OP_MODE_WR    | C_OSD_OP_TYPE_ATTR  | 0x01, "C_OSD_OP_SETXATTR")           \
+	V(C_OSD_OP_SETXATTRS,          C_OSD_OP_MODE_WR    | C_OSD_OP_TYPE_ATTR  | 0x02, "C_OSD_OP_SETXATTRS")          \
+	V(C_OSD_OP_RESETXATTRS,        C_OSD_OP_MODE_WR    | C_OSD_OP_TYPE_ATTR  | 0x03, "C_OSD_OP_RESETXATTRS")        \
+	V(C_OSD_OP_RMXATTR,            C_OSD_OP_MODE_WR    | C_OSD_OP_TYPE_ATTR  | 0x04, "C_OSD_OP_RMXATTR")            \
+	V(C_OSD_OP_CLONERANGE,         C_OSD_OP_MODE_WR    | C_OSD_OP_TYPE_MULTI | 0x01, "C_OSD_OP_CLONERANGE")         \
+	V(C_OSD_OP_MODE_RMW,           0x3000,                                           "C_OSD_OP_MODE_RMW")           \
+	V(C_OSD_OP_TMAPUP,             C_OSD_OP_MODE_RMW   | C_OSD_OP_TYPE_DATA  | 0x0A, "C_OSD_OP_TMAPUP")             \
+	V(C_OSD_OP_TMAP2OMAP,          C_OSD_OP_MODE_RMW   | C_OSD_OP_TYPE_DATA  | 0x22, "C_OSD_OP_TMAP2OMAP")          \
+	V(C_OSD_OP_MODE_SUB,           0x4000,                                           "C_OSD_OP_MODE_SUB")           \
+	V(C_OSD_OP_PULL,               C_OSD_OP_MODE_SUB                         | 0x01, "C_OSD_OP_PULL")               \
+	V(C_OSD_OP_PUSH,               C_OSD_OP_MODE_SUB                         | 0x02, "C_OSD_OP_PUSH")               \
+	V(C_OSD_OP_BALANCEREADS,       C_OSD_OP_MODE_SUB                         | 0x03, "C_OSD_OP_BALANCEREADS")       \
+	V(C_OSD_OP_UNBALANCEREADS,     C_OSD_OP_MODE_SUB                         | 0x04, "C_OSD_OP_UNBALANCEREADS")     \
+	V(C_OSD_OP_SCRUB,              C_OSD_OP_MODE_SUB                         | 0x05, "C_OSD_OP_SCRUB")              \
+	V(C_OSD_OP_SCRUB_RESERVE,      C_OSD_OP_MODE_SUB                         | 0x06, "C_OSD_OP_SCRUB_RESERVE")      \
+	V(C_OSD_OP_SCRUB_UNRESERVE,    C_OSD_OP_MODE_SUB                         | 0x07, "C_OSD_OP_SCRUB_UNRESERVE")    \
+	V(C_OSD_OP_SCRUB_STOP,         C_OSD_OP_MODE_SUB                         | 0x08, "C_OSD_OP_SCRUB_STOP")         \
+	V(C_OSD_OP_SCRUB_MAP,          C_OSD_OP_MODE_SUB                         | 0x09, "C_OSD_OP_SCRUB_MAP")          \
+	V(C_OSD_OP_MODE_CACHE,         0x8000,                                           "C_OSD_OP_MODE_CACHE")         \
+	V(C_OSD_OP_CACHE_FLUSH,        C_OSD_OP_MODE_CACHE | C_OSD_OP_TYPE_DATA  | 0x1F, "C_OSD_OP_CACHE_FLUSH")        \
+	V(C_OSD_OP_CACHE_EVICT,        C_OSD_OP_MODE_CACHE | C_OSD_OP_TYPE_DATA  | 0x20, "C_OSD_OP_CACHE_EVICT")        \
+	V(C_OSD_OP_CACHE_TRY_FLUSH,    C_OSD_OP_MODE_CACHE | C_OSD_OP_TYPE_DATA  | 0x21, "C_OSD_OP_CACHE_TRY_FLUSH")    \
+	V(C_OSD_OP_MODE,               0xf000,                                           "C_OSD_OP_MODE")
 
 c_make_strings_ext(c_osd_optype, 4)
 
@@ -1224,7 +1074,8 @@ c_pkt_data_init(c_pkt_data *d, packet_info *pinfo, guint off)
 	if (pinfo->fd->flags.visited)
 	{
 		/* Retrieve the saved state. */
-		d->convd = (c_conv_data*)p_get_proto_data(wmem_file_scope(), pinfo, proto_ceph, off);
+		d->convd = (c_conv_data*)p_get_proto_data(wmem_file_scope(), pinfo,
+		                                          proto_ceph, off);
 		DISSECTOR_ASSERT_HINT(d->convd, "Frame visited, but no saved state.");
 		/* Make a copy and use that so we don't mess up the original. */
 		d->convd = c_conv_data_copy(d->convd, wmem_new(wmem_packet_scope(), c_conv_data));
@@ -1450,7 +1301,8 @@ guint c_dissect_sockaddr(proto_tree *root, c_sockaddr *sdata,
 	};
 	*/
 	
-	ti = proto_tree_add_item(root, hf_sockaddr, tvb, off, C_SIZE_SOCKADDR_STORAGE, ENC_NA);
+	ti = proto_tree_add_item(root, hf_sockaddr,
+	                         tvb, off, C_SIZE_SOCKADDR_STORAGE, ENC_NA);
 	tree = proto_item_add_subtree(ti, hf_sockaddr);
 	
 	d.af = tvb_get_ntohs(tvb, off);
@@ -1771,7 +1623,8 @@ guint c_dissect_str(proto_tree *root, int hf, c_str *out,
 	c_str d;
 	
 	d.size = tvb_get_letohl(tvb, off);
-	d.str  = (char*)tvb_get_string_enc(wmem_packet_scope(), tvb, off+4, d.size, ENC_ASCII);
+	d.str  = (char*)tvb_get_string_enc(wmem_packet_scope(),
+	                                   tvb, off+4, d.size, ENC_ASCII);
 	
 	ti = proto_tree_add_string_format_value(root, hf, tvb, off, 4+d.size,
 	                                        d.str,
@@ -1805,12 +1658,15 @@ guint c_dissect_encoded(proto_tree *tree, c_encoded *enc,
                         tvbuff_t *tvb, guint off, c_pkt_data *data _U_)
 {
 	enc->version = tvb_get_guint8(tvb, off);
-	proto_tree_add_item(tree, hf_encoded_ver,    tvb, off++, 1, ENC_LITTLE_ENDIAN);
+	proto_tree_add_item(tree, hf_encoded_ver,
+	                    tvb, off++, 1, ENC_LITTLE_ENDIAN);
 	enc->compat = tvb_get_guint8(tvb, off);
-	proto_tree_add_item(tree, hf_encoded_compat, tvb, off++, 1, ENC_LITTLE_ENDIAN);
+	proto_tree_add_item(tree, hf_encoded_compat,
+	                    tvb, off++, 1, ENC_LITTLE_ENDIAN);
 	
 	enc->size = tvb_get_letohl(tvb, off);
-	proto_tree_add_item(tree, hf_encoded_size, tvb, off, 4, ENC_LITTLE_ENDIAN);
+	proto_tree_add_item(tree, hf_encoded_size,
+	                    tvb, off, 4, ENC_LITTLE_ENDIAN);
 	off += 4;
 	
 	return off;
@@ -1986,28 +1842,36 @@ guint c_dissect_mds_release(proto_tree *root, gint hf,
 	tree = proto_item_add_subtree(ti, hf);
 	
 	inode = tvb_get_letoh64(tvb, off);
-	proto_tree_add_item(tree, hf_mds_release_inode, tvb, off, 8, ENC_LITTLE_ENDIAN);
+	proto_tree_add_item(tree, hf_mds_release_inode,
+	                    tvb, off, 8, ENC_LITTLE_ENDIAN);
 	off += 8;
 	
-	proto_tree_add_item(tree, hf_mds_release_capid, tvb, off, 8, ENC_LITTLE_ENDIAN);
+	proto_tree_add_item(tree, hf_mds_release_capid,
+	                    tvb, off, 8, ENC_LITTLE_ENDIAN);
 	off += 8;
 	
-	proto_tree_add_item(tree, hf_mds_release_new, tvb, off, 4, ENC_LITTLE_ENDIAN);
+	proto_tree_add_item(tree, hf_mds_release_new,
+	                    tvb, off, 4, ENC_LITTLE_ENDIAN);
 	off += 4;
 	
-	proto_tree_add_item(tree, hf_mds_release_wanted, tvb, off, 4, ENC_LITTLE_ENDIAN);
+	proto_tree_add_item(tree, hf_mds_release_wanted,
+	                    tvb, off, 4, ENC_LITTLE_ENDIAN);
 	off += 4;
 	
-	proto_tree_add_item(tree, hf_mds_release_seq, tvb, off, 4, ENC_LITTLE_ENDIAN);
+	proto_tree_add_item(tree, hf_mds_release_seq,
+	                    tvb, off, 4, ENC_LITTLE_ENDIAN);
 	off += 4;
 	
-	proto_tree_add_item(tree, hf_mds_release_seq_issue, tvb, off, 4, ENC_LITTLE_ENDIAN);
+	proto_tree_add_item(tree, hf_mds_release_seq_issue,
+	                    tvb, off, 4, ENC_LITTLE_ENDIAN);
 	off += 4;
 	
-	proto_tree_add_item(tree, hf_mds_release_mseq, tvb, off, 4, ENC_LITTLE_ENDIAN);
+	proto_tree_add_item(tree, hf_mds_release_mseq,
+	                    tvb, off, 4, ENC_LITTLE_ENDIAN);
 	off += 4;
 	
-	proto_tree_add_item(tree, hf_mds_release_dname_seq, tvb, off, 4, ENC_LITTLE_ENDIAN);
+	proto_tree_add_item(tree, hf_mds_release_dname_seq,
+	                    tvb, off, 4, ENC_LITTLE_ENDIAN);
 	off += 4;
 	
 	off = c_dissect_str(tree, hf_mds_release_dname, NULL, tvb, off);
@@ -2414,7 +2278,8 @@ guint c_dissect_msg_mon_sub(proto_tree *root,
 		} __attribute__ ((packed));
 		*/
 		
-		subti = proto_tree_add_item(tree, hf_msg_mon_sub_item, tvb, off, -1, ENC_NA);
+		subti = proto_tree_add_item(tree, hf_msg_mon_sub_item,
+		                    tvb, off, -1, ENC_NA);
 		subtree = proto_item_add_subtree(subti, hf_msg_mon_sub_item);
 		
 		off = c_dissect_str(subtree, hf_msg_mon_sub_what, &str, tvb, off);
@@ -2567,10 +2432,12 @@ guint c_dissect_msg_mds_map(proto_tree *root,
 	ti = proto_tree_add_item(root, hf_msg_mds_map, tvb, off, front_len, ENC_NA);
 	tree = proto_item_add_subtree(ti, hf_msg_mds_map);
 	
-	proto_tree_add_item(tree, hf_msg_mds_map_fsid, tvb, off, 16, ENC_BIG_ENDIAN);
+	proto_tree_add_item(tree, hf_msg_mds_map_fsid,
+	                    tvb, off, 16, ENC_BIG_ENDIAN);
 	off += 16;
 	
-	proto_tree_add_item(tree, hf_msg_mds_map_epoch, tvb, off, 4, ENC_LITTLE_ENDIAN);
+	proto_tree_add_item(tree, hf_msg_mds_map_epoch,
+	                    tvb, off, 4, ENC_LITTLE_ENDIAN);
 	off += 4;
 	
 	//@TODO: Dissect map data.
@@ -2602,19 +2469,24 @@ guint c_dissect_msg_client_sess(proto_tree *root,
 	tree = proto_item_add_subtree(ti, hf_msg_client_sess);
 	
 	op = (c_session_op_type)tvb_get_letohl(tvb, off);
-	proto_tree_add_item(tree, hf_msg_client_sess_op, tvb, off, 4, ENC_LITTLE_ENDIAN);
+	proto_tree_add_item(tree, hf_msg_client_sess_op,
+	                    tvb, off, 4, ENC_LITTLE_ENDIAN);
 	off += 4;
 	
-	proto_tree_add_item(tree, hf_msg_client_sess_seq, tvb, off, 8, ENC_LITTLE_ENDIAN);
+	proto_tree_add_item(tree, hf_msg_client_sess_seq,
+	                    tvb, off, 8, ENC_LITTLE_ENDIAN);
 	off += 8;
 	
-	proto_tree_add_item(tree, hf_msg_client_sess_time, tvb, off, 8, ENC_LITTLE_ENDIAN);
+	proto_tree_add_item(tree, hf_msg_client_sess_time,
+	                    tvb, off, 8, ENC_LITTLE_ENDIAN);
 	off += 8;
 	
-	proto_tree_add_item(tree, hf_msg_client_sess_caps_max, tvb, off, 4, ENC_LITTLE_ENDIAN);
+	proto_tree_add_item(tree, hf_msg_client_sess_caps_max,
+	                    tvb, off, 4, ENC_LITTLE_ENDIAN);
 	off += 4;
 	
-	proto_tree_add_item(tree, hf_msg_client_sess_leases_max, tvb, off, 4, ENC_LITTLE_ENDIAN);
+	proto_tree_add_item(tree, hf_msg_client_sess_leases_max,
+	                    tvb, off, 4, ENC_LITTLE_ENDIAN);
 	off += 4;
 	
 	c_append_text(data, ti, ", Operation: %s", c_session_op_type_string(op));
@@ -2642,36 +2514,46 @@ guint c_dissect_msg_client_req(proto_tree *root,
 	ti = proto_tree_add_item(root, hf_msg_client_req, tvb, off, front_len, ENC_NA);
 	tree = proto_item_add_subtree(ti, hf_msg_client_req);
 	
-	proto_tree_add_item(tree, hf_msg_client_req_oldest_tid, tvb, off, 8, ENC_LITTLE_ENDIAN);
+	proto_tree_add_item(tree, hf_msg_client_req_oldest_tid,
+	                    tvb, off, 8, ENC_LITTLE_ENDIAN);
 	off += 8;
 	
-	proto_tree_add_item(tree, hf_msg_client_req_mdsmap_epoch, tvb, off, 4, ENC_LITTLE_ENDIAN);
+	proto_tree_add_item(tree, hf_msg_client_req_mdsmap_epoch,
+	                    tvb, off, 4, ENC_LITTLE_ENDIAN);
 	off += 4;
 	
-	proto_tree_add_item(tree, hf_msg_client_req_flags, tvb, off, 4, ENC_LITTLE_ENDIAN);
+	proto_tree_add_item(tree, hf_msg_client_req_flags,
+	                    tvb, off, 4, ENC_LITTLE_ENDIAN);
 	off += 4;
 	
-	proto_tree_add_item(tree, hf_msg_client_req_retry, tvb, off, 1, ENC_LITTLE_ENDIAN);
+	proto_tree_add_item(tree, hf_msg_client_req_retry,
+	                    tvb, off, 1, ENC_LITTLE_ENDIAN);
 	off += 1;
 	
-	proto_tree_add_item(tree, hf_msg_client_req_forward, tvb, off, 1, ENC_LITTLE_ENDIAN);
+	proto_tree_add_item(tree, hf_msg_client_req_forward,
+	                    tvb, off, 1, ENC_LITTLE_ENDIAN);
 	off += 1;
 	
 	i = tvb_get_letohs(tvb, off);
-	proto_tree_add_item(tree, hf_msg_client_req_releases, tvb, off, 2, ENC_LITTLE_ENDIAN);
+	proto_tree_add_item(tree, hf_msg_client_req_releases,
+	                    tvb, off, 2, ENC_LITTLE_ENDIAN);
 	off += 2;
 	
 	type = (c_mds_op_type)tvb_get_letohl(tvb, off);
-	proto_tree_add_item(tree, hf_msg_client_req_op, tvb, off, 4, ENC_LITTLE_ENDIAN);
+	proto_tree_add_item(tree, hf_msg_client_req_op,
+	                    tvb, off, 4, ENC_LITTLE_ENDIAN);
 	off += 4;
 	
-	proto_tree_add_item(tree, hf_msg_client_req_caller_uid, tvb, off, 4, ENC_LITTLE_ENDIAN);
+	proto_tree_add_item(tree, hf_msg_client_req_caller_uid,
+	                    tvb, off, 4, ENC_LITTLE_ENDIAN);
 	off += 4;
 	
-	proto_tree_add_item(tree, hf_msg_client_req_caller_gid, tvb, off, 4, ENC_LITTLE_ENDIAN);
+	proto_tree_add_item(tree, hf_msg_client_req_caller_gid,
+	                    tvb, off, 4, ENC_LITTLE_ENDIAN);
 	off += 4;
 	
-	proto_tree_add_item(tree, hf_msg_client_req_inode, tvb, off, 8, ENC_LITTLE_ENDIAN);
+	proto_tree_add_item(tree, hf_msg_client_req_inode,
+	                    tvb, off, 8, ENC_LITTLE_ENDIAN);
 	off += 8;
 	
 	off += 48; //@TODO: Message specific data.
@@ -2681,12 +2563,14 @@ guint c_dissect_msg_client_req(proto_tree *root,
 	
 	while (i--)
 	{
-		off = c_dissect_mds_release(tree, hf_msg_client_req_release, tvb, off, data);
+		off = c_dissect_mds_release(tree, hf_msg_client_req_release,
+		                            tvb, off, data);
 	}
 	
 	if (data->header.ver >= 2)
 	{
-		proto_tree_add_item(tree, hf_msg_client_req_time, tvb, off, 8, ENC_LITTLE_ENDIAN);
+		proto_tree_add_item(tree, hf_msg_client_req_time,
+		                    tvb, off, 8, ENC_LITTLE_ENDIAN);
 		off += 8;
 	}
 	
@@ -2716,15 +2600,18 @@ guint c_dissect_msg_client_reqfwd(proto_tree *root,
 	tree = proto_item_add_subtree(ti, hf_msg_client_reqfwd);
 	
 	to = tvb_get_letohl(tvb, off);
-	proto_tree_add_item(tree, hf_msg_client_reqfwd_dst, tvb, off, 4, ENC_LITTLE_ENDIAN);
+	proto_tree_add_item(tree, hf_msg_client_reqfwd_dst,
+	                    tvb, off, 4, ENC_LITTLE_ENDIAN);
 	off += 4;
 	
 	fwd = tvb_get_letohl(tvb, off);
-	proto_tree_add_item(tree, hf_msg_client_reqfwd_fwd, tvb, off, 4, ENC_LITTLE_ENDIAN);
+	proto_tree_add_item(tree, hf_msg_client_reqfwd_fwd,
+	                    tvb, off, 4, ENC_LITTLE_ENDIAN);
 	off += 4;
 	
 	resend = tvb_get_guint8(tvb, off);
-	proto_tree_add_item(tree, hf_msg_client_reqfwd_resend, tvb, off, 1, ENC_LITTLE_ENDIAN);
+	proto_tree_add_item(tree, hf_msg_client_reqfwd_resend,
+	                    tvb, off, 1, ENC_LITTLE_ENDIAN);
 	off += 1;
 	
 	c_append_text(data, ti, ", To: mds%"G_GINT32_MODIFIER"u, Resend: %s, "
@@ -2754,22 +2641,28 @@ guint c_dissect_msg_client_reply(proto_tree *root,
 	tree = proto_item_add_subtree(ti, hf_msg_client_reply);
 	
 	type = (c_mds_op_type)tvb_get_letohl(tvb, off);
-	proto_tree_add_item(tree, hf_msg_client_reply_op, tvb, off, 4, ENC_LITTLE_ENDIAN);
+	proto_tree_add_item(tree, hf_msg_client_reply_op,
+	                    tvb, off, 4, ENC_LITTLE_ENDIAN);
 	off += 4;
 	
-	proto_tree_add_item(tree, hf_msg_client_reply_result, tvb, off, 4, ENC_LITTLE_ENDIAN);
+	proto_tree_add_item(tree, hf_msg_client_reply_result,
+	                    tvb, off, 4, ENC_LITTLE_ENDIAN);
 	off += 4;
 	
-	proto_tree_add_item(tree, hf_msg_client_reply_mdsmap_epoch, tvb, off, 4, ENC_LITTLE_ENDIAN);
+	proto_tree_add_item(tree, hf_msg_client_reply_mdsmap_epoch,
+	                    tvb, off, 4, ENC_LITTLE_ENDIAN);
 	off += 4;
 	
-	proto_tree_add_item(tree, hf_msg_client_reply_safe, tvb, off, 1, ENC_LITTLE_ENDIAN);
+	proto_tree_add_item(tree, hf_msg_client_reply_safe,
+	                    tvb, off, 1, ENC_LITTLE_ENDIAN);
 	off += 1;
 	
-	proto_tree_add_item(tree, hf_msg_client_reply_isdentry, tvb, off, 1, ENC_LITTLE_ENDIAN);
+	proto_tree_add_item(tree, hf_msg_client_reply_isdentry,
+	                    tvb, off, 1, ENC_LITTLE_ENDIAN);
 	off += 1;
 	
-	proto_tree_add_item(tree, hf_msg_client_reply_istarget, tvb, off, 1, ENC_LITTLE_ENDIAN);
+	proto_tree_add_item(tree, hf_msg_client_reply_istarget,
+	                    tvb, off, 1, ENC_LITTLE_ENDIAN);
 	off += 1;
 	
 	//@TODO: Dissect these.
@@ -2816,7 +2709,8 @@ guint c_dissect_msg_osd_map(proto_tree *root,
 	off += 4;
 	while (i--)
 	{
-		ti = proto_tree_add_item(tree, hf_msg_osd_map_inc, tvb, off, -1, ENC_NA);
+		ti = proto_tree_add_item(tree, hf_msg_osd_map_inc,
+		                    tvb, off, -1, ENC_NA);
 		subtree = proto_item_add_subtree(ti, hf_msg_osd_map_inc);
 		
 		proto_tree_add_item(subtree, hf_msg_osd_map_epoch,
@@ -2837,7 +2731,8 @@ guint c_dissect_msg_osd_map(proto_tree *root,
 	off += 4;
 	while (i--)
 	{
-		ti = proto_tree_add_item(tree, hf_msg_osd_map_map, tvb, off, -1, ENC_NA);
+		ti = proto_tree_add_item(tree, hf_msg_osd_map_map,
+		                    tvb, off, -1, ENC_NA);
 		subtree = proto_item_add_subtree(ti, hf_msg_osd_map_map);
 		
 		proto_tree_add_item(subtree, hf_msg_osd_map_epoch,
@@ -2897,7 +2792,8 @@ guint c_dissect_msg_osd_op(proto_tree *root,
 	                    tvb, off, 8, ENC_TIME_TIMESPEC|ENC_LITTLE_ENDIAN);
 	off += 8;
 	
-	off = c_dissect_eversion(tree, hf_msg_osd_op_reassert_version, tvb, off, data);
+	off = c_dissect_eversion(tree, hf_msg_osd_op_reassert_version,
+	                         tvb, off, data);
 	
 	off = c_dissect_object_locator(tree, hf_msg_osd_op_oloc, tvb, off, data);
 	
@@ -2907,7 +2803,8 @@ guint c_dissect_msg_osd_op(proto_tree *root,
 	
 	opslen = tvb_get_letohs(tvb, off);
 	c_append_text(data, ti, ", Operations: %"G_GINT32_MODIFIER"d", opslen);
-	proto_tree_add_item(tree, hf_msg_osd_op_ops_len, tvb, off, 2, ENC_LITTLE_ENDIAN);
+	proto_tree_add_item(tree, hf_msg_osd_op_ops_len,
+	                    tvb, off, 2, ENC_LITTLE_ENDIAN);
 	off += 2;
 	ops = wmem_alloc_array(wmem_packet_scope(), c_osd_op, opslen);
 	for (i = 0; i < opslen; i++)
@@ -2915,23 +2812,28 @@ guint c_dissect_msg_osd_op(proto_tree *root,
 		off = c_dissect_osd_op(tree, hf_msg_osd_op_op, &ops[i], tvb, off, data);
 	}
 	
-	proto_tree_add_item(tree, hf_msg_osd_op_snap_id, tvb, off, 8, ENC_LITTLE_ENDIAN);
+	proto_tree_add_item(tree, hf_msg_osd_op_snap_id,
+	                    tvb, off, 8, ENC_LITTLE_ENDIAN);
 	off += 8;
-	proto_tree_add_item(tree, hf_msg_osd_op_snap_seq, tvb, off, 8, ENC_LITTLE_ENDIAN);
+	proto_tree_add_item(tree, hf_msg_osd_op_snap_seq,
+	                    tvb, off, 8, ENC_LITTLE_ENDIAN);
 	off += 8;
 	
 	i = tvb_get_letohl(tvb, off);
-	proto_tree_add_item(tree, hf_msg_osd_op_snaps_len, tvb, off, 4, ENC_LITTLE_ENDIAN);
+	proto_tree_add_item(tree, hf_msg_osd_op_snaps_len,
+	                    tvb, off, 4, ENC_LITTLE_ENDIAN);
 	off += 4;
 	while (i--)
 	{
-		proto_tree_add_item(tree, hf_msg_osd_op_snap, tvb, off, 8, ENC_LITTLE_ENDIAN);
+		proto_tree_add_item(tree, hf_msg_osd_op_snap,
+		                    tvb, off, 8, ENC_LITTLE_ENDIAN);
 		off += 8;
 	}
 	
 	if (data->header.ver >= 4)
 	{
-		proto_tree_add_item(tree, hf_msg_osd_op_retry_attempt, tvb, off, 4, ENC_LITTLE_ENDIAN);
+		proto_tree_add_item(tree, hf_msg_osd_op_retry_attempt,
+		                    tvb, off, 4, ENC_LITTLE_ENDIAN);
 		off += 4;
 	}
 	
@@ -2973,7 +2875,7 @@ guint c_dissect_msg_osd_opreply(proto_tree *root,
 	off = c_dissect_pgid(tree, hf_msg_osd_opreply_pgid, tvb, off, data);
 	
 	off = c_dissect_osd_flags(tree, tvb, off, data);
-	off += 4; /* flags is 64 bit but it appears that the higher 32 are ignored. */
+	off += 4; /* flags is 64 bit but the higher bits are ignored. */
 	
 	proto_tree_add_item(tree, hf_msg_osd_opreply_result,
 	                    tvb, off, 4, ENC_LITTLE_ENDIAN);
@@ -3130,13 +3032,16 @@ guint c_dissect_msg_poolop(proto_tree *root,
 		off = c_dissect_str(tree, hf_msg_poolop_name, &name, tvb, off);
 	
 	type = (c_poolop_type)tvb_get_letohl(tvb, off);
-	proto_tree_add_item(tree, hf_msg_poolop_type, tvb, off, 4, ENC_LITTLE_ENDIAN);
+	proto_tree_add_item(tree, hf_msg_poolop_type,
+	                    tvb, off, 4, ENC_LITTLE_ENDIAN);
 	off += 4;
 	
-	proto_tree_add_item(tree, hf_msg_poolop_auid, tvb, off, 8, ENC_LITTLE_ENDIAN);
+	proto_tree_add_item(tree, hf_msg_poolop_auid,
+	                    tvb, off, 8, ENC_LITTLE_ENDIAN);
 	off += 8;
 	
-	proto_tree_add_item(tree, hf_msg_poolop_snapid, tvb, off, 8, ENC_LITTLE_ENDIAN);
+	proto_tree_add_item(tree, hf_msg_poolop_snapid,
+	                    tvb, off, 8, ENC_LITTLE_ENDIAN);
 	off += 8;
 	
 	if (data->header.ver >= 2)
@@ -3145,12 +3050,14 @@ guint c_dissect_msg_poolop(proto_tree *root,
 	if (data->header.ver >= 4)
 	{
 		off += 1; /* Skip padding byte. */
-		proto_tree_add_item(tree, hf_msg_poolop_crush_rule, tvb, off, 2, ENC_LITTLE_ENDIAN);
+		proto_tree_add_item(tree, hf_msg_poolop_crush_rule,
+		                    tvb, off, 2, ENC_LITTLE_ENDIAN);
 		off += 2;
 	}
 	else if (data->header.ver == 3)
 	{
-		proto_tree_add_item(tree, hf_msg_poolop_crush_rule8, tvb, off, 1, ENC_LITTLE_ENDIAN);
+		proto_tree_add_item(tree, hf_msg_poolop_crush_rule8,
+		                    tvb, off, 1, ENC_LITTLE_ENDIAN);
 		off += 1;
 	}
 	
@@ -3195,7 +3102,8 @@ guint c_dissect_msg_mon_cmd(proto_tree *root,
 	off += 4;
 	while (i--)
 	{
-		ti = proto_tree_add_item(tree, hf_msg_mon_cmd_arg, tvb, off, -1, ENC_NA);
+		ti = proto_tree_add_item(tree, hf_msg_mon_cmd_arg,
+		                         tvb, off, -1, ENC_NA);
 		subtree = proto_item_add_subtree(ti, hf_msg_mon_cmd_arg);
 		
 		off = c_dissect_str(subtree, hf_msg_mon_cmd_str, &str, tvb, off);
@@ -3748,8 +3656,10 @@ guint c_dissect_msg(proto_tree *tree,
 	/*** Copy the data to the state structure. ***/
 	if (!data->src->name.slug)
 	{
-		data->src->name.slug     = wmem_strdup(wmem_file_scope(), data->header.src.slug);
-		data->src->name.type_str = wmem_strdup(wmem_file_scope(), data->header.src.type_str);
+		data->src->name.slug     = wmem_strdup(wmem_file_scope(),
+		                                       data->header.src.slug);
+		data->src->name.type_str = wmem_strdup(wmem_file_scope(),
+		                                       data->header.src.type_str);
 		data->src->name.type     = data->header.src.type;
 		data->src->name.id       = data->header.src.id;
 	}
@@ -3846,7 +3756,7 @@ guint c_dissect_msg(proto_tree *tree,
 	proto_tree_add_item(subtree, hf_foot_signature,
 	                    tvb, off, 8, ENC_LITTLE_ENDIAN);
 	off += 8;
-	off = c_dissect_flags(subtree, tvb, off, data); /* @HELP: Can we do this? */
+	off = c_dissect_flags(subtree, tvb, off, data);
 	
 	return off;
 }
@@ -4069,7 +3979,8 @@ guint c_dissect_msgr(proto_tree *tree,
 		if (!tvb_bytes_exist(tvb, off, 8))
 			return off+8; /* We need more data to dissect. */
 		
-		proto_tree_add_item(tree, hf_seq_existing, tvb, off, 8, ENC_LITTLE_ENDIAN);
+		proto_tree_add_item(tree, hf_seq_existing,
+		                    tvb, off, 8, ENC_LITTLE_ENDIAN);
 		off += 8;
 		
 		data->dst->state = C_STATE_SEQ;
@@ -4102,7 +4013,8 @@ guint c_dissect_msgr(proto_tree *tree,
 			return off+C_SIZE_TIMESPEC; /* We need more data to dissect. */
 		
 		c_set_type(data, "KEEPALIVE2");
-		proto_tree_add_item(tree, hf_keepalive_time, tvb, off, 8, ENC_LITTLE_ENDIAN);
+		proto_tree_add_item(tree, hf_keepalive_time,
+		                    tvb, off, 8, ENC_LITTLE_ENDIAN);
 		off += 8;
 		break;
 	default:
@@ -4174,10 +4086,14 @@ guint c_dissect_pdu(proto_tree *root,
 	
 	if (data->tree_filter) {
 		/*** General Filter Data ***/
-		proto_tree_add_string(data->tree_filter, hf_src_slug, NULL,0,0, data->src->name.slug);
-		proto_tree_add_uint  (data->tree_filter, hf_src_type, NULL,0,0, data->src->name.type);
-		proto_tree_add_string(data->tree_filter, hf_dst_slug, NULL,0,0, data->dst->name.slug);
-		proto_tree_add_uint  (data->tree_filter, hf_dst_type, NULL,0,0, data->dst->name.type);
+		proto_tree_add_string(data->tree_filter, hf_src_slug,
+		                      NULL,0,0, data->src->name.slug);
+		proto_tree_add_uint(data->tree_filter, hf_src_type,
+		                    NULL,0,0, data->src->name.type);
+		proto_tree_add_string(data->tree_filter, hf_dst_slug,
+		                      NULL,0,0, data->dst->name.slug);
+		proto_tree_add_uint(data->tree_filter, hf_dst_type,
+		                    NULL,0,0, data->dst->name.type);
 		
 		proto_item_set_end(ti,  tvb, off);
 		proto_item_set_end(tif, tvb, off);
@@ -4278,7 +4194,8 @@ proto_register_ceph(void)
 		{ &hf_node_nonce, {
 			"Nonce", "ceph.node_nonce",
 			FT_UINT32, BASE_HEX, NULL, 0,
-			"Meaningless number to differentiate between nodes on the same system.", HFILL
+			"Meaningless number to differentiate between nodes on "
+			"the same system.", HFILL
 		} },
 		{ &hf_node_name, {
 			"Source Name", "ceph.node",
@@ -4983,7 +4900,8 @@ proto_register_ceph(void)
 		{ &hf_statsum_copies, {
 			"Copies", "ceph.statsum.copies",
 			FT_UINT64, BASE_DEC, NULL, 0,
-			"The total number of objects including redundant copies (objects*replicas).", HFILL
+			"The total number of objects including redundant "
+			"copies (objects*replicas).", HFILL
 		} },
 		{ &hf_statsum_missing, {
 			"Missing Objects", "ceph.statsum.missing",
@@ -4993,7 +4911,8 @@ proto_register_ceph(void)
 		{ &hf_statsum_degraded, {
 			"Degraded Objects", "ceph.statsum.degraded",
 			FT_UINT64, BASE_DEC, NULL, 0,
-			"Number of objects that are on at least one OSD but less then they should be.", HFILL
+			"Number of objects that are on at least one OSD but "
+			"less then they should be.", HFILL
 		} },
 		{ &hf_statsum_unfound, {
 			"Unfound Objects", "ceph.statsum.unfound",
@@ -5401,7 +5320,7 @@ proto_register_ceph(void)
 			NULL, HFILL
 		} },
 		{ &hf_msg_client_sess_caps_max, {
-			"Maximum Capabilities", "ceph.msg.client_sess.caps_max", //@HELP: Capabilities?
+			"Maximum Capabilities", "ceph.msg.client_sess.caps_max",
 			FT_UINT32, BASE_DEC, NULL, 0,
 			NULL, HFILL
 		} },
@@ -5635,9 +5554,9 @@ proto_register_ceph(void)
 			FT_UINT32, BASE_HEX, NULL, 0,
 			NULL, HFILL
 		} },
-		{ &hf_msg_osd_op_mtime, { //@HELP is it mod time?
+		{ &hf_msg_osd_op_mtime, {
 			"Modification Time", "ceph.msg.osd_op",
-			FT_ABSOLUTE_TIME, ABSOLUTE_TIME_LOCAL, NULL, 0, //@HELP: Absolute or relative?
+			FT_ABSOLUTE_TIME, ABSOLUTE_TIME_LOCAL, NULL, 0,
 			NULL, HFILL
 		} },
 		{ &hf_msg_osd_op_reassert_version, {
