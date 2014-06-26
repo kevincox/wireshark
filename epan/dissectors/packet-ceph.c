@@ -175,6 +175,10 @@ static int hf_osd_flag_map_snap_clone            = -1;
 static int hf_osd_flag_enforce_snapc             = -1;
 static int hf_osd_op_type                        = -1;
 static int hf_osd_op_data                        = -1;
+static int hf_osd_op_extent_off                        = -1;
+static int hf_osd_op_extent_size                        = -1;
+static int hf_osd_op_extent_trunc_size                        = -1;
+static int hf_osd_op_extent_trunc_seq                        = -1;
 static int hf_osd_op_payload_len                 = -1;
 static int hf_osd_redirect_oloc                  = -1;
 static int hf_osd_redirect_obj                   = -1;
@@ -2005,6 +2009,9 @@ guint c_dissect_osd_op(proto_tree *root, gint hf, c_osd_op *out,
 	proto_tree *tree;
 	c_osd_op d;
 	
+	guint64 offset, size;
+	guint64 trunc_size, trunc_seq;
+	
 	/* From ceph:/src/include/rados.h
 	struct ceph_osd_op {
 		__le16 op;           // CEPH_OSD_OP_*
@@ -2089,6 +2096,30 @@ guint c_dissect_osd_op(proto_tree *root, gint hf, c_osd_op *out,
 	
 	switch (d.type)
 	{
+	case C_OSD_OP_WRITE:
+	case C_OSD_OP_WRITEFULL:
+	case C_OSD_OP_ZERO:
+	case C_OSD_OP_TRUNCATE:
+	case C_OSD_OP_DELETE:
+	case C_OSD_OP_READ:
+	case C_OSD_OP_STAT:
+		offset = tvb_get_letoh64(tvb, off);
+		proto_tree_add_item(tree, hf_osd_op_extent_off,
+		                    tvb, off,    8, ENC_LITTLE_ENDIAN);
+		size = tvb_get_letoh64(tvb, off+8);
+		proto_tree_add_item(tree, hf_osd_op_extent_size,
+		                    tvb, off+8,  8, ENC_LITTLE_ENDIAN);
+		trunc_size = tvb_get_letoh64(tvb, off+16);
+		proto_tree_add_item(tree, hf_osd_op_extent_trunc_size,
+		                    tvb, off+16, 8, ENC_LITTLE_ENDIAN);
+		trunc_seq = tvb_get_letohl(tvb, off+24);
+		proto_tree_add_item(tree, hf_osd_op_extent_trunc_seq,
+		                    tvb, off+24, 4, ENC_LITTLE_ENDIAN);
+		
+		proto_item_append_text(ti, ", Offset: %"G_GINT64_MODIFIER"u"
+		                       ", Size: %"G_GINT64_MODIFIER"u",
+		                       offset, size);
+		break;
 	default:
 		proto_tree_add_item(tree, hf_osd_op_data, tvb, off, 28, ENC_NA);
 		//@TODO: Warn.
@@ -4848,6 +4879,26 @@ proto_register_ceph(void)
 		{ &hf_osd_op_data, {
 			"Operation Specific Data", "ceph.osd_op.data",
 			FT_BYTES, BASE_NONE, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_osd_op_extent_off, {
+			"Offset", "ceph.osd_op.extent.offset",
+			FT_UINT64, BASE_DEC, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_osd_op_extent_size, {
+			"Size", "ceph.osd_op.extent.size",
+			FT_UINT64, BASE_DEC, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_osd_op_extent_trunc_size, {
+			"Truncate Size", "ceph.osd_op.extent.trunc_size",
+			FT_UINT64, BASE_DEC, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_osd_op_extent_trunc_seq, {
+			"Truncate Sequence", "ceph.osd_op.extent.trunc_seq",
+			FT_UINT64, BASE_DEC, NULL, 0,
 			NULL, HFILL
 		} },
 		{ &hf_osd_op_payload_len, {
