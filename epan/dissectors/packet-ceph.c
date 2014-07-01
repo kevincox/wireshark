@@ -62,11 +62,11 @@ static int hf_inet_family                        = -1;
 static int hf_port                               = -1;
 static int hf_addr_ipv4                          = -1;
 static int hf_addr_ipv6                          = -1;
-static int hf_data_data                        = -1;
-static int hf_data_size                        = -1;
+static int hf_data_data                          = -1;
+static int hf_data_size                          = -1;
 static int hf_string_data                        = -1;
 static int hf_string_size                        = -1;
-static int hf_keepalive_time                               = -1;
+static int hf_keepalive_time                     = -1;
 static int hf_encoded_ver                        = -1;
 static int hf_encoded_compat                     = -1;
 static int hf_encoded_size                       = -1;
@@ -80,18 +80,18 @@ static int hf_pgid_ver                           = -1;
 static int hf_pgid_pool                          = -1;
 static int hf_pgid_seed                          = -1;
 static int hf_pgid_preferred                     = -1;
-static int hf_path_ver                     = -1;
-static int hf_path_inode                     = -1;
-static int hf_path_rel                     = -1;
-static int hf_mds_release_inode                     = -1;
-static int hf_mds_release_capid                     = -1;
-static int hf_mds_release_new                     = -1;
-static int hf_mds_release_wanted                     = -1;
-static int hf_mds_release_seq                     = -1;
-static int hf_mds_release_seq_issue                     = -1;
-static int hf_mds_release_mseq                     = -1;
-static int hf_mds_release_dname_seq                     = -1;
-static int hf_mds_release_dname                     = -1;
+static int hf_path_ver                           = -1;
+static int hf_path_inode                         = -1;
+static int hf_path_rel                           = -1;
+static int hf_mds_release_inode                  = -1;
+static int hf_mds_release_capid                  = -1;
+static int hf_mds_release_new                    = -1;
+static int hf_mds_release_wanted                 = -1;
+static int hf_mds_release_seq                    = -1;
+static int hf_mds_release_seq_issue              = -1;
+static int hf_mds_release_mseq                   = -1;
+static int hf_mds_release_dname_seq              = -1;
+static int hf_mds_release_dname                  = -1;
 static int hf_monmap_data                        = -1;
 static int hf_monmap_len                         = -1;
 static int hf_features_high                      = -1;
@@ -175,10 +175,10 @@ static int hf_osd_flag_map_snap_clone            = -1;
 static int hf_osd_flag_enforce_snapc             = -1;
 static int hf_osd_op_type                        = -1;
 static int hf_osd_op_data                        = -1;
-static int hf_osd_op_extent_off                        = -1;
-static int hf_osd_op_extent_size                        = -1;
-static int hf_osd_op_extent_trunc_size                        = -1;
-static int hf_osd_op_extent_trunc_seq                        = -1;
+static int hf_osd_op_extent_off                  = -1;
+static int hf_osd_op_extent_size                 = -1;
+static int hf_osd_op_extent_trunc_size           = -1;
+static int hf_osd_op_extent_trunc_seq            = -1;
 static int hf_osd_op_payload_len                 = -1;
 static int hf_osd_redirect_oloc                  = -1;
 static int hf_osd_redirect_obj                   = -1;
@@ -239,6 +239,15 @@ static int hf_paxos_mon                          = -1;
 static int hf_paxos_mon_tid                      = -1;
 static int hf_msg_mon_map                        = -1;
 static int hf_msg_mon_map_data                   = -1;
+static int hf_msg_statfs                         = -1;
+static int hf_msg_statfs_fsid                    = -1;
+static int hf_msg_statfsreply                    = -1;
+static int hf_msg_statfsreply_fsid                    = -1;
+static int hf_msg_statfsreply_ver                    = -1;
+static int hf_msg_statfsreply_kb                    = -1;
+static int hf_msg_statfsreply_kbused                    = -1;
+static int hf_msg_statfsreply_kbavail                    = -1;
+static int hf_msg_statfsreply_obj                    = -1;
 static int hf_msg_mon_sub                        = -1;
 static int hf_msg_mon_sub_item                   = -1;
 static int hf_msg_mon_sub_item_len               = -1;
@@ -264,46 +273,46 @@ static int hf_msg_auth_reply_data_data           = -1;
 static int hf_msg_auth_reply_data_len            = -1;
 static int hf_msg_auth_reply_msg                 = -1;
 static int hf_msg_mds_map                        = -1;
-static int hf_msg_mds_map_fsid                        = -1;
-static int hf_msg_mds_map_epoch                        = -1;
-static int hf_msg_mds_map_datai                        = -1;
-static int hf_msg_mds_map_data                        = -1;
-static int hf_msg_mds_map_data_len                        = -1;
-static int hf_msg_client_sess                        = -1;
-static int hf_msg_client_sess_op                        = -1;
-static int hf_msg_client_sess_seq                        = -1;
-static int hf_msg_client_sess_time                        = -1;
-static int hf_msg_client_sess_caps_max                        = -1;
-static int hf_msg_client_sess_leases_max                        = -1;
-static int hf_msg_client_req                        = -1;
-static int hf_msg_client_req_oldest_tid                        = -1;
-static int hf_msg_client_req_mdsmap_epoch                        = -1;
-static int hf_msg_client_req_flags                        = -1;
-static int hf_msg_client_req_retry                        = -1;
-static int hf_msg_client_req_forward                        = -1;
-static int hf_msg_client_req_releases                        = -1;
-static int hf_msg_client_req_op                        = -1;
-static int hf_msg_client_req_caller_uid                        = -1;
-static int hf_msg_client_req_caller_gid                        = -1;
-static int hf_msg_client_req_inode                        = -1;
-static int hf_msg_client_req_path_src                        = -1;
-static int hf_msg_client_req_path_dst                        = -1;
-static int hf_msg_client_req_release                        = -1;
-static int hf_msg_client_req_time                        = -1;
-static int hf_msg_client_reqfwd                        = -1;
-static int hf_msg_client_reqfwd_dst                        = -1;
-static int hf_msg_client_reqfwd_fwd                        = -1;
-static int hf_msg_client_reqfwd_resend                        = -1;
-static int hf_msg_client_reply                        = -1;
-static int hf_msg_client_reply_op                        = -1;
-static int hf_msg_client_reply_result                        = -1;
-static int hf_msg_client_reply_mdsmap_epoch                        = -1;
-static int hf_msg_client_reply_safe                        = -1;
-static int hf_msg_client_reply_isdentry                        = -1;
-static int hf_msg_client_reply_istarget                        = -1;
-static int hf_msg_client_reply_trace                        = -1;
-static int hf_msg_client_reply_extra                        = -1;
-static int hf_msg_client_reply_snaps                        = -1;
+static int hf_msg_mds_map_fsid                   = -1;
+static int hf_msg_mds_map_epoch                  = -1;
+static int hf_msg_mds_map_datai                  = -1;
+static int hf_msg_mds_map_data                   = -1;
+static int hf_msg_mds_map_data_len               = -1;
+static int hf_msg_client_sess                    = -1;
+static int hf_msg_client_sess_op                 = -1;
+static int hf_msg_client_sess_seq                = -1;
+static int hf_msg_client_sess_time               = -1;
+static int hf_msg_client_sess_caps_max           = -1;
+static int hf_msg_client_sess_leases_max         = -1;
+static int hf_msg_client_req                     = -1;
+static int hf_msg_client_req_oldest_tid          = -1;
+static int hf_msg_client_req_mdsmap_epoch        = -1;
+static int hf_msg_client_req_flags               = -1;
+static int hf_msg_client_req_retry               = -1;
+static int hf_msg_client_req_forward             = -1;
+static int hf_msg_client_req_releases            = -1;
+static int hf_msg_client_req_op                  = -1;
+static int hf_msg_client_req_caller_uid          = -1;
+static int hf_msg_client_req_caller_gid          = -1;
+static int hf_msg_client_req_inode               = -1;
+static int hf_msg_client_req_path_src            = -1;
+static int hf_msg_client_req_path_dst            = -1;
+static int hf_msg_client_req_release             = -1;
+static int hf_msg_client_req_time                = -1;
+static int hf_msg_client_reqfwd                  = -1;
+static int hf_msg_client_reqfwd_dst              = -1;
+static int hf_msg_client_reqfwd_fwd              = -1;
+static int hf_msg_client_reqfwd_resend           = -1;
+static int hf_msg_client_reply                   = -1;
+static int hf_msg_client_reply_op                = -1;
+static int hf_msg_client_reply_result            = -1;
+static int hf_msg_client_reply_mdsmap_epoch      = -1;
+static int hf_msg_client_reply_safe              = -1;
+static int hf_msg_client_reply_isdentry          = -1;
+static int hf_msg_client_reply_istarget          = -1;
+static int hf_msg_client_reply_trace             = -1;
+static int hf_msg_client_reply_extra             = -1;
+static int hf_msg_client_reply_snaps             = -1;
 static int hf_msg_osd_map                        = -1;
 static int hf_msg_osd_map_fsid                   = -1;
 static int hf_msg_osd_map_inc                    = -1;
@@ -407,28 +416,34 @@ static int hf_msg_mon_probe_paxos_first_ver      = -1;
 static int hf_msg_mon_probe_paxos_last_ver       = -1;
 static int hf_msg_mon_probe_ever_joined          = -1;
 static int hf_msg_mon_probe_req_features         = -1;
-static int hf_msg_client_caps                         = -1;
-static int hf_msg_client_caps_op                         = -1;
-static int hf_msg_client_caps_inode                         = -1;
-static int hf_msg_client_caps_relam                         = -1;
-static int hf_msg_client_caps_cap_id                         = -1;
-static int hf_msg_client_caps_seq                         = -1;
-static int hf_msg_client_caps_seq_issue                         = -1;
-static int hf_msg_client_caps_new                         = -1;
-static int hf_msg_client_caps_wanted                         = -1;
-static int hf_msg_client_caps_dirty                         = -1;
-static int hf_msg_client_caps_seq_migrate                         = -1;
-static int hf_msg_client_caps_snap_follows                         = -1;
-static int hf_msg_client_caps_uid                         = -1;
-static int hf_msg_client_caps_gid                         = -1;
-static int hf_msg_client_caps_mode                         = -1;
-static int hf_msg_client_caps_nlink                         = -1;
-static int hf_msg_client_caps_xattr_ver                         = -1;
-static int hf_msg_client_caps_snap                         = -1;
-static int hf_msg_client_caps_flock                         = -1;
-static int hf_msg_client_caps_inline_ver                         = -1;
-static int hf_msg_client_caps_inline_data                         = -1;
-static int hf_msg_client_caps_xattr                         = -1;
+static int hf_msg_client_caps                    = -1;
+static int hf_msg_client_caps_op                 = -1;
+static int hf_msg_client_caps_inode              = -1;
+static int hf_msg_client_caps_relam              = -1;
+static int hf_msg_client_caps_cap_id             = -1;
+static int hf_msg_client_caps_seq                = -1;
+static int hf_msg_client_caps_seq_issue          = -1;
+static int hf_msg_client_caps_new                = -1;
+static int hf_msg_client_caps_wanted             = -1;
+static int hf_msg_client_caps_dirty              = -1;
+static int hf_msg_client_caps_seq_migrate        = -1;
+static int hf_msg_client_caps_snap_follows       = -1;
+static int hf_msg_client_caps_uid                = -1;
+static int hf_msg_client_caps_gid                = -1;
+static int hf_msg_client_caps_mode               = -1;
+static int hf_msg_client_caps_nlink              = -1;
+static int hf_msg_client_caps_xattr_ver          = -1;
+static int hf_msg_client_caps_snap               = -1;
+static int hf_msg_client_caps_flock              = -1;
+static int hf_msg_client_caps_inline_ver         = -1;
+static int hf_msg_client_caps_inline_data        = -1;
+static int hf_msg_client_caps_xattr              = -1;
+static int hf_msg_client_caprel                         = -1;
+static int hf_msg_client_caprel_cap                         = -1;
+static int hf_msg_client_caprel_cap_inode                         = -1;
+static int hf_msg_client_caprel_cap_id                         = -1;
+static int hf_msg_client_caprel_cap_migrate                         = -1;
+static int hf_msg_client_caprel_cap_seq                         = -1;
 
 /* @TODO: Remove before release.  Just for copying convenience.
 static int hf_msg_                         = -1;
@@ -2183,9 +2198,9 @@ guint c_dissect_paxos(proto_tree *root,
  */
 static
 guint c_dissect_msg_unknown(proto_tree *tree,
-                          tvbuff_t *tvb,
-                          guint front_len, guint middle_len, guint data_len,
-                          c_pkt_data *data)
+                            tvbuff_t *tvb,
+                            guint front_len, guint middle_len, guint data_len,
+                            c_pkt_data *data)
 {
 	guint off = 0;
 	
@@ -2233,6 +2248,78 @@ guint c_dissect_msg_mon_map(proto_tree *root,
 	tree = proto_item_add_subtree(ti, hf_msg_mon_map);
 	
 	return c_dissect_monmap(tree, hf_msg_mon_map_data, tvb, 0, data);
+}
+
+/** Stat FS 0x000D */
+static
+guint c_dissect_msg_statfs(proto_tree *root,
+                           tvbuff_t *tvb,
+                           guint front_len, guint middle_len _U_, guint data_len _U_,
+                           c_pkt_data *data)
+{
+	proto_item *ti;
+	proto_tree *tree;
+	guint off = 0;
+	
+	/* ceph:/src/messages/MStatfs.h */
+	
+	c_set_type(data, "Stat FS");
+	
+	off = c_dissect_paxos(root, tvb, off, data);
+	
+	ti = proto_tree_add_item(root, hf_msg_statfs, tvb, off, front_len, ENC_NA);
+	tree = proto_item_add_subtree(ti, hf_msg_statfs);
+	
+	proto_tree_add_item(tree, hf_msg_statfs_fsid,
+	                    tvb, off, 16, ENC_BIG_ENDIAN);
+	off += 16;
+	
+	return off;
+}
+
+/** Stat FS Reply 0x000E */
+static
+guint c_dissect_msg_statfsreply(proto_tree *root,
+                                tvbuff_t *tvb,
+                                guint front_len, guint middle_len _U_, guint data_len _U_,
+                                c_pkt_data *data)
+{
+	proto_item *ti;
+	proto_tree *tree;
+	guint off = 0;
+	
+	/* ceph:/src/messages/MStatfsReply.h */
+	
+	c_set_type(data, "Stat FS Reply");
+	
+	ti = proto_tree_add_item(root, hf_msg_statfsreply, tvb, off, front_len, ENC_NA);
+	tree = proto_item_add_subtree(ti, hf_msg_statfsreply);
+	
+	proto_tree_add_item(tree, hf_msg_statfsreply_fsid,
+	                    tvb, off, 16, ENC_BIG_ENDIAN);
+	off += 16;
+	
+	proto_tree_add_item(tree, hf_msg_statfsreply_ver,
+	                    tvb, off, 8, ENC_LITTLE_ENDIAN);
+	off += 8;
+	
+	proto_tree_add_item(tree, hf_msg_statfsreply_kb,
+	                    tvb, off, 8, ENC_LITTLE_ENDIAN);
+	off += 8;
+	
+	proto_tree_add_item(tree, hf_msg_statfsreply_kbused,
+	                    tvb, off, 8, ENC_LITTLE_ENDIAN);
+	off += 8;
+	
+	proto_tree_add_item(tree, hf_msg_statfsreply_kbavail,
+	                    tvb, off, 8, ENC_LITTLE_ENDIAN);
+	off += 8;
+	
+	proto_tree_add_item(tree, hf_msg_statfsreply_obj,
+	                    tvb, off, 8, ENC_LITTLE_ENDIAN);
+	off += 8;
+	
+	return off;
 }
 
 /** Mon subscribe message 0x000F */
@@ -3080,7 +3167,7 @@ guint c_dissect_msg_mon_cmd(proto_tree *root,
 	proto_item *ti;
 	proto_tree *tree, *subtree;
 	guint off = 0;
-	guint i;
+	guint32 i;
 	c_str str;
 	
 	/* ceph:/src/messages/MMonCommand.h */
@@ -3126,7 +3213,7 @@ guint c_dissect_msg_mon_cmd_ack(proto_tree *root,
 	proto_item *ti;
 	proto_tree *tree, *subtree;
 	guint off = 0;
-	guint i;
+	guint32 i;
 	
 	/* ceph:/src/messages/MMonCommandAck.h */
 	
@@ -3176,7 +3263,7 @@ guint c_dissect_msg_poolstats(proto_tree *root,
 	proto_item *ti;
 	proto_tree *tree;
 	guint off = 0;
-	guint i;
+	guint32 i;
 	c_str str;
 	
 	/* ceph:/src/messages/MGetPoolStats.h */
@@ -3215,7 +3302,7 @@ guint c_dissect_msg_poolstatsreply(proto_tree *root,
 	proto_item *ti, *ti2;
 	proto_tree *tree, *subtree;
 	guint off = 0;
-	guint i, i2;
+	guint32 i, i2;
 	c_str str;
 	c_encoded enc;
 	
@@ -3283,7 +3370,7 @@ guint c_dissect_msg_mon_election(proto_tree *root,
 	proto_item *ti;
 	proto_tree *tree;
 	guint off = 0;
-	guint i;
+	guint32 i;
 	c_mon_election_type type;
 	
 	/* ceph:/src/messages/MMonElection.h */
@@ -3349,7 +3436,7 @@ guint c_dissect_msg_mon_probe(proto_tree *root,
 	proto_item *ti;
 	proto_tree *tree;
 	guint off = 0;
-	guint i;
+	guint32 i;
 	c_mon_probe_type type;
 	c_str name;
 	
@@ -3406,7 +3493,7 @@ guint c_dissect_msg_mon_probe(proto_tree *root,
 	return off;
 }
 
-/** Monitor Probe 0x0310 */
+/** Client Caps 0x0310 */
 static
 guint c_dissect_msg_client_caps(proto_tree *root,
                                 tvbuff_t *tvb,
@@ -3416,11 +3503,10 @@ guint c_dissect_msg_client_caps(proto_tree *root,
 	proto_item *ti;
 	proto_tree *tree;
 	guint off = 0;
-	guint i;
 	c_cap_op_type op;
 	guint32 snap_trace_len, xattr_len;
 	
-	/* ceph:/src/messages/MMonProbe.h */
+	/* ceph:/src/messages/MClientCaps.h */
 	
 	c_set_type(data, "Client Capabilities");
 	
@@ -3538,6 +3624,55 @@ guint c_dissect_msg_client_caps(proto_tree *root,
 	proto_tree_add_item(tree, hf_msg_client_caps_xattr,
 	                    tvb, front_len, middle_len, ENC_LITTLE_ENDIAN);
 	off += middle_len;
+	
+	return front_len+middle_len;
+}
+
+/** Client Cap Release 0x0310 */
+static
+guint c_dissect_msg_client_caprel(proto_tree *root,
+                                  tvbuff_t *tvb,
+                                  guint front_len, guint middle_len, guint data_len _U_,
+                                  c_pkt_data *data)
+{
+	proto_item *ti;
+	proto_tree *tree, *subtree;
+	guint off = 0;
+	guint32 i;
+	
+	/* ceph:/src/messages/MClientCapRelease.h */
+	
+	c_set_type(data, "Client Cap Release");
+	
+	ti = proto_tree_add_item(root, hf_msg_client_caprel, tvb, off, front_len, ENC_NA);
+	tree = proto_item_add_subtree(ti, hf_msg_client_caprel);
+	
+	i = (c_cap_op_type)tvb_get_letohl(tvb, off);
+	proto_item_append_text(ti, ", Caps: %"G_GINT32_MODIFIER"u", i);
+	off += 4;
+	while (i--)
+	{
+		ti = proto_tree_add_item(tree, hf_msg_client_caprel_cap, tvb, off, -1, ENC_NA);
+		subtree = proto_item_add_subtree(ti, hf_msg_client_caprel_cap);
+		
+		proto_tree_add_item(subtree, hf_msg_client_caprel_cap_inode,
+		                    tvb, off, 8, ENC_LITTLE_ENDIAN);
+		off += 8;
+		
+		proto_tree_add_item(subtree, hf_msg_client_caprel_cap_id,
+		                    tvb, off, 8, ENC_LITTLE_ENDIAN);
+		off += 8;
+		
+		proto_tree_add_item(subtree, hf_msg_client_caprel_cap_migrate,
+		                    tvb, off, 4, ENC_LITTLE_ENDIAN);
+		off += 4;
+		
+		proto_tree_add_item(subtree, hf_msg_client_caprel_cap_seq,
+		                    tvb, off, 4, ENC_LITTLE_ENDIAN);
+		off += 4;
+		
+		proto_item_set_end(ti, tvb, off);
+	}
 	
 	return front_len+middle_len;
 }
@@ -3692,6 +3827,8 @@ guint c_dissect_msg(proto_tree *tree,
 #define C_HANDLE_MSG(tag, name) case tag: parsedsize = C_CALL_MSG(name); break;
 	
 	C_HANDLE_MSG(C_CEPH_MSG_MON_MAP,                c_dissect_msg_mon_map)
+	C_HANDLE_MSG(C_CEPH_MSG_STATFS,                 c_dissect_msg_statfs)
+	C_HANDLE_MSG(C_CEPH_MSG_STATFS_REPLY,           c_dissect_msg_statfsreply)
 	C_HANDLE_MSG(C_CEPH_MSG_MON_SUBSCRIBE,          c_dissect_msg_mon_sub)
 	C_HANDLE_MSG(C_CEPH_MSG_MON_SUBSCRIBE_ACK,      c_dissect_msg_mon_sub_ack)
 	C_HANDLE_MSG(C_CEPH_MSG_AUTH,                   c_dissect_msg_auth)
@@ -3713,6 +3850,7 @@ guint c_dissect_msg(proto_tree *tree,
 	C_HANDLE_MSG(C_MSG_MON_ELECTION,                c_dissect_msg_mon_election)
 	C_HANDLE_MSG(C_MSG_MON_PROBE,                   c_dissect_msg_mon_probe)
 	C_HANDLE_MSG(C_CEPH_MSG_CLIENT_CAPS,            c_dissect_msg_client_caps)
+	C_HANDLE_MSG(C_CEPH_MSG_CLIENT_CAPRELEASE,      c_dissect_msg_client_caprel)
 	
 	default:
 		parsedsize = C_CALL_MSG(c_dissect_msg_unknown);
@@ -5149,6 +5287,51 @@ proto_register_ceph(void)
 			FT_NONE, BASE_NONE, NULL, 0,
 			NULL, HFILL
 		} },
+		{ &hf_msg_statfs, {
+			"Stat Filesystem", "ceph.msg.statfs",
+			FT_NONE, BASE_NONE, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_statfs_fsid, {
+			"FSID", "ceph.msg.statfs.fsid",
+			FT_GUID, BASE_NONE, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_statfsreply, {
+			"Stat Filesystem Reply", "ceph.msg.statfsreply",
+			FT_NONE, BASE_NONE, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_statfsreply_fsid, {
+			"FSID", "ceph.msg.statfsreply.fsid",
+			FT_GUID, BASE_NONE, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_statfsreply_ver, {
+			"Version", "ceph.msg.statfsreply.ver",
+			FT_UINT64, BASE_DEC, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_statfsreply_kb, {
+			"Kibibytes", "ceph.msg.statfsreply.kb",
+			FT_UINT64, BASE_DEC, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_statfsreply_kbused, {
+			"Kibibytes Used", "ceph.msg.statfsreply.kbused",
+			FT_UINT64, BASE_DEC, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_statfsreply_kbavail, {
+			"Kibibytes Available", "ceph.msg.statfsreply.kbavail",
+			FT_UINT64, BASE_DEC, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_statfsreply_obj, {
+			"Number of Objects", "ceph.msg.statfsreply.obj",
+			FT_UINT64, BASE_DEC, NULL, 0,
+			NULL, HFILL
+		} },
 		{ &hf_msg_mon_sub, {
 			"Mon Subscribe Message", "ceph.msg.mon_sub",
 			FT_NONE, BASE_NONE, NULL, 0,
@@ -6097,6 +6280,36 @@ proto_register_ceph(void)
 		{ &hf_msg_client_caps_xattr, {
 			"Xattr", "ceph.msg.client_caps.xattr",
 			FT_BYTES, BASE_NONE, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_client_caprel, {
+			"Capability Release", "ceph.msg.client_caprel",
+			FT_NONE, BASE_NONE, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_client_caprel_cap, {
+			"Capability", "ceph.msg.client_caprel.cap",
+			FT_NONE, BASE_NONE, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_client_caprel_cap_inode, {
+			"Inode", "ceph.msg.client_caprel.cap.inode",
+			FT_UINT64, BASE_HEX, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_client_caprel_cap_id, {
+			"Capability ID", "ceph.msg.client_caprel.cap.id",
+			FT_UINT64, BASE_HEX, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_client_caprel_cap_migrate, {
+			"Migrate Sequence", "ceph.msg.client_caprel_cap.migrate",
+			FT_UINT32, BASE_DEC, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_client_caprel_cap_seq, {
+			"Sequence", "ceph.msg.client_caprel_cap.seq",
+			FT_UINT32, BASE_DEC, NULL, 0,
 			NULL, HFILL
 		} },
 	};
