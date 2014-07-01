@@ -3504,6 +3504,7 @@ guint c_dissect_msg_client_caps(proto_tree *root,
 	proto_tree *tree;
 	guint off = 0;
 	c_cap_op_type op;
+	guint64 inode, relam;
 	guint32 snap_trace_len, xattr_len;
 	
 	/* ceph:/src/messages/MClientCaps.h */
@@ -3518,10 +3519,12 @@ guint c_dissect_msg_client_caps(proto_tree *root,
 	                    tvb, off, 4, ENC_LITTLE_ENDIAN);
 	off += 4;
 	
+	inode = tvb_get_letoh64(tvb, off);
 	proto_tree_add_item(tree, hf_msg_client_caps_inode,
 	                    tvb, off, 8, ENC_LITTLE_ENDIAN);
 	off += 8;
 	
+	relam = tvb_get_letoh64(tvb, off);
 	proto_tree_add_item(tree, hf_msg_client_caps_relam,
 	                    tvb, off, 8, ENC_LITTLE_ENDIAN);
 	off += 8;
@@ -3624,6 +3627,12 @@ guint c_dissect_msg_client_caps(proto_tree *root,
 	proto_tree_add_item(tree, hf_msg_client_caps_xattr,
 	                    tvb, front_len, middle_len, ENC_LITTLE_ENDIAN);
 	off += middle_len;
+	
+	proto_item_append_text(ti, ", Op: %s"
+	                       ", Inode: 0x%016"G_GINT64_MODIFIER"X"
+	                       ", Relam: 0x%"G_GINT64_MODIFIER"X",
+	                       c_cap_op_type_string(op),
+	                       inode, relam);
 	
 	return front_len+middle_len;
 }
@@ -6194,7 +6203,7 @@ proto_register_ceph(void)
 		} },
 		{ &hf_msg_client_caps_cap_id, {
 			"Cap ID", "ceph.msg.client_caps.cap_id",
-			FT_UINT64, BASE_DEC, NULL, 0,
+			FT_UINT64, BASE_HEX, NULL, 0,
 			NULL, HFILL
 		} },
 		{ &hf_msg_client_caps_seq, {
