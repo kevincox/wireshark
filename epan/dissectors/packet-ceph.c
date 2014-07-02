@@ -450,14 +450,15 @@ static int hf_msg_                         = -1;
 */
 
 /* Initialize the expert items. */
-static expert_field ei_unused = EI_INIT;
-static expert_field ei_overrun = EI_INIT;
-static expert_field ei_tag_unknown = EI_INIT;
-static expert_field ei_msg_unknown = EI_INIT;
-static expert_field ei_union_unknown = EI_INIT;
-static expert_field ei_ver_tooold = EI_INIT;
-static expert_field ei_ver_toonew = EI_INIT;
-static expert_field ei_oloc_both = EI_INIT;
+static expert_field ei_unused         = EI_INIT;
+static expert_field ei_overrun        = EI_INIT;
+static expert_field ei_tag_unknown    = EI_INIT;
+static expert_field ei_msg_unknown    = EI_INIT;
+static expert_field ei_union_unknown  = EI_INIT;
+static expert_field ei_ver_tooold     = EI_INIT;
+static expert_field ei_ver_toonew     = EI_INIT;
+static expert_field ei_oloc_both      = EI_INIT;
+static expert_field ei_banner_invalid = EI_INIT;
 
 /* Initialize the subtree pointers */
 static gint ett_ceph = -1;
@@ -1187,7 +1188,8 @@ void c_append_text(c_pkt_data *data, proto_item *ti, const char *fmt, ...)
 }
 
 enum c_ressembly {
-	C_NEEDMORE = 0
+	C_NEEDMORE = G_MAXUINT,
+	C_INVALID  = 0,
 };
 
 /*** Expert info warning functions. ***/
@@ -1371,7 +1373,7 @@ guint c_dissect_sockaddr(proto_tree *root, c_sockaddr *out,
 		proto_tree_add_item(tree, hf_port, tvb, off+2, 2, ENC_BIG_ENDIAN);
 		proto_tree_add_item(tree, hf_addr_ipv4, tvb, off+4, 4, ENC_BIG_ENDIAN);
 		break;
-	case C_IPv6: //@UNTESTED
+	case C_IPv6:
 		d.port     = tvb_get_ntohs (tvb, off+2);
 		d.addr_str = tvb_ip6_to_str(tvb, off+8);
 		
@@ -1382,7 +1384,7 @@ guint c_dissect_sockaddr(proto_tree *root, c_sockaddr *out,
 		d.port = 0;
 		d.addr_str = "Unknown INET";
 	}
-	off += C_SIZE_SOCKADDR_STORAGE; // Skip over sockaddr_storage.
+	off += C_SIZE_SOCKADDR_STORAGE; /* Skip over sockaddr_storage. */
 	
 	d.str = wmem_strdup_printf(wmem_packet_scope(), "%s:%"G_GINT16_MODIFIER"u",
 	                           d.addr_str,
@@ -2474,14 +2476,6 @@ guint c_dissect_msg_mon_sub(proto_tree *root,
 			__le64 start;
 			__u8 flags;
 		} __attribute__ ((packed))
-		
-		//@TODO: Old subscription item.
-		From ceph:/src/messages/MMonSubscribe.h
-		struct ceph_mon_subscribe_item_old {
-			__le64 unused;
-			__le64 have;
-			__u8 onetime;
-		} __attribute__ ((packed));
 		*/
 		
 		subti = proto_tree_add_item(tree, hf_msg_mon_sub_item,
@@ -4125,7 +4119,7 @@ guint c_dissect_connect_reply(proto_tree *root,
 	authsize = tvb_get_letohl(tvb, off+20);
 	
 	if (!tvb_bytes_exist(tvb, off, C_SIZE_CONNECT_REPLY + authsize))
-		return 0; /* We need more data to dissect. */
+		return C_NEEDMORE; /* We need more data to dissect. */
 	
 	c_set_type(data, "Connect Reply");
 	
@@ -4179,16 +4173,12 @@ guint c_dissect_new(proto_tree *tree,
 	if (!tvb_bytes_exist(tvb, off, C_BANNER_SIZE_MAX+1))
 		return C_NEEDMORE;
 	
-	/* @TODO: handle invalid banners.
 	if (tvb_memeql(tvb, off, C_BANNER, C_BANNER_SIZE_MIN) != 0)
-		return 0; // Invalid banner.
-	*/
+		return C_INVALID;
 	
 	bansize = tvb_strnlen(tvb, off, C_BANNER_SIZE_MAX+1);
-	/*
 	if (bansize == -1)
-		return 0; // Invalid banner.
-	*/
+		return C_INVALID;
 	
 	proto_tree_add_item(tree, hf_banner, tvb, off, bansize, ENC_NA);
 	off += bansize;
@@ -4196,7 +4186,7 @@ guint c_dissect_new(proto_tree *tree,
 	if (c_from_server(data)) size = C_SIZE_HELLO_S;
 	else {
 		if (!tvb_bytes_exist(tvb, off, C_HELLO_OFF_AUTHLEN))
-			return 0; /* Need More */
+			return C_NEEDMORE; /* Need More */
 		
 		size = C_SIZE_HELLO_C + tvb_get_letohl(tvb, off+C_HELLO_OFF_AUTHLEN);
 	}
@@ -4325,7 +4315,7 @@ guint c_dissect_msgr(proto_tree *tree,
  */
 static
 guint c_dissect_pdu(proto_tree *root,
-                  tvbuff_t *tvb, guint off, c_pkt_data *data)
+                    tvbuff_t *tvb, guint off, c_pkt_data *data)
 {
 	proto_item *ti, *tif;
 	proto_tree *tree;
@@ -4396,7 +4386,11 @@ int dissect_ceph(tvbuff_t *tvb, packet_info *pinfo,
 		c_pkt_data_init(&data, pinfo, tvb_offset_from_real_beginning(tvb));
 		
 		offt = c_dissect_pdu(tree, tvb, off, &data);
-		if (offt == 0) /* Need more data to determine PDU length. */
+		if (offt == C_INVALID)
+		{
+			return 0;
+		}
+		if (offt == C_NEEDMORE) /* Need more data to determine PDU length. */
 		{
 			pinfo->desegment_offset = off;
 			pinfo->desegment_len    = DESEGMENT_ONE_MORE_SEGMENT;
@@ -6501,6 +6495,10 @@ proto_register_ceph(void)
 			"ceph.oloc.both", PI_MALFORMED, PI_ERROR,
 			"Only one of the key or hash should be present, however both are.",
 			EXPFILL
+		} },
+		{ &ei_banner_invalid, {
+			"ceph.banner.invalid", PI_MALFORMED, PI_ERROR,
+			"Banner was invalid.", EXPFILL
 		} },
 	};
 	
