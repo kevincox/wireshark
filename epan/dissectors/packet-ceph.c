@@ -455,6 +455,8 @@ static expert_field ei_overrun = EI_INIT;
 static expert_field ei_tag_unknown = EI_INIT;
 static expert_field ei_msg_unknown = EI_INIT;
 static expert_field ei_union_unknown = EI_INIT;
+static expert_field ei_ver_tooold = EI_INIT;
+static expert_field ei_ver_toonew = EI_INIT;
 
 /* Initialize the subtree pointers */
 static gint ett_ceph = -1;
@@ -585,7 +587,7 @@ typedef enum _c_flags {
 	V(C_TAG_KEEPALIVE2,     0x0E, "keepalive2")                                          \
 	V(C_TAG_KEEPALIVE2_ACK, 0x0F, "keepalive2 reply")                                    \
 
-typedef VALUE_STRING_ENUM(c_tag_strings) base;
+typedef VALUE_STRING_ENUM(c_tag_strings) c_tag;
 VALUE_STRING_ARRAY(c_tag_strings);
 static const value_string_ext c_tag_strings_ext = VALUE_STRING_EXT_INIT(c_tag_strings);
 
@@ -1274,6 +1276,32 @@ gboolean c_warn_size(proto_tree *tree,
 	else           return c_warn_overrun(tree, tvb, exp, act, data);
 }
 
+static
+gshort c_warn_ver(proto_tree *tree, proto_item *ti,
+                    gint act, gint min, gint max, c_pkt_data *data)
+{
+	g_assert_cmpint(min, <=, max);
+	
+	if (act < min)
+	{
+		expert_add_info_format(data->pinfo, ti, &ei_ver_tooold,
+		                       "Version %d is lower then the minimum "
+		                       "supported version (%d).",
+		                       act, min);
+		return -1;
+	}
+	if (act > max)
+	{
+		expert_add_info_format(data->pinfo, ti, &ei_ver_toonew,
+		                       "Version %d is higher then the maximum "
+		                       "supported version (%d).",
+		                       act, max);
+		return 1;
+	}
+	
+	return 0;
+}
+
 /*** Data Structure Dissectors ***/
 
 enum c_size_sockaddr {
@@ -1769,7 +1797,7 @@ guint c_dissect_object_locator(proto_tree *root, gint hf,
 	}
 	off += 8;
 	
-	//@TODO: Warn if not key or hash.
+	//@HELP: Should we warn if not key or hash.
 	c_warn_size(tree, tvb, off, expectedoff, data);
 	
 	proto_item_set_end(ti, tvb, off);
@@ -1780,16 +1808,17 @@ static
 guint c_dissect_pgid(proto_tree *root, gint hf,
                      tvbuff_t *tvb, guint off, c_pkt_data *data _U_)
 {
-	proto_item *ti;
+	proto_item *ti, *ti2;
 	proto_tree *tree;
+	guint8 ver;
 	gint32 preferred;
 	
 	ti   = proto_tree_add_item(root, hf, tvb, off, -1, ENC_NA);
 	tree = proto_item_add_subtree(ti, hf);
 	
-	//@TODO: version check.
-	
-	proto_tree_add_item(tree, hf_pgid_ver, tvb, off, 1, ENC_LITTLE_ENDIAN);
+	ver = tvb_get_guint8(tvb, off);
+	ti2 = proto_tree_add_item(tree, hf_pgid_ver, tvb, off, 1, ENC_LITTLE_ENDIAN);
+	c_warn_ver(tree, ti2, ver, 1, 1, data);
 	off += 1;
 	
 	proto_item_append_text(ti, ", Pool: %"G_GINT64_MODIFIER"d",
@@ -1816,7 +1845,7 @@ static
 guint c_dissect_path(proto_tree *root, gint hf,
                      tvbuff_t *tvb, guint off, c_pkt_data *data _U_)
 {
-	proto_item *ti;
+	proto_item *ti, *ti2;
 	proto_tree *tree;
 	guint64 inode;
 	c_str rel;
@@ -1826,8 +1855,8 @@ guint c_dissect_path(proto_tree *root, gint hf,
 	tree = proto_item_add_subtree(ti, hf);
 	
 	v = tvb_get_guint8(tvb, off);
-	(void)v;
-	proto_tree_add_item(tree, hf_path_ver, tvb, off, 1, ENC_LITTLE_ENDIAN);
+	ti2 = proto_tree_add_item(tree, hf_path_ver, tvb, off, 1, ENC_LITTLE_ENDIAN);
+	c_warn_ver(tree, ti2, v, 1, 1, data);
 	off += 1;
 	
 	inode = tvb_get_letoh64(tvb, off);
@@ -4099,12 +4128,12 @@ guint c_dissect_msgr(proto_tree *tree,
                    tvbuff_t *tvb, guint off, c_pkt_data *data)
 {
 	proto_item *ti;
-	guint8 tag;
+	c_tag tag;
 	
 	if (!tvb_bytes_exist(tvb, off, 1))
 		return C_NEEDMORE;
 	
-	tag = tvb_get_guint8(tvb, off);
+	tag = (c_tag)tvb_get_guint8(tvb, off);
 	ti = proto_tree_add_item(tree, hf_tag, tvb, off, 1, ENC_LITTLE_ENDIAN);
 	off += 1;
 	
@@ -6357,6 +6386,16 @@ proto_register_ceph(void)
 			"but the dissector doesn't know what type it is.  This is most "
 			"likely an indication that the dissector is not up to date but "
 			"could also be an error by the sender.", EXPFILL
+		} },
+		{ &ei_ver_tooold, {
+			"ceph.ver.tooold", PI_UNDECODED, PI_WARN,
+			"This data is in an older format that is not supported by the "
+			"dissector.", EXPFILL
+		} },
+		{ &ei_ver_toonew, {
+			"ceph.ver.toonew", PI_UNDECODED, PI_WARN,
+			"This data is in a newer format that is not supported by the "
+			"dissector.", EXPFILL
 		} },
 	};
 	
