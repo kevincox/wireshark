@@ -92,8 +92,14 @@ static int hf_mds_release_seq_issue              = -1;
 static int hf_mds_release_mseq                   = -1;
 static int hf_mds_release_dname_seq              = -1;
 static int hf_mds_release_dname                  = -1;
-static int hf_monmap_data                        = -1;
-static int hf_monmap_size                         = -1;
+static int hf_monmap                        = -1;
+static int hf_monmap_fsid                        = -1;
+static int hf_monmap_epoch                        = -1;
+static int hf_monmap_address                        = -1;
+static int hf_monmap_address_name                        = -1;
+static int hf_monmap_address_addr                        = -1;
+static int hf_monmap_changed                        = -1;
+static int hf_monmap_created                        = -1;
 static int hf_features_high                      = -1;
 static int hf_features_low                       = -1;
 static int hf_feature_uid                        = -1;
@@ -238,7 +244,6 @@ static int hf_paxos_ver                          = -1;
 static int hf_paxos_mon                          = -1;
 static int hf_paxos_mon_tid                      = -1;
 static int hf_msg_mon_map                        = -1;
-static int hf_msg_mon_map_data                   = -1;
 static int hf_msg_statfs                         = -1;
 static int hf_msg_statfs_fsid                    = -1;
 static int hf_msg_statfsreply                    = -1;
@@ -398,7 +403,6 @@ static int hf_msg_mon_election                   = -1;
 static int hf_msg_mon_election_fsid              = -1;
 static int hf_msg_mon_election_op                = -1;
 static int hf_msg_mon_election_epoch             = -1;
-static int hf_msg_mon_election_monmap            = -1;
 static int hf_msg_mon_election_quorum            = -1;
 static int hf_msg_mon_election_quorum_features   = -1;
 static int hf_msg_mon_election_defunct_one       = -1;
@@ -411,7 +415,6 @@ static int hf_msg_mon_probe_fsid                 = -1;
 static int hf_msg_mon_probe_type                 = -1;
 static int hf_msg_mon_probe_name                 = -1;
 static int hf_msg_mon_probe_quorum               = -1;
-static int hf_msg_mon_probe_monmap               = -1;
 static int hf_msg_mon_probe_paxos_first_ver      = -1;
 static int hf_msg_mon_probe_paxos_last_ver       = -1;
 static int hf_msg_mon_probe_ever_joined          = -1;
@@ -1400,32 +1403,39 @@ enum c_size_entity_addr {
 	C_SIZE_ENTITY_ADDR = 4 + 4 + C_SIZE_SOCKADDR_STORAGE
 };
 
+typedef struct _c_entity_addr {
+	c_sockaddr addr;
+	const char *type_str;
+	c_node_type type;
+} c_entity_addr;
+
 static
-guint c_dissect_entity_addr(proto_tree *root, int hf,
+guint c_dissect_entity_addr(proto_tree *root, int hf, c_entity_addr *out,
                             tvbuff_t *tvb, guint off, c_pkt_data *data)
 {
 	proto_item *ti;
 	proto_tree *tree;
-	guint32     type;
-	c_sockaddr  addr;
+	c_entity_addr d;
 	
 	/* entity_addr_t from ceph:/src/msg/msg_types.h */
 	
 	ti = proto_tree_add_item(root, hf, tvb, off, C_SIZE_ENTITY_ADDR, ENC_NA);
 	tree = proto_item_add_subtree(ti, hf);
 	
-	type = tvb_get_letohl(tvb, off);
+	d.type = (c_node_type)tvb_get_letohl(tvb, off);
+	d.type_str = c_node_type_string(d.type);
 	proto_tree_add_item(tree, hf_node_type,
 	                    tvb, off, 4, ENC_LITTLE_ENDIAN);
 	off += 4;
 	proto_tree_add_item(tree, hf_node_nonce,
 	                    tvb, off, 4, ENC_LITTLE_ENDIAN);
 	off += 4;
-	off = c_dissect_sockaddr(tree, &addr, tvb, off, data);
+	off = c_dissect_sockaddr(tree, &d.addr, tvb, off, data);
 	
 	proto_item_append_text(ti, ", Type: %s, Address: %s",
-	                       c_node_type_string((c_node_type)type),
-	                       addr.str);
+	                       d.type_str, d.addr.str);
+	
+	if (out) *out = d;
 	
 	return off;
 }
@@ -1990,13 +2000,65 @@ guint c_dissect_mds_release(proto_tree *root, gint hf,
 	return off;
 }
 
+/** Dissect a MonMap. */
 static
-guint c_dissect_monmap(proto_tree *root, gint hf,
+guint c_dissect_monmap(proto_tree *root,
                        tvbuff_t *tvb, guint off, c_pkt_data *data _U_)
 {
-	//@TODO: Dissect monmap
+	proto_item *ti, *ti2;
+	proto_tree *tree, *subtree;
+	guint size, end;
+	guint32 i;
+	c_encoded enc;
+	c_str str;
+	c_entity_addr addr;
 	
-	off = c_dissect_blob(root, hf, hf_monmap_data, hf_monmap_size, tvb, off);
+	/** MonMap from ceph:/src/mon/MonMap.cc */
+	
+	size = tvb_get_letohl(tvb, off);
+	end = off + 4 + size;
+	
+	ti   = proto_tree_add_item(root, hf_monmap, tvb, off, size, ENC_NA);
+	tree = proto_item_add_subtree(ti, hf_monmap);
+	
+	off += 4;
+	
+	off = c_dissect_encoded(tree, &enc, 3, 3, tvb, off, data);
+	/* Check the blob size and encoded size match. */
+	c_warn_size(tree, tvb, enc.end, end, data);
+	
+	proto_tree_add_item(tree, hf_monmap_fsid, tvb, off, 16, ENC_BIG_ENDIAN);
+	off += 16;
+	
+	proto_tree_add_item(tree, hf_monmap_epoch, tvb, off, 4, ENC_LITTLE_ENDIAN);
+	off += 4;
+	
+	i = tvb_get_letohl(tvb, off);
+	off += 4;
+	while (i--)
+	{
+		ti2 = proto_tree_add_item(tree, hf_monmap_address,
+		                          tvb, off, -1, ENC_LITTLE_ENDIAN);
+		subtree = proto_item_add_subtree(ti2, hf_monmap_address);
+		
+		off = c_dissect_str(subtree, hf_monmap_address_name, &str, tvb, off);
+		off = c_dissect_entity_addr(subtree, hf_monmap_address_addr, &addr,
+		                            tvb, off, data);
+		
+		proto_item_append_text(ti2, ", Name: %s, Address: %s",
+		                       str.str, addr.addr.addr_str);
+		
+		proto_item_set_end(ti2, tvb, off);
+	}
+	
+	proto_tree_add_item(tree, hf_monmap_changed, tvb, off, 8, ENC_LITTLE_ENDIAN);
+	off += 8;
+	
+	proto_tree_add_item(tree, hf_monmap_created, tvb, off, 8, ENC_LITTLE_ENDIAN);
+	off += 8;
+	
+	c_warn_size(tree, tvb, off, end, data);
+	off = end;
 	
 	return off;
 }
@@ -2368,7 +2430,7 @@ guint c_dissect_msg_mon_map(proto_tree *root,
 	ti = proto_tree_add_item(root, hf_msg_mon_map, tvb, 0, front_len, ENC_NA);
 	tree = proto_item_add_subtree(ti, hf_msg_mon_map);
 	
-	return c_dissect_monmap(tree, hf_msg_mon_map_data, tvb, 0, data);
+	return c_dissect_monmap(tree, tvb, 0, data);
 }
 
 /** Stat FS 0x000D */
@@ -3516,8 +3578,7 @@ guint c_dissect_msg_mon_election(proto_tree *root,
 	                    tvb, off, 4, ENC_LITTLE_ENDIAN);
 	off += 4;
 	
-	off = c_dissect_monmap(tree, hf_msg_mon_election_monmap,
-	                    tvb, off, data);
+	off = c_dissect_monmap(tree, tvb, off, data);
 	
 	i = tvb_get_letohl(tvb, off);
 	off += 4;
@@ -3589,7 +3650,7 @@ guint c_dissect_msg_mon_probe(proto_tree *root,
 		off += 4;
 	}
 	
-	off = c_dissect_monmap(tree, hf_msg_mon_probe_monmap, tvb, off, data);
+	off = c_dissect_monmap(tree, tvb, off, data);
 	
 	proto_tree_add_item(tree, hf_msg_mon_probe_ever_joined,
 	                    tvb, off, 1, ENC_LITTLE_ENDIAN);
@@ -4197,9 +4258,9 @@ guint c_dissect_new(proto_tree *tree,
 	c_set_type(data, "Connect");
 	
 	if (c_from_server(data))
-		off = c_dissect_entity_addr(tree, hf_server_info, tvb, off, data);
+		off = c_dissect_entity_addr(tree, hf_server_info, NULL, tvb, off, data);
 	
-	off = c_dissect_entity_addr(tree, hf_client_info, tvb, off, data);
+	off = c_dissect_entity_addr(tree, hf_client_info, NULL, tvb, off, data);
 	
 	if (c_from_client(data))
 		off = c_dissect_connect(tree, tvb, off, data);
@@ -4682,14 +4743,44 @@ proto_register_ceph(void)
 			FT_STRING, BASE_NONE, NULL, 0,
 			NULL, HFILL
 		} },
-		{ &hf_monmap_data, {
-			"Data", "ceph.monmap.data",
-			FT_BYTES, BASE_NONE, NULL, 0,
+		{ &hf_monmap, {
+			"Monmap", "ceph.monmap.data",
+			FT_NONE, BASE_NONE, NULL, 0,
 			NULL, HFILL
 		} },
-		{ &hf_monmap_size, {
-			"Size", "ceph.monmap.size",
+		{ &hf_monmap_fsid, {
+			"FSID", "ceph.monmap.fsid",
+			FT_GUID, BASE_NONE, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_monmap_epoch, {
+			"Epoch", "ceph.monmap.epoch",
 			FT_UINT32, BASE_DEC, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_monmap_address, {
+			"Monitor Address", "ceph.monmap.address",
+			FT_NONE, BASE_NONE, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_monmap_address_name, {
+			"Name", "ceph.monmap.address.name",
+			FT_STRING, BASE_NONE, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_monmap_address_addr, {
+			"Address", "ceph.monmap.address.addr",
+			FT_NONE, BASE_NONE, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_monmap_changed, {
+			"Last Changed", "ceph.monmap.changed",
+			FT_ABSOLUTE_TIME, ABSOLUTE_TIME_LOCAL, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_monmap_created, {
+			"Time Created", "ceph.monmap.created",
+			FT_ABSOLUTE_TIME, ABSOLUTE_TIME_LOCAL, NULL, 0,
 			NULL, HFILL
 		} },
 		{ &hf_connect, {
@@ -5411,11 +5502,6 @@ proto_register_ceph(void)
 		} },
 		{ &hf_msg_mon_map, {
 			"Mon Map Message", "ceph.msg.mon_map",
-			FT_NONE, BASE_NONE, NULL, 0,
-			NULL, HFILL
-		} },
-		{ &hf_msg_mon_map_data, {
-			"Payload", "ceph",
 			FT_NONE, BASE_NONE, NULL, 0,
 			NULL, HFILL
 		} },
@@ -6214,11 +6300,6 @@ proto_register_ceph(void)
 			FT_UINT32, BASE_DEC, NULL, 0,
 			NULL, HFILL
 		} },
-		{ &hf_msg_mon_election_monmap, {
-			"Monmap", "ceph.msg.mon_election.monmap",
-			FT_NONE, BASE_NONE, NULL, 0,
-			NULL, HFILL
-		} },
 		{ &hf_msg_mon_election_quorum, {
 			"Quorum", "ceph.msg.mon_election.quorum",
 			FT_INT64, BASE_DEC, NULL, 0,
@@ -6277,11 +6358,6 @@ proto_register_ceph(void)
 		{ &hf_msg_mon_probe_quorum, {
 			"Quorum", "ceph.msg.mon_probe.quorum",
 			FT_INT32, BASE_DEC, NULL, 0,
-			NULL, HFILL
-		} },
-		{ &hf_msg_mon_probe_monmap, {
-			"Monmap", "ceph.msg.mon_probe.monmap",
-			FT_NONE, BASE_NONE, NULL, 0,
 			NULL, HFILL
 		} },
 		{ &hf_msg_mon_probe_paxos_first_ver, {
