@@ -92,6 +92,58 @@ static int hf_mds_release_seq_issue              = -1;
 static int hf_mds_release_mseq                   = -1;
 static int hf_mds_release_dname_seq              = -1;
 static int hf_mds_release_dname                  = -1;
+static int hf_hitset_params                  = -1;
+static int hf_hitset_params_type                  = -1;
+static int hf_hitset_params_exphash_count                  = -1;
+static int hf_hitset_params_exphash_hit                  = -1;
+static int hf_snapinfo                  = -1;
+static int hf_snapinfo_id                  = -1;
+static int hf_snapinfo_time                  = -1;
+static int hf_snapinfo_name                  = -1;
+static int hf_pgpool                  = -1;
+static int hf_pgpool_type                  = -1;
+static int hf_pgpool_size                  = -1;
+static int hf_pgpool_crush_ruleset                  = -1;
+static int hf_pgpool_hash                  = -1;
+static int hf_pgpool_pgnum                  = -1;
+static int hf_pgpool_pgpnum                  = -1;
+static int hf_pgpool_changed                  = -1;
+static int hf_pgpool_snapseq                  = -1;
+static int hf_pgpool_snapepoch                  = -1;
+static int hf_pgpool_snap                  = -1;
+static int hf_pgpool_snap_id                  = -1;
+static int hf_pgpool_snapdel                  = -1;
+static int hf_pgpool_snapdel_from                  = -1;
+static int hf_pgpool_snapdel_to                  = -1;
+static int hf_pgpool_uid                  = -1;
+static int hf_pgpool_flags_low                  = -1;
+static int hf_pgpool_flags_high                  = -1;
+static int hf_pgpool_crash_reply_interval                  = -1;
+static int hf_pgpool_min_size                  = -1;
+static int hf_pgpool_quota_bytes                  = -1;
+static int hf_pgpool_quota_objects                  = -1;
+static int hf_pgpool_tier                  = -1;
+static int hf_pgpool_tierof                  = -1;
+static int hf_pgpool_cachemode                  = -1;
+static int hf_pgpool_readtier                  = -1;
+static int hf_pgpool_writetier                  = -1;
+static int hf_pgpool_property                  = -1;
+static int hf_pgpool_property_key                  = -1;
+static int hf_pgpool_property_val                  = -1;
+static int hf_pgpool_hitset_period                  = -1;
+static int hf_pgpool_hitset_count                  = -1;
+static int hf_pgpool_stripewidth                  = -1;
+static int hf_pgpool_targetmaxsize                  = -1;
+static int hf_pgpool_targetmaxobj                  = -1;
+static int hf_pgpool_cache_targetdirtyratio                  = -1;
+static int hf_pgpool_cache_targetfullratio                  = -1;
+static int hf_pgpool_cache_flushage_min                  = -1;
+static int hf_pgpool_cache_evictage_min                  = -1;
+static int hf_pgpool_erasurecode_profile                  = -1;
+static int hf_pgpool_lastforceresend                  = -1;
+static int hf_pgpool_flag_hashpool                  = -1;
+static int hf_pgpool_flag_full                  = -1;
+static int hf_pgpool_flag_fake_ec_pool                  = -1;
 static int hf_monmap                        = -1;
 static int hf_monmap_fsid                        = -1;
 static int hf_monmap_epoch                        = -1;
@@ -100,6 +152,63 @@ static int hf_monmap_address_name                        = -1;
 static int hf_monmap_address_addr                        = -1;
 static int hf_monmap_changed                        = -1;
 static int hf_monmap_created                        = -1;
+static int hf_crush                        = -1;
+static int hf_osdinfo_ver                        = -1;
+static int hf_osdinfo_lastclean_begin                        = -1;
+static int hf_osdinfo_lastclean_end                        = -1;
+static int hf_osdinfo_up_from                        = -1;
+static int hf_osdinfo_up_through                        = -1;
+static int hf_osdinfo_downat                        = -1;
+static int hf_osdinfo_lostat                        = -1;
+static int hf_osdxinfo_down                        = -1;
+static int hf_osdxinfo_laggy_probability                        = -1;
+static int hf_osdxinfo_laggy_interval                        = -1;
+static int hf_osdxinfo_features                        = -1;
+static int hf_osdxinfo_oldweight                        = -1;
+static int hf_osdmap                        = -1;
+static int hf_osdmap_client                        = -1;
+static int hf_osdmap_fsid                        = -1;
+static int hf_osdmap_epoch                        = -1;
+static int hf_osdmap_created                        = -1;
+static int hf_osdmap_modified                        = -1;
+static int hf_osdmap_pool                        = -1;
+static int hf_osdmap_pool_id                        = -1;
+static int hf_osdmap_poolname_item                        = -1;
+static int hf_osdmap_poolname                        = -1;
+static int hf_osdmap_poolmax                        = -1;
+static int hf_osdmap_flags                        = -1;
+static int hf_osdmap_osdmax                        = -1;
+static int hf_osdmap_osd_state                        = -1;
+static int hf_osdmap_osd_weight                        = -1;
+static int hf_osdmap_osd_addr                        = -1;
+static int hf_osdmap_pgtmp                        = -1;
+static int hf_osdmap_pgtmp_pg                        = -1;
+static int hf_osdmap_pgtmp_val                        = -1;
+static int hf_osdmap_primarytmp                        = -1;
+static int hf_osdmap_primarytmp_pg                        = -1;
+static int hf_osdmap_primarytmp_val                        = -1;
+static int hf_osdmap_osd_primaryaffinity                        = -1;
+static int hf_osdmap_erasurecodeprofile                        = -1;
+static int hf_osdmap_erasurecodeprofile_name                        = -1;
+static int hf_osdmap_erasurecodeprofile_prop                        = -1;
+static int hf_osdmap_erasurecodeprofile_k                        = -1;
+static int hf_osdmap_erasurecodeprofile_v                        = -1;
+static int hf_osdmap_osd                        = -1;
+static int hf_osdmap_hbbackaddr                        = -1;
+static int hf_osdmap_osd_info                        = -1;
+static int hf_osdmap_blacklist                        = -1;
+static int hf_osdmap_blacklist_addr                        = -1;
+static int hf_osdmap_blacklist_time                        = -1;
+static int hf_osdmap_cluster_addr                        = -1;
+static int hf_osdmap_cluster_snapepoch                        = -1;
+static int hf_osdmap_cluster_snap                        = -1;
+static int hf_osdmap_osd_uuid                        = -1;
+static int hf_osdmap_osd_xinfo                        = -1;
+static int hf_osdmap_hbfrontaddr                        = -1;
+static int hf_osdmap_inc = -1;
+static int hf_osdmap_inc_client = -1;
+static int hf_osdmap_inc_fsid                        = -1;
+static int hf_osdmap_inc_osd = -1;
 static int hf_features_high                      = -1;
 static int hf_features_low                       = -1;
 static int hf_feature_uid                        = -1;
@@ -325,9 +434,6 @@ static int hf_msg_osd_map_inc_len                = -1;
 static int hf_msg_osd_map_map                    = -1;
 static int hf_msg_osd_map_map_len                = -1;
 static int hf_msg_osd_map_epoch                  = -1;
-static int hf_msg_osd_map_data                   = -1;
-static int hf_msg_osd_map_data_data              = -1;
-static int hf_msg_osd_map_data_size               = -1;
 static int hf_msg_osd_map_oldest                 = -1;
 static int hf_msg_osd_map_newest                 = -1;
 static int hf_msg_osd_op                         = -1;
@@ -472,7 +578,7 @@ enum c_banner {
 	C_BANNER_SIZE_MAX = 30,
 };
 
-/***** Feature Flags *****/
+/** Feature Flags */
 /* Transmuted from ceph:/src/include/ceph_features.h */
 typedef enum _c_features {
 	C_FEATURE_UID                  = 1 <<  0,
@@ -523,10 +629,16 @@ typedef enum _c_features {
 	C_FEATURE_RESERVED             = 1 << 31
 } c_features;
 
-/***** Connect Message Flags *****/
+/** Connect Message Flags */
 typedef enum _c_flags {
 	C_FLAG_LOSSY = 1 << 0,
 } c_flags;
+
+typedef enum _c_pgpool_flags {
+	C_PGPOOL_FLAG_HASHPSPOOL = 1 << 0, /* hash pg seed and pool together (instead of adding) */
+	C_PGPOOL_FLAG_FULL       = 1 << 1, /* pool is full */
+	C_PGPOOL_FLAG_FAKE_EC_POOL = 1 << 2, /* require ReplicatedPG to act like an EC pg */
+} c_pgpool_flags;
 
 /** Macros to create value_stings.
  * 
@@ -535,7 +647,7 @@ typedef enum _c_flags {
  * and a function `const char `base_string(base val)` which gets the string
  * for a value.
  * 
- * Additionally, c_make_strings_ext creates a
+ * Additionally, C_MAKE_STRINGS_EXT creates a
  * `value_strings_ext base_strings_ext` and uses this for the `base_string`
  * lookup.
  * 
@@ -550,7 +662,7 @@ typedef enum _c_flags {
 		return val_to_str(val, base##_strings, "Unknown (0x0"#chars"X)"); \
 	}
 
-#define c_make_strings_ext(base, chars) \
+#define C_MAKE_STRINGS_EXT(base, chars) \
 	typedef VALUE_STRING_ENUM(base##_strings) base; \
 	VALUE_STRING_ARRAY(base##_strings); \
 	\
@@ -725,7 +837,7 @@ static const value_string_ext c_tag_strings_ext = VALUE_STRING_EXT_INIT(c_tag_st
 	V(C_MSG_TIMECHECK,                   0x0600, "C_MSG_TIMECHECK")                   \
 	V(C_MSG_MON_HEALTH,                  0x0601, "C_MSG_MON_HEALTH")
 
-c_make_strings_ext(c_msg_type, 4)
+C_MAKE_STRINGS_EXT(c_msg_type, 4)
 
 #define c_osd_optype_strings_VALUE_STRING_LIST(V) \
 	/*** Raw Codes ***/                                                                                             \
@@ -820,7 +932,7 @@ c_make_strings_ext(c_msg_type, 4)
 	V(C_OSD_OP_CACHE_TRY_FLUSH,    C_OSD_OP_MODE_CACHE | C_OSD_OP_TYPE_DATA  | 0x21, "C_OSD_OP_CACHE_TRY_FLUSH")    \
 	V(C_OSD_OP_MODE,               0xf000,                                           "C_OSD_OP_MODE")
 
-c_make_strings_ext(c_osd_optype, 4)
+C_MAKE_STRINGS_EXT(c_osd_optype, 4)
 
 #define c_poolop_type_strings_VALUE_STRING_LIST(V) \
 	V(POOL_OP_CREATE,                0x01, "Create")                    \
@@ -839,7 +951,7 @@ c_make_strings(c_poolop_type, 2)
 	V(C_MON_ELECTION_NAK,     0x00000003, "Negative Acknowledge") \
 	V(C_MON_ELECTION_VICTORY, 0x00000004, "Victory")              \
 
-c_make_strings_ext(c_mon_election_type, 8)
+C_MAKE_STRINGS_EXT(c_mon_election_type, 8)
 
 #define c_mon_probe_type_strings_VALUE_STRING_LIST(V) \
 	V(C_MON_PROBE_PROBE,            0x00000001, "Probe")        \
@@ -849,7 +961,7 @@ c_make_strings_ext(c_mon_election_type, 8)
 	V(C_MON_PROBE_DATA,             0x00000005, "Data")         \
 	V(C_MON_PROBE_MISSING_FEATURES, 0x00000006, "Missing Features")
 
-c_make_strings_ext(c_mon_probe_type, 8)
+C_MAKE_STRINGS_EXT(c_mon_probe_type, 8)
 
 #define c_session_op_type_strings_VALUE_STRING_LIST(V) \
 	V(C_SESSION_REQUEST_OPEN,      0x00000000, "Request Open")       \
@@ -863,7 +975,7 @@ c_make_strings_ext(c_mon_probe_type, 8)
 	V(C_SESSION_FLUSHMSG,          0x00000008, "Flush Message")      \
 	V(C_SESSION_FLUSHMSG_ACK,      0x00000009, "Flush Message Ack")  \
 
-c_make_strings_ext(c_session_op_type, 8);
+C_MAKE_STRINGS_EXT(c_session_op_type, 8);
 
 #define c_mds_op_type_strings_VALUE_STRING_LIST(V) \
 	V(C_MDS_OP_LOOKUP,       0x00000100, "MDS_OP_LOOKUP")       \
@@ -897,7 +1009,7 @@ c_make_strings_ext(c_session_op_type, 8);
 	V(C_MDS_OP_FRAGMENTDIR,  0x00001500, "MDS_OP_FRAGMENTDIR")  \
 	V(C_MDS_OP_EXPORTDIR,    0x00001501, "MDS_OP_EXPORTDIR")
 
-c_make_strings_ext(c_mds_op_type, 8);
+C_MAKE_STRINGS_EXT(c_mds_op_type, 8);
 
 #define c_cap_op_type_strings_VALUE_STRING_LIST(V) \
 	V(C_CAP_OP_GRANT,         0x00000000, "mds->client grant")                    \
@@ -914,7 +1026,30 @@ c_make_strings_ext(c_mds_op_type, 8);
 	V(C_CAP_OP_RELEASE,       0x0000000B, "client->mds release (clean) cap")      \
 	V(C_CAP_OP_RENEW,         0x0000000C, "client->mds renewal request")          \
 
-c_make_strings_ext(c_cap_op_type, 8)
+C_MAKE_STRINGS_EXT(c_cap_op_type, 8)
+
+#define c_pgpool_type_strings_VALUE_STRING_LIST(V) \
+	V(C_PGPOOL_REPLICATED, 0x01, "Replicated") \
+	V(C_PGPOOL_RAID4,      0x02, "Raid4") \
+	V(C_PGPOOL_ERASURE,    0x03, "Erasure-coded")
+
+c_make_strings(c_pgpool_type, 2)
+
+#define c_pgpool_cachemode_strings_VALUE_STRING_LIST(V) \
+	V(C_PGPOOL_CACHEMODE_NONE,      0x00, "No caching")                                            \
+	V(C_PGPOOL_CACHEMODE_WRITEBACK, 0x01, "Write to cache, flush later")                           \
+	V(C_PGPOOL_CACHEMODE_FORWARD,   0x02, "Forward if not in cache")                               \
+	V(C_PGPOOL_CACHEMODE_READONLY,  0x03, "Handle reads, forward writes [not strongly consistent]") \
+
+C_MAKE_STRINGS_EXT(c_pgpool_cachemode, 2)
+
+#define c_hitset_params_type_strings_VALUE_STRING_LIST(V) \
+	V(C_HITSET_PARAMS_TYPE_NONE,            0x00, "None")            \
+	V(C_HITSET_PARAMS_TYPE_EXPLICIT_HASH,   0x01, "Explicit Hash")   \
+	V(C_HITSET_PARAMS_TYPE_EXPLICIT_OBJECT, 0x02, "Explicit Object") \
+	V(C_HITSET_PARAMS_TYPE_BLOOM,           0x03, "Bloom Filter")    \
+
+C_MAKE_STRINGS_EXT(c_hitset_params_type, 2)
 
 /** Node type database. */
 #define c_node_type_strings_LIST(V) \
@@ -1724,6 +1859,28 @@ guint c_dissect_str(proto_tree *root, int hf, c_str *out,
 	return off;
 }
 
+/** Dissect a map<string,string>
+ */
+static
+guint c_dissect_kv(proto_tree *root, int hf, int hf_k, int hf_v,
+                   tvbuff_t *tvb, guint off)
+{
+	proto_item *ti;
+	proto_tree *tree;
+	c_str k, v;
+	
+	ti = proto_tree_add_item(root, hf, tvb, off, -1, ENC_LITTLE_ENDIAN);
+	tree = proto_item_add_subtree(ti, hf);
+	
+	off = c_dissect_str(tree, hf_k, &k, tvb, off);
+	off = c_dissect_str(tree, hf_v, &v, tvb, off);
+	
+	proto_item_append_text(ti, ", %s = %s", k.str, v.str);
+	proto_item_set_end(ti, tvb, off);
+	
+	return off;
+}
+
 typedef struct _c_encoded {
 	guint8  version; /** The version of the struct. */
 	guint8  compat; /** The oldest compatible version. */
@@ -2000,6 +2157,331 @@ guint c_dissect_mds_release(proto_tree *root, gint hf,
 	return off;
 }
 
+/** Dissect a HitSet::Params */
+static
+guint c_dissect_hitset_params(proto_tree *root,
+                              tvbuff_t *tvb, guint off, c_pkt_data *data _U_)
+{
+	proto_item *ti, *ti2;
+	proto_tree *tree;
+	c_encoded enc, encimpl;
+	c_hitset_params_type type;
+	guint32 i;
+	
+	/** HitSet::Params from ceph:/src/osd/HitSet.h */
+	
+	ti   = proto_tree_add_item(root, hf_hitset_params, tvb, off, -1, ENC_NA);
+	tree = proto_item_add_subtree(ti, hf_hitset_params);
+	
+	off = c_dissect_encoded(tree, &enc, 1, 1, tvb, off, data);
+	
+	type = (c_hitset_params_type)tvb_get_guint8(tvb, off);
+	proto_item_append_text(ti, ", Type: %s", c_hitset_params_type_string(type));
+	ti2 = proto_tree_add_item(tree, hf_hitset_params_type,
+	                          tvb, off, 1, ENC_LITTLE_ENDIAN);
+	off += 1;
+	
+	switch (type)
+	{
+	case C_HITSET_PARAMS_TYPE_NONE:
+		break;
+	case C_HITSET_PARAMS_TYPE_EXPLICIT_HASH:
+		off = c_dissect_encoded(tree, &encimpl, 1, 1, tvb, off, data);
+		
+		proto_tree_add_item(tree, hf_hitset_params_exphash_count,
+		                    tvb, off, 8, ENC_LITTLE_ENDIAN);
+		off += 8;
+		
+		i = tvb_get_letohl(tvb, off);
+		off += 4;
+		while (i--)
+		{
+			proto_tree_add_item(tree, hf_hitset_params_exphash_hit,
+			                    tvb, off, 4, ENC_LITTLE_ENDIAN);
+			off += 4;
+		}
+		
+		c_warn_size(tree, tvb, off, encimpl.end, data);
+		off = encimpl.end;
+		break;
+	default:
+		expert_add_info(data->pinfo, ti2, &ei_union_unknown);
+		off = enc.end; /* Skip everything. */
+	}
+	
+	c_warn_size(tree, tvb, off, enc.end, data);
+	off = enc.end;
+	
+	return off;
+}
+
+
+/** Dissect a pool_snap_info_t */
+static
+guint c_dissect_snapinfo(proto_tree *root,
+                         tvbuff_t *tvb, guint off, c_pkt_data *data _U_)
+{
+	proto_item *ti;
+	proto_tree *tree;
+	c_encoded enc;
+	guint64 id;
+	c_str name;
+	
+	/** pool_snap_info_t from ceph:/src/osd/osd_types.h */
+	
+	ti   = proto_tree_add_item(root, hf_snapinfo, tvb, off, -1, ENC_NA);
+	tree = proto_item_add_subtree(ti, hf_snapinfo);
+	
+	off = c_dissect_encoded(tree, &enc, 2, 2, tvb, off, data);
+	
+	id = tvb_get_letoh64(tvb, off);
+	proto_tree_add_item(tree, hf_snapinfo_id,
+	                    tvb, off, 8, ENC_LITTLE_ENDIAN);
+	off += 8;
+	
+	proto_tree_add_item(tree, hf_snapinfo_time,
+	                    tvb, off, 8, ENC_LITTLE_ENDIAN);
+	off += 8;
+	
+	off = c_dissect_str(tree, hf_snapinfo_name, &name, tvb, off);
+	
+	proto_item_set_text(ti, ", ID: 0x%016"G_GINT64_MODIFIER"X"
+	                    ", Name: %s", //@TODO add date.
+	                    id, name.str);
+	
+	c_warn_size(tree, tvb, off, enc.size, data);
+	off = enc.size;
+	
+	return off;
+}
+
+/** Dissect a pg pool. */
+static
+guint c_dissect_pgpool(proto_tree *root,
+                       tvbuff_t *tvb, guint off, c_pkt_data *data _U_)
+{
+	proto_item *ti, *ti2;
+	proto_tree *tree, *subtree;
+	c_encoded enc;
+	guint32 i;
+	c_pgpool_type type;
+	c_pgpool_cachemode cachemode;
+	
+	static const int *flags_low[] = {
+		&hf_pgpool_flag_hashpool,
+		&hf_pgpool_flag_full,
+		&hf_pgpool_flag_fake_ec_pool,
+		NULL
+	};
+	static const int *flags_high[] = {
+		NULL
+	};
+	
+	/** pg_pool_t from ceph:/src/osd/osd_types.h */
+	
+	ti   = proto_tree_add_item(root, hf_pgpool, tvb, off, -1, ENC_NA);
+	tree = proto_item_add_subtree(ti, hf_pgpool);
+	
+	off = c_dissect_encoded(tree, &enc, 5, 15, tvb, off, data);
+	
+	type = (c_pgpool_type)tvb_get_guint8(tvb, off);
+	proto_tree_add_item(tree, hf_pgpool_type,
+	                    tvb, off, 1, ENC_LITTLE_ENDIAN);
+	off += 1;
+	
+	proto_tree_add_item(tree, hf_pgpool_size,
+	                    tvb, off, 1, ENC_LITTLE_ENDIAN);
+	off += 1;
+	
+	proto_tree_add_item(tree, hf_pgpool_crush_ruleset,
+	                    tvb, off, 1, ENC_LITTLE_ENDIAN);
+	off += 1;
+	
+	proto_tree_add_item(tree, hf_pgpool_hash,
+	                    tvb, off, 1, ENC_LITTLE_ENDIAN);
+	off += 1;
+	
+	proto_tree_add_item(tree, hf_pgpool_pgnum,
+	                    tvb, off, 4, ENC_LITTLE_ENDIAN);
+	off += 4;
+	
+	proto_tree_add_item(tree, hf_pgpool_pgpnum,
+	                    tvb, off, 4, ENC_LITTLE_ENDIAN);
+	off += 4;
+	
+	off += 4 + 4; // Always 0 in new code.  Ignored field.
+	
+	proto_tree_add_item(tree, hf_pgpool_changed,
+	                    tvb, off, 4, ENC_LITTLE_ENDIAN);
+	off += 4;
+	
+	proto_tree_add_item(tree, hf_pgpool_snapseq,
+	                    tvb, off, 8, ENC_LITTLE_ENDIAN);
+	off += 8;
+	
+	proto_tree_add_item(tree, hf_pgpool_snapepoch,
+	                    tvb, off, 4, ENC_LITTLE_ENDIAN);
+	off += 4;
+	
+	i = tvb_get_letohl(tvb, off);
+	off += 4;
+	while (i--) //@TODO Untested.
+	{
+		ti2 = proto_tree_add_item(tree, hf_pgpool_snap,
+		                          tvb, off, -1, ENC_LITTLE_ENDIAN);
+		subtree = proto_item_add_subtree(ti2, hf_pgpool_snap);
+		
+		proto_tree_add_item(subtree, hf_pgpool_snap_id,
+		                    tvb, off, 8, ENC_LITTLE_ENDIAN);
+		off += 8;
+		
+		off = c_dissect_snapinfo(subtree, tvb, off, data);
+		
+		proto_item_set_end(ti2, tvb, off);
+	}
+	
+	i = tvb_get_letohl(tvb, off);
+	off += 4;
+	while (i--) //@TODO Untested.
+	{
+		ti2 = proto_tree_add_item(tree, hf_pgpool_snapdel,
+		                          tvb, off, -1, ENC_LITTLE_ENDIAN);
+		subtree = proto_item_add_subtree(ti2, hf_pgpool_snapdel);
+		
+		proto_tree_add_item(subtree, hf_pgpool_snapdel_from,
+		                    tvb, off, 8, ENC_LITTLE_ENDIAN);
+		off += 8;
+		proto_tree_add_item(subtree, hf_pgpool_snapdel_to,
+		                    tvb, off, 8, ENC_LITTLE_ENDIAN);
+		off += 8;
+		
+		proto_item_set_end(ti2, tvb, off);
+	}
+	
+	proto_tree_add_item(tree, hf_pgpool_uid,
+	                    tvb, off, 8, ENC_LITTLE_ENDIAN);
+	off += 8;
+	
+	proto_tree_add_bitmask(tree, tvb, off, hf_pgpool_flags_low, hf_pgpool_flags_low,
+	                       flags_low, ENC_LITTLE_ENDIAN);
+	off += 4;
+	proto_tree_add_bitmask(tree, tvb, off, hf_pgpool_flags_high, hf_pgpool_flags_high,
+	                       flags_high, ENC_LITTLE_ENDIAN);
+	off += 4;
+	
+	proto_tree_add_item(tree, hf_pgpool_crash_reply_interval,
+	                    tvb, off, 4, ENC_LITTLE_ENDIAN);
+	off += 4;
+	
+	proto_tree_add_item(tree, hf_pgpool_min_size,
+	                    tvb, off, 1, ENC_LITTLE_ENDIAN);
+	off += 1;
+	
+	proto_tree_add_item(tree, hf_pgpool_quota_bytes,
+	                    tvb, off, 8, ENC_LITTLE_ENDIAN);
+	off += 8;
+	
+	proto_tree_add_item(tree, hf_pgpool_quota_objects,
+	                    tvb, off, 8, ENC_LITTLE_ENDIAN);
+	off += 8;
+	
+	i = tvb_get_letohl(tvb, off);
+	off += 4;
+	while (i--)
+	{
+		proto_tree_add_item(tree, hf_pgpool_tier,
+		                    tvb, off, 8, ENC_LITTLE_ENDIAN);
+		off += 8;
+	}
+	
+	proto_tree_add_item(tree, hf_pgpool_tierof,
+	                    tvb, off, 8, ENC_LITTLE_ENDIAN);
+	off += 8;
+	
+	cachemode = (c_pgpool_cachemode)tvb_get_guint8(tvb, off);
+	proto_tree_add_item(tree, hf_pgpool_cachemode,
+	                    tvb, off, 1, ENC_LITTLE_ENDIAN);
+	off += 1;
+	
+	proto_tree_add_item(tree, hf_pgpool_readtier,
+	                    tvb, off, 8, ENC_LITTLE_ENDIAN);
+	off += 8;
+	
+	proto_tree_add_item(tree, hf_pgpool_writetier,
+	                    tvb, off, 8, ENC_LITTLE_ENDIAN);
+	off += 8;
+	
+	i = tvb_get_letohl(tvb, off);
+	off += 4;
+	while (i--) //@TODO: Untested.
+	{
+		c_str k, v;
+		
+		ti2 = proto_tree_add_item(tree, hf_pgpool_property, tvb, off, -1, ENC_NA);
+		subtree = proto_item_add_subtree(ti2, hf_pgpool_property);
+		
+		off = c_dissect_str(subtree, hf_pgpool_property_key, &k, tvb, off);
+		off = c_dissect_str(subtree, hf_pgpool_property_val, &v, tvb, off);
+		
+		proto_item_append_text(ti2, ": %s=%s", k.str, v.str);
+		
+		proto_item_set_end(ti2, tvb, off);
+	}
+	
+	off = c_dissect_hitset_params(tree, tvb, off, data);
+	
+	proto_tree_add_item(tree, hf_pgpool_hitset_period,
+	                    tvb, off, 4, ENC_LITTLE_ENDIAN);
+	off += 4;
+	
+	proto_tree_add_item(tree, hf_pgpool_hitset_count,
+	                    tvb, off, 4, ENC_LITTLE_ENDIAN);
+	off += 4;
+	
+	proto_tree_add_item(tree, hf_pgpool_stripewidth,
+	                    tvb, off, 4, ENC_LITTLE_ENDIAN);
+	off += 4;
+	
+	proto_tree_add_item(tree, hf_pgpool_targetmaxsize,
+	                    tvb, off, 8, ENC_LITTLE_ENDIAN);
+	off += 8;
+	
+	proto_tree_add_item(tree, hf_pgpool_targetmaxobj,
+	                    tvb, off, 8, ENC_LITTLE_ENDIAN);
+	off += 8;
+	
+	proto_tree_add_item(tree, hf_pgpool_cache_targetdirtyratio,
+	                    tvb, off, 4, ENC_LITTLE_ENDIAN);
+	off += 4;
+	
+	proto_tree_add_item(tree, hf_pgpool_cache_targetfullratio,
+	                    tvb, off, 4, ENC_LITTLE_ENDIAN);
+	off += 4;
+	
+	proto_tree_add_item(tree, hf_pgpool_cache_flushage_min,
+	                    tvb, off, 4, ENC_LITTLE_ENDIAN);
+	off += 4;
+	
+	proto_tree_add_item(tree, hf_pgpool_cache_evictage_min,
+	                    tvb, off, 4, ENC_LITTLE_ENDIAN);
+	off += 4;
+	
+	off = c_dissect_str(tree, hf_pgpool_erasurecode_profile, NULL, tvb, off);
+	
+	proto_tree_add_item(tree, hf_pgpool_lastforceresend,
+	                    tvb, off, 4, ENC_LITTLE_ENDIAN);
+	off += 4;
+	
+	c_warn_size(tree, tvb, off, enc.end, data);
+	off = enc.end;
+	
+	proto_item_append_text(ti, ", Type: %s, Cache Mode: %s",
+	                       c_pgpool_type_string(type),
+	                       c_pgpool_cachemode_string(cachemode));
+	
+	return off;
+}
+
 /** Dissect a MonMap. */
 static
 guint c_dissect_monmap(proto_tree *root,
@@ -2056,6 +2538,487 @@ guint c_dissect_monmap(proto_tree *root,
 	
 	proto_tree_add_item(tree, hf_monmap_created, tvb, off, 8, ENC_LITTLE_ENDIAN);
 	off += 8;
+	
+	c_warn_size(tree, tvb, off, end, data);
+	off = end;
+	
+	return off;
+}
+
+/** Dissect an osd_info_t. */
+static
+guint c_dissect_osdinfo(proto_tree *root, int hf,
+                         tvbuff_t *tvb, guint off, c_pkt_data *data _U_)
+{
+	proto_item *ti, *ti2;
+	proto_tree *tree;
+	guint8 ver;
+	
+	/* osd_info_t from ceph:/src/osd/OSDMap.h */
+	
+	ti   = proto_tree_add_item(root, hf, tvb, off, 25, ENC_NA);
+	tree = proto_item_add_subtree(ti, hf);
+	
+	ver = tvb_get_guint8(tvb, off);
+	ti2 = proto_tree_add_item(tree, hf_osdinfo_ver,
+	                          tvb, off, 1, ENC_LITTLE_ENDIAN);
+	c_warn_ver(ti2, ver, 1, 1, data);
+	off += 1;
+	
+	proto_tree_add_item(tree, hf_osdinfo_lastclean_begin,
+	                    tvb, off, 4, ENC_LITTLE_ENDIAN);
+	off += 4;
+	
+	proto_tree_add_item(tree, hf_osdinfo_lastclean_end,
+	                    tvb, off, 4, ENC_LITTLE_ENDIAN);
+	off += 4;
+	
+	proto_tree_add_item(tree, hf_osdinfo_up_from,
+	                    tvb, off, 4, ENC_LITTLE_ENDIAN);
+	off += 4;
+	
+	proto_tree_add_item(tree, hf_osdinfo_up_through,
+	                    tvb, off, 4, ENC_LITTLE_ENDIAN);
+	off += 4;
+	
+	proto_tree_add_item(tree, hf_osdinfo_downat,
+	                    tvb, off, 4, ENC_LITTLE_ENDIAN);
+	off += 4;
+	
+	proto_tree_add_item(tree, hf_osdinfo_lostat,
+	                    tvb, off, 4, ENC_LITTLE_ENDIAN);
+	off += 4;
+	
+	return off;
+}
+
+/** Dissect an osd_xinfo_t. */
+static
+guint c_dissect_osd_xinfo(proto_tree *root, int hf,
+                          tvbuff_t *tvb, guint off, c_pkt_data *data _U_)
+{
+	proto_item *ti;
+	proto_tree *tree;
+	c_encoded enc;
+	
+	/* osd_xinfo_t from ceph:/src/osd/OSDMap.h */
+	
+	ti   = proto_tree_add_item(root, hf, tvb, off, -1, ENC_NA);
+	tree = proto_item_add_subtree(ti, hf);
+	
+	off = c_dissect_encoded(tree, &enc, 1, 3, tvb, off, data);
+	
+	proto_tree_add_item(tree, hf_osdxinfo_down,
+	                    tvb, off, 8, ENC_LITTLE_ENDIAN);
+	off += 8;
+	
+	proto_tree_add_item(tree, hf_osdxinfo_laggy_probability,
+	                    tvb, off, 4, ENC_LITTLE_ENDIAN);
+	off += 4;
+	
+	proto_tree_add_item(tree, hf_osdxinfo_laggy_interval,
+	                    tvb, off, 4, ENC_LITTLE_ENDIAN);
+	off += 4;
+	
+	if (enc.version >= 2 )
+	{
+		proto_tree_add_item(tree, hf_osdxinfo_features,
+		                    tvb, off, 8, ENC_LITTLE_ENDIAN);
+		off += 8;
+	}
+	if (enc.version >= 3)
+	{
+		proto_tree_add_item(tree, hf_osdxinfo_oldweight,
+		                    tvb, off, 4, ENC_LITTLE_ENDIAN);
+		off += 4;
+	}
+	
+	c_warn_size(tree, tvb, off, enc.end, data);
+	off = enc.end;
+	proto_item_set_end(ti, tvb, off);
+	
+	return off;
+}
+
+/** Dissect a CRUSH Ruleset. */
+static
+guint c_dissect_crush(proto_tree *root,
+                      tvbuff_t *tvb, guint off, c_pkt_data *data _U_)
+{
+	off = c_dissect_data(root, hf_crush, tvb, off);
+	
+	return off;
+}
+
+/** Dissect an OSDMap. */
+static
+guint c_dissect_osdmap(proto_tree *root,
+                       tvbuff_t *tvb, guint off, c_pkt_data *data _U_)
+{
+	proto_item *ti, *ti2;
+	proto_tree *tree, *subtree;
+	guint size, end;
+	guint32 i;
+	c_encoded enc, enc2; /* There is an outer one, and multiple inner ones. */
+	
+	/** OSDMap from ceph:/src/osd/OSDMap.cc */
+	
+	size = tvb_get_letohl(tvb, off);
+	end = off + 4 + size;
+	
+	ti   = proto_tree_add_item(root, hf_osdmap, tvb, off, size, ENC_NA);
+	tree = proto_item_add_subtree(ti, hf_osdmap);
+	
+	off += 4;
+	
+	off = c_dissect_encoded(tree, &enc, 7, 7, tvb, off, data);
+	/* Check the blob size and encoded size match. */
+	c_warn_size(tree, tvb, enc.end, end, data);
+	
+	/*** Start first inner ***/
+	ti2 = proto_tree_add_item(tree, hf_osdmap_client, tvb, off, -1, ENC_NA);
+	subtree = proto_item_add_subtree(ti2, hf_osdmap_client);
+	
+	off = c_dissect_encoded(subtree, &enc2, 1, 3, tvb, off, data);
+	
+	proto_tree_add_item(subtree, hf_osdmap_fsid, tvb, off, 16, ENC_BIG_ENDIAN);
+	off += 16;
+	
+	proto_tree_add_item(subtree, hf_osdmap_epoch,
+	                    tvb, off, 4, ENC_LITTLE_ENDIAN);
+	off += 4;
+	
+	proto_tree_add_item(subtree, hf_osdmap_created,
+	                    tvb, off, 8, ENC_LITTLE_ENDIAN);
+	off += 8;
+	
+	proto_tree_add_item(subtree, hf_osdmap_modified,
+	                    tvb, off, 8, ENC_LITTLE_ENDIAN);
+	off += 8;
+	
+	i = tvb_get_letohl(tvb, off);
+	off += 4;
+	while (i--)
+	{
+		proto_item *poolti;
+		proto_tree *pooltree;
+		guint64 id;
+		
+		poolti = proto_tree_add_item(subtree, hf_osdmap_pool,
+		                             tvb, off, -1, ENC_NA);
+		pooltree = proto_item_add_subtree(poolti, hf_osdmap_pool);
+		
+		id = tvb_get_letoh64(tvb, off);
+		proto_tree_add_item(pooltree, hf_osdmap_pool_id,
+		                    tvb, off, 8, ENC_LITTLE_ENDIAN);
+		off += 8;
+		
+		off = c_dissect_pgpool(pooltree, tvb, off, data);
+		
+		proto_item_append_text(poolti, ", ID: 0x%016"G_GINT64_MODIFIER"X", id);
+		
+		proto_item_set_end(poolti, tvb, off);
+	}
+	
+	i = tvb_get_letohl(tvb, off);
+	off += 4;
+	while (i--)
+	{
+		proto_item *nameti;
+		proto_tree *nametree;
+		guint64 id;
+		c_str name;
+		
+		nameti = proto_tree_add_item(subtree, hf_osdmap_poolname_item,
+		                             tvb, off, -1, ENC_NA);
+		nametree = proto_item_add_subtree(nameti, hf_osdmap_poolname_item);
+		
+		id = tvb_get_letoh64(tvb, off);
+		proto_tree_add_item(nametree, hf_osdmap_pool_id,
+		                    tvb, off, 8, ENC_LITTLE_ENDIAN);
+		off += 8;
+		
+		off = c_dissect_str(nametree, hf_osdmap_poolname, &name, tvb, off);
+		
+		proto_item_append_text(nameti,
+		                       ", ID: 0x%016"G_GINT64_MODIFIER"X, Name: %s",
+		                       id, name.str);
+		proto_item_set_end(nameti, tvb, off);
+	}
+	
+	proto_tree_add_item(subtree, hf_osdmap_poolmax,
+	                    tvb, off, 4, ENC_LITTLE_ENDIAN);
+	off += 4;
+	
+	proto_tree_add_item(subtree, hf_osdmap_flags,
+	                    tvb, off, 4, ENC_LITTLE_ENDIAN);
+	off += 4;
+	
+	proto_tree_add_item(subtree, hf_osdmap_osdmax,
+	                    tvb, off, 4, ENC_LITTLE_ENDIAN);
+	off += 4;
+	
+	i = tvb_get_letohl(tvb, off);
+	off += 4;
+	while (i--)
+	{
+		proto_tree_add_item(subtree, hf_osdmap_osd_state,
+		                    tvb, off, 1, ENC_LITTLE_ENDIAN);
+		off += 1;
+	}
+	
+	i = tvb_get_letohl(tvb, off);
+	off += 4;
+	while (i--)
+	{
+		proto_tree_add_item(subtree, hf_osdmap_osd_weight,
+		                    tvb, off, 4, ENC_LITTLE_ENDIAN);
+		off += 4;
+	}
+	
+	i = tvb_get_letohl(tvb, off);
+	off += 4;
+	while (i--)
+	{
+		off = c_dissect_entity_addr(subtree, hf_osdmap_osd_addr, NULL,
+		                            tvb, off, data);
+	}
+	
+	i = tvb_get_letohl(tvb, off);
+	off += 4;
+	while (i--)
+	{
+		guint32 j;
+		proto_item *pgtti;
+		proto_tree *pgttree;
+		
+		pgtti = proto_tree_add_item(subtree, hf_osdmap_pgtmp,
+		                           tvb, off, -1, ENC_NA);
+		pgttree = proto_item_add_subtree(pgtti, hf_osdmap_pgtmp);
+		
+		off = c_dissect_pg(pgttree, hf_osdmap_pgtmp_pg, tvb, off, data);
+		
+		j = tvb_get_letohl(tvb, off);
+		off += 4;
+		while (j--)
+		{
+			proto_tree_add_item(pgttree, hf_osdmap_pgtmp_val,
+			                    tvb, off, 4, ENC_LITTLE_ENDIAN);
+			off += 4;
+		}
+		
+		proto_item_set_end(pgtti, tvb, off);
+	}
+	
+	i = tvb_get_letohl(tvb, off);
+	off += 4;
+	while (i--)
+	{
+		proto_item *pgtti;
+		proto_tree *pgttree;
+		
+		pgtti = proto_tree_add_item(subtree, hf_osdmap_primarytmp,
+		                           tvb, off, -1, ENC_NA);
+		pgttree = proto_item_add_subtree(pgtti, hf_osdmap_primarytmp);
+		
+		off = c_dissect_pg(pgttree, hf_osdmap_primarytmp_pg, tvb, off, data);
+		
+		proto_tree_add_item(pgttree, hf_osdmap_primarytmp_val,
+		                    tvb, off, 4, ENC_LITTLE_ENDIAN);
+		off += 4;
+		
+		proto_item_set_end(pgtti, tvb, off);
+	}
+	
+	if (enc2.version >= 2)
+	{
+		i = tvb_get_letohl(tvb, off);
+		off += 4;
+		while (i--)
+		{
+			proto_tree_add_item(subtree, hf_osdmap_osd_primaryaffinity,
+			                    tvb, off, 4, ENC_LITTLE_ENDIAN);
+			off += 4;
+		}
+	}
+	
+	off = c_dissect_crush(subtree, tvb, off, data);
+	
+	if (enc2.version >= 3)
+	{
+		i = tvb_get_letohl(tvb, off);
+		off += 4;
+		while (i--)
+		{
+			guint32 j;
+			proto_item *ecti;
+			proto_tree *ectree;
+			c_str profile;
+			
+			ecti = proto_tree_add_item(subtree, hf_osdmap_erasurecodeprofile,
+			                           tvb, off, -1, ENC_NA);
+			ectree = proto_item_add_subtree(ecti, hf_osdmap_erasurecodeprofile);
+			
+			off = c_dissect_str(ectree, hf_osdmap_erasurecodeprofile_name, &profile,
+			                    tvb, off);
+			proto_item_append_text(ecti, ", Name: %s", profile.str);
+			
+			j = tvb_get_letohl(tvb, off);
+			off += 4;
+			while (j--)
+			{
+				off = c_dissect_kv(ectree, hf_osdmap_erasurecodeprofile_prop,
+				                   hf_osdmap_erasurecodeprofile_k,
+				                   hf_osdmap_erasurecodeprofile_v,
+				                   tvb, off);
+			}
+			
+			proto_item_set_end(ecti, tvb, off);
+		}
+	}
+	
+	c_warn_size(subtree, tvb, off, enc2.end, data);
+	off = enc2.end;
+	/*** End first inner ***/
+	
+	/*** Start second inner ***/
+	ti2 = proto_tree_add_item(tree, hf_osdmap_osd, tvb, off, -1, ENC_NA);
+	subtree = proto_item_add_subtree(ti2, hf_osdmap_osd);
+	off = c_dissect_encoded(subtree, &enc2, 1, 1, tvb, off, data);
+	
+	i = tvb_get_letohl(tvb, off);
+	off += 4;
+	while (i--)
+	{
+		off = c_dissect_entity_addr(subtree, hf_osdmap_hbbackaddr, NULL,
+		                            tvb, off, data);
+	}
+	
+	i = tvb_get_letohl(tvb, off);
+	off += 4;
+	while (i--)
+	{
+		off = c_dissect_osdinfo(subtree, hf_osdmap_osd_info, tvb, off, data);
+	}
+	
+	i = tvb_get_letohl(tvb, off);
+	off += 4;
+	while (i--)
+	{
+		proto_item *blti;
+		proto_tree *bltree;
+		
+		blti = proto_tree_add_item(subtree, hf_osdmap_blacklist,
+		                           tvb, off, -1, ENC_NA);
+		bltree = proto_item_add_subtree(blti, hf_osdmap_blacklist);
+		
+		off = c_dissect_entity_addr(bltree, hf_osdmap_blacklist_addr, NULL,
+		                            tvb, off, data);
+		
+		proto_tree_add_item(bltree, hf_osdmap_blacklist_time,
+		                    tvb, off, 8, ENC_LITTLE_ENDIAN);
+		off += 8;
+		
+		proto_item_set_end(blti, tvb, off);
+	}
+	
+	i = tvb_get_letohl(tvb, off);
+	off += 4;
+	while (i--)
+	{
+		off = c_dissect_entity_addr(subtree, hf_osdmap_cluster_addr, NULL,
+		                            tvb, off, data);
+	}
+	
+	proto_tree_add_item(subtree, hf_osdmap_cluster_snapepoch,
+	                    tvb, off, 4, ENC_LITTLE_ENDIAN);
+	off += 4;
+	
+	off = c_dissect_str(subtree, hf_osdmap_cluster_snap, NULL, tvb, off);
+	
+	i = tvb_get_letohl(tvb, off);
+	off += 4;
+	while (i--)
+	{
+		proto_tree_add_item(subtree, hf_osdmap_osd_uuid,
+		                    tvb, off, 16, ENC_LITTLE_ENDIAN);
+		off += 16;
+	}
+	
+	i = tvb_get_letohl(tvb, off);
+	off += 4;
+	while (i--)
+	{
+		off = c_dissect_osd_xinfo(subtree, hf_osdmap_osd_xinfo, tvb, off, data);
+	}
+	
+	i = tvb_get_letohl(tvb, off);
+	off += 4;
+	while (i--)
+	{
+		off = c_dissect_entity_addr(subtree, hf_osdmap_hbfrontaddr, NULL,
+		                            tvb, off, data);
+	}
+	
+	c_warn_size(subtree, tvb, off, enc2.end, data);
+	off = enc2.end;
+	/*** End second inner ***/
+	
+	c_warn_size(tree, tvb, off, end, data);
+	off = end;
+	
+	return off;
+}
+
+/** Dissect an incremental OSDMap. */
+static
+guint c_dissect_osdmap_inc(proto_tree *root,
+                           tvbuff_t *tvb, guint off, c_pkt_data *data _U_)
+{
+	proto_item *ti, *ti2;
+	proto_tree *tree, *subtree;
+	guint size, end;
+	c_encoded enc, enc2; /* There is an outer one, and multiple inner ones. */
+	
+	/** OSDMap::Incremental from ceph:/src/osd/OSDMap.cc */
+	
+	size = tvb_get_letohl(tvb, off);
+	end = off + 4 + size;
+	
+	ti   = proto_tree_add_item(root, hf_osdmap_inc, tvb, off, size, ENC_NA);
+	tree = proto_item_add_subtree(ti, hf_osdmap_inc);
+	
+	off += 4;
+	
+	off = c_dissect_encoded(tree, &enc, 7, 7, tvb, off, data);
+	/* Check the blob size and encoded size match. */
+	c_warn_size(tree, tvb, enc.end, end, data);
+	
+	/*** Start first inner ***/
+	ti2 = proto_tree_add_item(tree, hf_osdmap_inc_client, tvb, off, -1, ENC_NA);
+	subtree = proto_item_add_subtree(ti2, hf_osdmap_inc_client);
+	
+	off = c_dissect_encoded(subtree, &enc2, 1, 3, tvb, off, data);
+	
+	proto_tree_add_item(subtree, hf_osdmap_inc_fsid, tvb, off, 16, ENC_BIG_ENDIAN);
+	off += 16;
+	
+	/* @TODO: Dissect. */
+	
+	c_warn_size(subtree, tvb, off, enc2.end, data);
+	off = enc2.end;
+	/*** End first inner ***/
+	
+	/*** Start second inner ***/
+	ti2 = proto_tree_add_item(tree, hf_osdmap_inc_osd, tvb, off, -1, ENC_NA);
+	subtree = proto_item_add_subtree(ti2, hf_osdmap_inc_osd);
+	off = c_dissect_encoded(subtree, &enc2, 1, 1, tvb, off, data);
+	
+	/* @TODO: Dissect. */
+	
+	c_warn_size(subtree, tvb, off, enc2.end, data);
+	off = enc2.end;
+	/*** End second inner ***/
 	
 	c_warn_size(tree, tvb, off, end, data);
 	off = end;
@@ -2978,9 +3941,8 @@ guint c_dissect_msg_osd_map(proto_tree *root,
 		proto_tree_add_item(subtree, hf_msg_osd_map_epoch,
 		                    tvb, off, 4, ENC_LITTLE_ENDIAN);
 		off += 4;
-		off = c_dissect_blob(subtree, hf_msg_osd_map_data,
-		                     hf_msg_osd_map_data_data, hf_msg_osd_map_data_size,
-		                     tvb, off);
+		
+		off = c_dissect_osdmap_inc(subtree, tvb, off, data);
 		
 		proto_item_set_end(ti, tvb, off);
 	}
@@ -3000,9 +3962,8 @@ guint c_dissect_msg_osd_map(proto_tree *root,
 		proto_tree_add_item(subtree, hf_msg_osd_map_epoch,
 		                    tvb, off, 4, ENC_LITTLE_ENDIAN);
 		off += 4;
-		off = c_dissect_blob(subtree, hf_msg_osd_map_data,
-		                     hf_msg_osd_map_data_data, hf_msg_osd_map_data_size,
-		                     tvb, off);
+		
+		off = c_dissect_osdmap(subtree, tvb, off, data);
 		
 		proto_item_set_end(ti, tvb, off);
 	}
@@ -4743,6 +5704,267 @@ proto_register_ceph(void)
 			FT_STRING, BASE_NONE, NULL, 0,
 			NULL, HFILL
 		} },
+		{ &hf_hitset_params, {
+			"HitSet Parameters", "ceph.hitset_params",
+			FT_NONE, BASE_NONE, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_hitset_params_type, {
+			"Type", "ceph.hitset_params.type",
+			FT_UINT8, BASE_HEX|BASE_EXT_STRING, VALS(&c_hitset_params_type_strings_ext), 0,
+			NULL, HFILL
+		} },
+		{ &hf_hitset_params_exphash_count, {
+			"Count", "ceph.hitset_params.exphash.count",
+			FT_UINT64, BASE_DEC, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_hitset_params_exphash_hit, {
+			"Hit", "ceph.hitset_params.exphash.hit",
+			FT_UINT32, BASE_DEC, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_snapinfo, {
+			"Snapshot Info", "ceph.snapinfo",
+			FT_NONE, BASE_NONE, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_snapinfo_id, {
+			"ID", "ceph.snapinfo.id",
+			FT_UINT64, BASE_HEX, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_snapinfo_time, {
+			"Timestamp", "ceph.snapinfo.timestamp",
+			FT_ABSOLUTE_TIME, ABSOLUTE_TIME_LOCAL, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_snapinfo_name, {
+			"Name", "ceph.snapinfo.name",
+			FT_STRING, BASE_NONE, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_pgpool, {
+			"Placement Group Pool", "ceph.pgpool",
+			FT_NONE, BASE_NONE, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_pgpool_type, {
+			"Type", "ceph.pgpool.type",
+			FT_UINT8, BASE_HEX, VALS(c_pgpool_type_strings), 0,
+			NULL, HFILL
+		} },
+		{ &hf_pgpool_size, {
+			"Size", "ceph.pgpool.size",
+			FT_UINT8, BASE_DEC, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_pgpool_crush_ruleset, {
+			"CRUSH Ruleset", "ceph.pgpool.crush_ruleset",
+			FT_UINT8, BASE_DEC, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_pgpool_hash, {
+			"Object Hash", "ceph.pgpool.hash",
+			FT_UINT8, BASE_HEX, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_pgpool_pgnum, {
+			"PG Count", "ceph.pgpool.pgnum",
+			FT_UINT32, BASE_DEC, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_pgpool_pgpnum, {
+			"PGP Count", "ceph.pgpool.pgpnum",
+			FT_UINT32, BASE_DEC, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_pgpool_changed, {
+			"Last Changed", "ceph.pgpool.changed",
+			FT_UINT32, BASE_DEC, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_pgpool_snapseq, {
+			"Snap Sequence", "ceph.pgpool.snapseq",
+			FT_UINT64, BASE_HEX, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_pgpool_snapepoch, {
+			"Epoch", "ceph.pgpool.snapepoch",
+			FT_UINT32, BASE_DEC, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_pgpool_snap, {
+			"Snapshot", "ceph.pgpool.snap",
+			FT_NONE, BASE_NONE, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_pgpool_snap_id, {
+			"ID", "ceph.pgpool.snap.id",
+			FT_UINT64, BASE_HEX, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_pgpool_snapdel, {
+			"Deleted Snapshots", "ceph.pgpool.snapdel",
+			FT_NONE, BASE_NONE, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_pgpool_snapdel_from, {
+			"From", "ceph.pgpool.snapdel.from",
+			FT_UINT64, BASE_HEX, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_pgpool_snapdel_to, {
+			"To", "ceph.pgpool.snapdel.to",
+			FT_UINT64, BASE_HEX, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_pgpool_uid, {
+			"User ID", "ceph.pgpool.uid",
+			FT_UINT64, BASE_DEC, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_pgpool_flags_low, {
+			"Flags", "ceph.pgpool.flags",
+			FT_UINT32, BASE_HEX, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_pgpool_flags_high, {
+			"Flags", "ceph.pgpool.flags",
+			FT_UINT32, BASE_HEX, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_pgpool_crash_reply_interval, {
+			"Crash Replay Interval", "ceph.pgpool.crash_reply_interval",
+			FT_UINT32, BASE_DEC, NULL, 0,
+			"Seconds to allow clients to replay ACKed but "
+			"unCOMMITted requests.", HFILL
+		} },
+		{ &hf_pgpool_min_size, {
+			"Minimum number of OSDs", "ceph.pgpool.min_size",
+			FT_UINT8, BASE_DEC, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_pgpool_quota_bytes, {
+			"Maximum number of bytes", "ceph.pgpool.quota_bytes",
+			FT_UINT64, BASE_DEC, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_pgpool_quota_objects, {
+			"Maximum number of objects", "ceph.pgpool.quota_objects",
+			FT_UINT64, BASE_DEC, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_pgpool_tier, {
+			"Tier", "ceph.msg.",
+			FT_UINT64, BASE_HEX, NULL, 0,
+			"A pool that is a tier of this tier.", HFILL
+		} },
+		{ &hf_pgpool_tierof, {
+			"Tier of", "ceph.pgpool.tierof",
+			FT_UINT64, BASE_HEX, NULL, 0,
+			"The pool that this pool is a tier of.", HFILL
+		} },
+		{ &hf_pgpool_cachemode, {
+			"Cache Mode", "ceph.pgpool.cache_mode",
+			FT_UINT8, BASE_HEX|BASE_EXT_STRING, VALS(&c_pgpool_cachemode_strings_ext), 0,
+			NULL, HFILL
+		} },
+		{ &hf_pgpool_readtier, {
+			"Read Tier", "ceph.pgpool.read_tier",
+			FT_UINT64, BASE_HEX, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_pgpool_writetier, {
+			"Write Tier", "ceph.pgpool.write_tier",
+			FT_UINT64, BASE_HEX, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_pgpool_property, {
+			"Property", "ceph.pgpool.property",
+			FT_NONE, BASE_NONE, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_pgpool_property_key, {
+			"Key", "ceph.pgpool.property.key",
+			FT_STRING, BASE_NONE, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_pgpool_property_val, {
+			"Value", "ceph.pgpool.property.val",
+			FT_STRING, BASE_NONE, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_pgpool_hitset_period, {
+			"HitSet Period", "ceph.hitset_period",
+			FT_UINT32, BASE_DEC, NULL, 0,
+			"The period of HitSet segments in seconds.", HFILL
+		} },
+		{ &hf_pgpool_hitset_count, {
+			"HitSet count", "ceph.pgpool.hitset_count",
+			FT_UINT32, BASE_DEC, NULL, 0,
+			"The number of HitSet periods to retain.", HFILL
+		} },
+		{ &hf_pgpool_stripewidth, {
+			"Stripe Width", "ceph.pgpool.stripewidth",
+			FT_UINT32, BASE_DEC, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_pgpool_targetmaxsize, {
+			"Target Maximum Bytes", "ceph.pgpool.targetmaxsize",
+			FT_UINT64, BASE_DEC, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_pgpool_targetmaxobj, {
+			"Target Maximum Objects", "ceph.pgpool.targetmaxobj",
+			FT_UINT64, BASE_DEC, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_pgpool_cache_targetdirtyratio, {
+			"Cache Target Dirty Ratio", "ceph.pgpool.cache.targetdirtyratio",
+			FT_UINT32, BASE_DEC, NULL, 0,
+			"Fraction of cache to leave dirty.", HFILL
+		} },
+		{ &hf_pgpool_cache_targetfullratio, {
+			"Cache Target Full Ratio", "ceph.msg.",
+			FT_UINT32, BASE_DEC, NULL, 0,
+			"Fraction of target to fill before evicting in earnest.", HFILL
+		} },
+		{ &hf_pgpool_cache_flushage_min, {
+			"Cache Minimum Flush Age", "ceph.pgpool.cache.flushage_min",
+			FT_UINT32, BASE_DEC, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_pgpool_cache_evictage_min, {
+			"Cache Minimum Evict Age", "ceph.pgpool.cache.evictage_min",
+			FT_UINT32, BASE_DEC, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_pgpool_erasurecode_profile, {
+			"Erasure Code Profile", "ceph.pgpool.erasurecode_profile",
+			FT_STRING, BASE_NONE, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_pgpool_lastforceresend, {
+			"Last Force Resend", "ceph.pgpool.lastforceresend",
+			FT_UINT32, BASE_DEC, NULL, 0,
+			"Last epoch that forced clients to resend.", HFILL
+		} },
+		{ &hf_pgpool_flag_hashpool, {
+			"Hash Seed and Pool Together", "ceph.pgpool.flag.hashpool",
+			FT_BOOLEAN, 32, TFS(&tfs_true_false), C_PGPOOL_FLAG_HASHPSPOOL,
+			NULL, HFILL
+		} },
+		{ &hf_pgpool_flag_full, {
+			"Pool Full", "ceph.pgpool.flag.full",
+			FT_BOOLEAN, 32, TFS(&tfs_true_false), C_PGPOOL_FLAG_FULL,
+			NULL, HFILL
+		} },
+		{ &hf_pgpool_flag_fake_ec_pool, {
+			"Fake Erasure-Coded Pool", "ceph.pgpool.flag.fake_ec_pool",
+			FT_BOOLEAN, 32, TFS(&tfs_true_false), C_PGPOOL_FLAG_FAKE_EC_POOL,
+			NULL, HFILL
+		} },
 		{ &hf_monmap, {
 			"Monmap", "ceph.monmap.data",
 			FT_NONE, BASE_NONE, NULL, 0,
@@ -4781,6 +6003,293 @@ proto_register_ceph(void)
 		{ &hf_monmap_created, {
 			"Time Created", "ceph.monmap.created",
 			FT_ABSOLUTE_TIME, ABSOLUTE_TIME_LOCAL, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_osdinfo_ver, {
+			"Encoding Version", "ceph.osdinfo.ver",
+			FT_UINT8, BASE_DEC, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_osdinfo_lastclean_begin, {
+			"Last Clean Begin", "ceph.osdinfo.lastclean.begin",
+			FT_UINT32, BASE_DEC, NULL, 0,
+			"The start of the last interval that ended with "
+			"a clean shutdown.", HFILL
+		} },
+		{ &hf_osdinfo_lastclean_end, {
+			"Last Clean End", "ceph.osdinfo.lastclean.end",
+			FT_UINT32, BASE_DEC, NULL, 0,
+			"The end of the last interval that ended with a "
+			"clean shutdown.", HFILL
+		} },
+		{ &hf_osdinfo_up_from, {
+			"Up From", "ceph.osdinfo.up.from",
+			FT_UINT32, BASE_DEC, NULL, 0,
+			"Epoch OSD was marked up.", HFILL
+		} },
+		{ &hf_osdinfo_up_through, {
+			"Up Through", "ceph.osdinfo.up.through",
+			FT_UINT32, BASE_DEC, NULL, 0,
+			"Last epoch before OSD died.", HFILL
+		} },
+		{ &hf_osdinfo_downat, {
+			"Down At", "ceph.osdinfo.downat",
+			FT_UINT32, BASE_DEC, NULL, 0,
+			"First epoch after OSD died.", HFILL
+		} },
+		{ &hf_osdinfo_lostat, {
+			"Lost At", "ceph.osdinfo.lostat",
+			FT_UINT32, BASE_DEC, NULL, 0,
+			"Last epoch where the data was decided \"lost\".", HFILL
+		} },
+		{ &hf_osdxinfo_down, {
+			"Down At", "ceph.osdxinfo.downat",
+			FT_ABSOLUTE_TIME, ABSOLUTE_TIME_LOCAL, NULL, 0,
+			"Time when OSD was last marked down.", HFILL
+		} },
+		{ &hf_osdxinfo_laggy_probability, {
+			"Laggy Probability", "ceph.osdxinfo.laggy.probability",
+			FT_UINT32, BASE_DEC, NULL, 0,
+			"Probability that the OSD is laggy. (out of 0xFFFFFFFF)", HFILL
+		} },
+		{ &hf_osdxinfo_laggy_interval, {
+			"Laggy Interval", "ceph.osdxinfo.laggy.interval",
+			FT_UINT32, BASE_DEC, NULL, 0,
+			"Average interval between being marked laggy and recovering.", HFILL
+		} },
+		{ &hf_osdxinfo_features, {
+			"Features", "ceph.osdxinfo.features",
+			FT_UINT64, BASE_HEX, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_osdxinfo_oldweight, {
+			"Old Weight", "ceph.osdxinfo.oldweight",
+			FT_UINT32, BASE_DEC, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_osdmap, {
+			"OSD Map", "ceph.osdmap",
+			FT_NONE, BASE_NONE, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_osdmap_client, {
+			"Client-Usable Data", "ceph.osdmap.client",
+			FT_NONE, BASE_NONE, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_osdmap_fsid, {
+			"FSID", "ceph.osdmap.fsid",
+			FT_GUID, BASE_NONE, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_osdmap_epoch, {
+			"Epoch", "ceph.osdmap.epoch",
+			FT_UINT32, BASE_DEC, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_osdmap_created, {
+			"Time Created", "ceph.osdmap.created",
+			FT_ABSOLUTE_TIME, ABSOLUTE_TIME_LOCAL, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_osdmap_modified, {
+			"Last Modified", "ceph.osdmap.modified",
+			FT_ABSOLUTE_TIME, ABSOLUTE_TIME_LOCAL, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_osdmap_pool, {
+			"Pool", "ceph.osdmap.pool",
+			FT_NONE, BASE_NONE, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_osdmap_pool_id, {
+			"ID", "ceph.osdmap.pool.id",
+			FT_UINT64, BASE_HEX, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_osdmap_poolname_item, {
+			"Pool Name", "ceph.osdmap.poolname.item",
+			FT_NONE, BASE_NONE, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_osdmap_poolname, {
+			"Name", "ceph.osdmap.poolname",
+			FT_STRING, BASE_NONE, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_osdmap_poolmax, {
+			"Highest Pool ID", "ceph.osdmap.poolmax",
+			FT_INT32, BASE_DEC, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_osdmap_flags, {
+			"Flags", "ceph.osdmap.flags",
+			FT_UINT32, BASE_HEX, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_osdmap_osdmax, {
+			"Highest OSD Number", "ceph.osdmap.osdmax",
+			FT_INT32, BASE_DEC, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_osdmap_osd_state, {
+			"OSD State", "ceph.osdmap.osd.state",
+			FT_UINT8, BASE_HEX, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_osdmap_osd_weight, {
+			"OSD Weight", "ceph.osdmap.osd.weight",
+			FT_UINT32, BASE_DEC, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_osdmap_osd_addr, {
+			"OSD Address", "ceph.osdmap.address",
+			FT_NONE, BASE_NONE, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_osdmap_pgtmp, {
+			"Temporary Placement Group Mapping", "ceph.osdmap.pgtmp",
+			FT_NONE, BASE_NONE, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_osdmap_pgtmp_pg, {
+			"Placement Group", "ceph.osdmap.pgtmp.pg",
+			FT_NONE, BASE_NONE, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_osdmap_pgtmp_val, {
+			"Value", "ceph.osdmap.pgtmp.val",
+			FT_UINT32, BASE_DEC, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_osdmap_primarytmp, {
+			"Temporary Primary Mapping", "ceph.osdmap.primarytmp",
+			FT_NONE, BASE_NONE, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_osdmap_primarytmp_pg, {
+			"Placement Group", "ceph.osdmap.primarytmp.pg",
+			FT_NONE, BASE_NONE, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_osdmap_primarytmp_val, {
+			"Value", "ceph.osdmap.primarytmp.val",
+			FT_UINT32, BASE_DEC, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_osdmap_osd_primaryaffinity, {
+			"Primary Affinity", "ceph.osdmap.osd.primaryaffinity",
+			FT_UINT32, BASE_DEC, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_crush, {
+			"CRUSH Rules", "ceph.crush",
+			FT_NONE, BASE_NONE, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_osdmap_erasurecodeprofile, {
+			"Erasure Code Profile", "ceph.osdmap.erasurecodeprofile",
+			FT_NONE, BASE_NONE, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_osdmap_erasurecodeprofile_name, {
+			"Profile Name", "ceph.osdmap.erasurecodeprofile.name",
+			FT_STRING, BASE_NONE, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_osdmap_erasurecodeprofile_prop, {
+			"Property", "ceph.osdmap.erasurecodeprofile.prop",
+			FT_NONE, BASE_NONE, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_osdmap_erasurecodeprofile_k, {
+			"Key", "ceph.osdmap.erasurecodeprofile.key",
+			FT_STRING, BASE_NONE, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_osdmap_erasurecodeprofile_v, {
+			"Value", "ceph.osdmap.erasurecodeprofile.value",
+			FT_STRING, BASE_NONE, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_osdmap_osd, {
+			"OSD-Only Data", "ceph.osdmap.osd",
+			FT_NONE, BASE_NONE, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_osdmap_hbbackaddr, { //@TODO What is this?
+			"HB Back Address", "ceph.osdmap.nbbackaddr",
+			FT_NONE, BASE_NONE, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_osdmap_osd_info, {
+			"OSD Info", "ceph.osdmap.osd.info",
+			FT_NONE, BASE_NONE, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_osdmap_blacklist, {
+			"Blacklist", "ceph.osdmap.blacklist",
+			FT_NONE, BASE_NONE, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_osdmap_blacklist_addr, {
+			"Address", "ceph.osdmap.blacklist.addr",
+			FT_NONE, BASE_NONE, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_osdmap_blacklist_time, {
+			"Time", "ceph.osdmap.blacklist.time",
+			FT_ABSOLUTE_TIME, ABSOLUTE_TIME_LOCAL, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_osdmap_cluster_addr, {
+			"Cluster Address", "ceph.osdmap.cluster.addr",
+			FT_NONE, BASE_NONE, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_osdmap_cluster_snapepoch, {
+			"Cluster Snapshot Epoch", "ceph.osdmap.cluster.snapepoch",
+			FT_UINT32, BASE_DEC, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_osdmap_cluster_snap, {
+			"Cluster Snapshot", "ceph.osdmap.cluster.snap",
+			FT_STRING, BASE_NONE, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_osdmap_osd_uuid, {
+			"OSD UUID", "ceph.osdmap.osd.uuid",
+			FT_GUID, BASE_NONE, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_osdmap_osd_xinfo, {
+			"OSD xinfo", "ceph.osdmap.osd.xinfo",
+			FT_NONE, BASE_NONE, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_osdmap_hbfrontaddr, {
+			"HB Front Addr", "ceph.osdmap.hbfrontaddr",
+			FT_NONE, BASE_NONE, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_osdmap_inc, {
+			"Incremental OSD Map", "ceph.osdmap_inc",
+			FT_NONE, BASE_NONE, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_osdmap_inc_client, {
+			"Client-Usable Data", "ceph.osdmap_inc.client",
+			FT_NONE, BASE_NONE, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_osdmap_inc_fsid, {
+			"FSID", "ceph.osdmap_inc.fsid",
+			FT_GUID, BASE_NONE, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_osdmap_inc_osd, {
+			"OSD-Only Data", "ceph.osdmap_inc.osd",
+			FT_NONE, BASE_NONE, NULL, 0,
 			NULL, HFILL
 		} },
 		{ &hf_connect, {
@@ -5910,21 +7419,6 @@ proto_register_ceph(void)
 			FT_UINT32, BASE_DEC, NULL, 0,
 			NULL, HFILL
 		} },
-		{ &hf_msg_osd_map_data, {
-			"Map Data", "ceph",
-			FT_NONE, BASE_NONE, NULL, 0,
-			NULL, HFILL
-		} },
-		{ &hf_msg_osd_map_data_data, {
-			"Data", "ceph.msg.osd_map.data",
-			FT_BYTES, BASE_NONE, NULL, 0,
-			NULL, HFILL
-		} },
-		{ &hf_msg_osd_map_data_size, {
-			"Size", "ceph.msg.osd_map.data_size",
-			FT_UINT32, BASE_DEC, NULL, 0,
-			NULL, HFILL
-		} },
 		{ &hf_msg_osd_map_oldest, {
 			"Oldest Map", "ceph.msg.osd_map.oldest",
 			FT_UINT32, BASE_DEC, NULL, 0,
@@ -6372,7 +7866,7 @@ proto_register_ceph(void)
 		} },
 		{ &hf_msg_mon_probe_ever_joined, {
 			"Has Ever Joined?", "ceph.msg.mon_probe.has_ever_joined",
-			FT_BOOLEAN, BASE_DEC, NULL, 0,
+			FT_BOOLEAN, BASE_NONE, NULL, 0,
 			NULL, HFILL
 		} },
 		{ &hf_msg_mon_probe_req_features, {
