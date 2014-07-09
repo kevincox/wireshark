@@ -1325,6 +1325,31 @@ void c_append_text(c_pkt_data *data, proto_item *ti, const char *fmt, ...)
 	va_end(ap);
 }
 
+/** Format a timespec.
+ * 
+ * The returned string has packet lifetime.
+ */
+static
+char *c_format_timespec(tvbuff_t *tvb, guint off)
+{
+	nstime_t t;
+	t.secs  = tvb_get_letohl(tvb, off);
+	t.nsecs = tvb_get_letohl(tvb, off+4);
+	return abs_time_to_ep_str(&t, ABSOLUTE_TIME_LOCAL, 1);
+}
+
+/** Format a UUID
+ * 
+ * The returned string has packet lifetime.
+ */
+static
+char *c_format_uuid(tvbuff_t *tvb, guint off)
+{
+	e_guid_t uuid;
+	tvb_get_guid(tvb, off, &uuid, ENC_BIG_ENDIAN);
+	return guid_to_ep_str(&uuid);
+}
+
 enum c_ressembly {
 	C_NEEDMORE = G_MAXUINT,
 	C_INVALID  = 0,
@@ -2661,7 +2686,13 @@ guint c_dissect_osdmap(proto_tree *root,
 	guint32 i;
 	c_encoded enc, enc2; /* There is an outer one, and multiple inner ones. */
 	
-	/** OSDMap from ceph:/src/osd/OSDMap.cc */
+	/*** Storage for values that will be formatted and
+	 *** added to the root nodes.
+	 ***/
+	char *fsid;
+	char *time_created, *time_modified;
+	
+	/* OSDMap from ceph:/src/osd/OSDMap.cc */
 	
 	size = tvb_get_letohl(tvb, off);
 	end = off + 4 + size;
@@ -2680,7 +2711,9 @@ guint c_dissect_osdmap(proto_tree *root,
 	subtree = proto_item_add_subtree(ti2, hf_osdmap_client);
 	
 	off = c_dissect_encoded(subtree, &enc2, 1, 3, tvb, off, data);
+	proto_item_set_len(ti2, enc2.size);
 	
+	fsid = c_format_uuid(tvb, off);
 	proto_tree_add_item(subtree, hf_osdmap_fsid, tvb, off, 16, ENC_BIG_ENDIAN);
 	off += 16;
 	
@@ -2688,10 +2721,12 @@ guint c_dissect_osdmap(proto_tree *root,
 	                    tvb, off, 4, ENC_LITTLE_ENDIAN);
 	off += 4;
 	
+	time_created = c_format_timespec(tvb, off);
 	proto_tree_add_item(subtree, hf_osdmap_created,
 	                    tvb, off, 8, ENC_LITTLE_ENDIAN);
 	off += 8;
 	
+	time_modified = c_format_timespec(tvb, off);
 	proto_tree_add_item(subtree, hf_osdmap_modified,
 	                    tvb, off, 8, ENC_LITTLE_ENDIAN);
 	off += 8;
@@ -2885,6 +2920,7 @@ guint c_dissect_osdmap(proto_tree *root,
 	ti2 = proto_tree_add_item(tree, hf_osdmap_osd, tvb, off, -1, ENC_NA);
 	subtree = proto_item_add_subtree(ti2, hf_osdmap_osd);
 	off = c_dissect_encoded(subtree, &enc2, 1, 1, tvb, off, data);
+	proto_item_set_len(ti2, enc2.size);
 	
 	i = tvb_get_letohl(tvb, off);
 	off += 4;
@@ -2964,6 +3000,10 @@ guint c_dissect_osdmap(proto_tree *root,
 	off = enc2.end;
 	/*** End second inner ***/
 	
+	proto_item_append_text(ti, ", FSID: %s, Created: %s, Modified: %s",
+	                       fsid,
+	                       time_created, time_modified);
+	
 	c_warn_size(tree, tvb, off, end, data);
 	off = end;
 	
@@ -2999,6 +3039,7 @@ guint c_dissect_osdmap_inc(proto_tree *root,
 	subtree = proto_item_add_subtree(ti2, hf_osdmap_inc_client);
 	
 	off = c_dissect_encoded(subtree, &enc2, 1, 3, tvb, off, data);
+	proto_item_set_len(ti2, enc2.size);
 	
 	proto_tree_add_item(subtree, hf_osdmap_inc_fsid, tvb, off, 16, ENC_BIG_ENDIAN);
 	off += 16;
@@ -3013,6 +3054,7 @@ guint c_dissect_osdmap_inc(proto_tree *root,
 	ti2 = proto_tree_add_item(tree, hf_osdmap_inc_osd, tvb, off, -1, ENC_NA);
 	subtree = proto_item_add_subtree(ti2, hf_osdmap_inc_osd);
 	off = c_dissect_encoded(subtree, &enc2, 1, 1, tvb, off, data);
+	proto_item_set_len(ti2, enc2.size);
 	
 	/* @TODO: Dissect. */
 	
@@ -3907,10 +3949,11 @@ guint c_dissect_msg_osd_map(proto_tree *root,
                            guint front_len, guint middle_len _U_, guint data_len _U_,
                            c_pkt_data *data)
 {
-	proto_item *ti;
+	proto_item *ti, *ti2;
 	proto_tree *tree, *subtree;
 	guint off = 0;
 	guint32 i;
+	guint32 epoch;
 	
 	/* ceph:/src/messages/MOSDMap.h */
 	
@@ -3934,17 +3977,19 @@ guint c_dissect_msg_osd_map(proto_tree *root,
 	off += 4;
 	while (i--)
 	{
-		ti = proto_tree_add_item(tree, hf_msg_osd_map_inc,
+		ti2 = proto_tree_add_item(tree, hf_msg_osd_map_inc,
 		                    tvb, off, -1, ENC_NA);
-		subtree = proto_item_add_subtree(ti, hf_msg_osd_map_inc);
+		subtree = proto_item_add_subtree(ti2, hf_msg_osd_map_inc);
 		
+		epoch = tvb_get_letohl(tvb, off);
 		proto_tree_add_item(subtree, hf_msg_osd_map_epoch,
 		                    tvb, off, 4, ENC_LITTLE_ENDIAN);
 		off += 4;
 		
 		off = c_dissect_osdmap_inc(subtree, tvb, off, data);
 		
-		proto_item_set_end(ti, tvb, off);
+		proto_item_append_text(ti2, ", For Epoch: %"G_GINT32_MODIFIER"u", epoch);
+		proto_item_set_end(ti2, tvb, off);
 	}
 	
 	/*** Non-incremental Items ***/
@@ -3955,17 +4000,19 @@ guint c_dissect_msg_osd_map(proto_tree *root,
 	off += 4;
 	while (i--)
 	{
-		ti = proto_tree_add_item(tree, hf_msg_osd_map_map,
-		                    tvb, off, -1, ENC_NA);
-		subtree = proto_item_add_subtree(ti, hf_msg_osd_map_map);
+		ti2 = proto_tree_add_item(tree, hf_msg_osd_map_map,
+		                          tvb, off, -1, ENC_NA);
+		subtree = proto_item_add_subtree(ti2, hf_msg_osd_map_map);
 		
+		epoch = tvb_get_letohl(tvb, off);
 		proto_tree_add_item(subtree, hf_msg_osd_map_epoch,
 		                    tvb, off, 4, ENC_LITTLE_ENDIAN);
 		off += 4;
 		
 		off = c_dissect_osdmap(subtree, tvb, off, data);
 		
-		proto_item_set_end(ti, tvb, off);
+		proto_item_append_text(ti2, ", For Epoch: %"G_GINT32_MODIFIER"u", epoch);
+		proto_item_set_end(ti2, tvb, off);
 	}
 	
 	if (data->header.ver >= 2)
