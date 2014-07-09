@@ -163,7 +163,6 @@ static int hf_osdinfo_lostat                        = -1;
 static int hf_osdxinfo_down                        = -1;
 static int hf_osdxinfo_laggy_probability                        = -1;
 static int hf_osdxinfo_laggy_interval                        = -1;
-static int hf_osdxinfo_features                        = -1;
 static int hf_osdxinfo_oldweight                        = -1;
 static int hf_osdmap                        = -1;
 static int hf_osdmap_client                        = -1;
@@ -1658,7 +1657,7 @@ guint c_dissect_node_name(proto_tree *root, c_node_name *out,
 /** Dissect a connection features list. */
 static
 guint c_dissect_features(proto_tree *tree,
-                      tvbuff_t *tvb, guint off, c_pkt_data *data _U_)
+                         tvbuff_t *tvb, guint off, c_pkt_data *data _U_)
 {
 	static const int *lowword[] = {
 		&hf_feature_uid,
@@ -2251,6 +2250,7 @@ guint c_dissect_snapinfo(proto_tree *root,
 	c_encoded enc;
 	guint64 id;
 	c_str name;
+	char *date;
 	
 	/** pool_snap_info_t from ceph:/src/osd/osd_types.h */
 	
@@ -2264,6 +2264,7 @@ guint c_dissect_snapinfo(proto_tree *root,
 	                    tvb, off, 8, ENC_LITTLE_ENDIAN);
 	off += 8;
 	
+	date = c_format_timespec(tvb, off);
 	proto_tree_add_item(tree, hf_snapinfo_time,
 	                    tvb, off, 8, ENC_LITTLE_ENDIAN);
 	off += 8;
@@ -2271,8 +2272,10 @@ guint c_dissect_snapinfo(proto_tree *root,
 	off = c_dissect_str(tree, hf_snapinfo_name, &name, tvb, off);
 	
 	proto_item_set_text(ti, ", ID: 0x%016"G_GINT64_MODIFIER"X"
-	                    ", Name: %s", //@TODO add date.
-	                    id, name.str);
+	                    ", Name: %s, Date: %s",
+	                    id,
+	                    name.str,
+	                    date);
 	
 	c_warn_size(tree, tvb, off, enc.size, data);
 	off = enc.size;
@@ -2334,7 +2337,7 @@ guint c_dissect_pgpool(proto_tree *root,
 	                    tvb, off, 4, ENC_LITTLE_ENDIAN);
 	off += 4;
 	
-	off += 4 + 4; // Always 0 in new code.  Ignored field.
+	off += 4 + 4; /* Always 0 in new code.  Ignored field. */
 	
 	proto_tree_add_item(tree, hf_pgpool_changed,
 	                    tvb, off, 4, ENC_LITTLE_ENDIAN);
@@ -2647,9 +2650,7 @@ guint c_dissect_osd_xinfo(proto_tree *root, int hf,
 	
 	if (enc.version >= 2 )
 	{
-		proto_tree_add_item(tree, hf_osdxinfo_features,
-		                    tvb, off, 8, ENC_LITTLE_ENDIAN);
-		off += 8;
+		off = c_dissect_features(tree, tvb, off, data);
 	}
 	if (enc.version >= 3)
 	{
@@ -3633,7 +3634,7 @@ guint c_dissect_msg_auth(proto_tree *root,
 	                     hf_msg_auth_payload_data, hf_msg_auth_payload_size,
 	                     tvb, off);
 	
-	//@TODO: Parse auth.
+	/* @TODO: Parse auth. */
 	
 	if (off+4 == front_len) { /* If there is an epoch. */
 		proto_tree_add_item(tree, hf_msg_auth_monmap_epoch,
@@ -3707,7 +3708,7 @@ guint c_dissect_msg_mds_map(proto_tree *root,
 	                    tvb, off, 4, ENC_LITTLE_ENDIAN);
 	off += 4;
 	
-	//@TODO: Dissect map data.
+	/* @TODO: Dissect map data. */
 	
 	off = c_dissect_blob(tree, hf_msg_mds_map_datai,
 	                     hf_msg_mds_map_data, hf_msg_mds_map_data_size,
@@ -3823,7 +3824,7 @@ guint c_dissect_msg_client_req(proto_tree *root,
 	                    tvb, off, 8, ENC_LITTLE_ENDIAN);
 	off += 8;
 	
-	off += 48; //@TODO: Message specific data.
+	off += 48; /* @TODO: Message specific data. */
 	
 	off = c_dissect_path(tree, hf_msg_client_req_path_src, tvb, off, data);
 	off = c_dissect_path(tree, hf_msg_client_req_path_dst, tvb, off, data);
@@ -3932,7 +3933,7 @@ guint c_dissect_msg_client_reply(proto_tree *root,
 	                    tvb, off, 1, ENC_LITTLE_ENDIAN);
 	off += 1;
 	
-	//@TODO: Dissect these.
+	/* @TODO: Dissect these.
 	off = c_dissect_data(tree, hf_msg_client_reply_trace, tvb, off);
 	off = c_dissect_data(tree, hf_msg_client_reply_extra, tvb, off);
 	off = c_dissect_data(tree, hf_msg_client_reply_snaps, tvb, off);
@@ -3956,8 +3957,6 @@ guint c_dissect_msg_osd_map(proto_tree *root,
 	guint32 epoch;
 	
 	/* ceph:/src/messages/MOSDMap.h */
-	
-	//@TODO: Dissect map data.
 	
 	c_set_type(data, "OSD Map");
 	
@@ -4778,7 +4777,7 @@ guint c_dissect_msg_client_caps(proto_tree *root,
 	                    tvb, off, 8, ENC_LITTLE_ENDIAN);
 	off += 8;
 	
-	off += 84; //@TODO: Union.
+	off += 84; /* @TODO: Union. */
 	
 	proto_tree_add_item(tree, hf_msg_client_caps_snap,
 	                    tvb, off, snap_trace_len, ENC_LITTLE_ENDIAN);
@@ -4800,7 +4799,7 @@ guint c_dissect_msg_client_caps(proto_tree *root,
 			__u8   flags;
 		} __attribute__ ((packed));
 		*/
-		//@TODO: Parse this.
+		/* @TODO: Parse this. */
 		off += 21;
 	}
 	
@@ -5156,7 +5155,7 @@ guint c_dissect_connect(proto_tree *root,
 	
 	off = c_dissect_flags(tree, tvb, off, data);
 	
-	//@TODO: Parse auth.
+	/* @TODO: Parse auth. */
 	proto_tree_add_item(tree, hf_connect_auth,
 	                    tvb, off, authsize, ENC_NA);
 	off += authsize;
@@ -5213,7 +5212,7 @@ guint c_dissect_connect_reply(proto_tree *root,
 	
 	off = c_dissect_flags(tree, tvb, off, data);
 	
-	//@TODO: Parse auth.
+	/* @TODO: Parse auth. */
 	proto_tree_add_item(tree, hf_connect_auth,
 	                    tvb, off, authsize, ENC_NA);
 	off += authsize;
@@ -5475,7 +5474,7 @@ int dissect_ceph(tvbuff_t *tvb, packet_info *pinfo,
 		off = offt;
 	}
 	
-	return off; // Perfect Fit.
+	return off; /* Perfect Fit. */
 }
 
 /** An old style dissector proxy.
@@ -6103,11 +6102,6 @@ proto_register_ceph(void)
 			"Laggy Interval", "ceph.osdxinfo.laggy.interval",
 			FT_UINT32, BASE_DEC, NULL, 0,
 			"Average interval between being marked laggy and recovering.", HFILL
-		} },
-		{ &hf_osdxinfo_features, {
-			"Features", "ceph.osdxinfo.features",
-			FT_UINT64, BASE_HEX, NULL, 0,
-			NULL, HFILL
 		} },
 		{ &hf_osdxinfo_oldweight, {
 			"Old Weight", "ceph.osdxinfo.oldweight",
