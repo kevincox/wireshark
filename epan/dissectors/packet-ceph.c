@@ -50,6 +50,9 @@ static int hf_node_id                            = -1;
 static int hf_node_type                          = -1;
 static int hf_node_nonce                         = -1;
 static int hf_node_name                          = -1;
+static int hf_EntityName                          = -1;
+static int hf_EntityName_type                          = -1;
+static int hf_EntityName_id                          = -1;
 static int hf_src_slug                           = -1;
 static int hf_src_type                           = -1;
 static int hf_dst_type                           = -1;
@@ -193,7 +196,7 @@ static int hf_osdmap_erasurecodeprofile_prop     = -1;
 static int hf_osdmap_erasurecodeprofile_k        = -1;
 static int hf_osdmap_erasurecodeprofile_v        = -1;
 static int hf_osdmap_osd                         = -1;
-static int hf_osdmap_hbbackaddr                  = -1;
+static int hf_osdmap_hbaddr_back                  = -1;
 static int hf_osdmap_osd_info                    = -1;
 static int hf_osdmap_blacklist                   = -1;
 static int hf_osdmap_blacklist_addr              = -1;
@@ -203,7 +206,7 @@ static int hf_osdmap_cluster_snapepoch           = -1;
 static int hf_osdmap_cluster_snap                = -1;
 static int hf_osdmap_osd_uuid                    = -1;
 static int hf_osdmap_osd_xinfo                   = -1;
-static int hf_osdmap_hbfrontaddr                 = -1;
+static int hf_osdmap_hbaddr_front                 = -1;
 static int hf_osdmap_inc                         = -1;
 static int hf_osdmap_inc_client                  = -1;
 static int hf_osdmap_inc_fsid                    = -1;
@@ -373,6 +376,12 @@ static int hf_msg_mon_sub_ack_interval           = -1;
 static int hf_msg_mon_sub_ack_fsid               = -1;
 static int hf_msg_auth                           = -1;
 static int hf_msg_auth_proto                     = -1;
+static int hf_msg_auth_supportedproto                     = -1;
+static int hf_msg_auth_supportedproto_ver                     = -1;
+static int hf_msg_auth_supportedproto_proto                     = -1;
+static int hf_msg_auth_supportedproto_gid                     = -1;
+static int hf_msg_auth_cephx                     = -1;
+static int hf_msg_auth_cephx_req_type                     = -1;
 static int hf_msg_auth_payload                   = -1;
 static int hf_msg_auth_payload_data              = -1;
 static int hf_msg_auth_payload_size              = -1;
@@ -654,7 +663,7 @@ typedef enum _c_pgpool_flags {
  * @param chars The number of characters to use when displaying the value.
  *              this is generally 2*bytes.
  */
-#define c_make_strings(base, chars) \
+#define C_MAKE_STRINGS(base, chars) \
 	typedef VALUE_STRING_ENUM(base##_strings) base; \
 	VALUE_STRING_ARRAY(base##_strings); \
 	static const char *base##_string(base val) { \
@@ -942,7 +951,7 @@ C_MAKE_STRINGS_EXT(c_osd_optype, 4)
 	V(POOL_OP_CREATE_UNMANAGED_SNAP, 0x21, "Create Unmanaged Snapshot") \
 	V(POOL_OP_DELETE_UNMANAGED_SNAP, 0x22, "Delete Unmanaged Snapshot") \
 
-c_make_strings(c_poolop_type, 2)
+C_MAKE_STRINGS(c_poolop_type, 2)
 
 #define c_mon_election_type_strings_VALUE_STRING_LIST(V) \
 	V(C_MON_ELECTION_PROPOSE, 0x00000001, "Propose")              \
@@ -1032,7 +1041,7 @@ C_MAKE_STRINGS_EXT(c_cap_op_type, 8)
 	V(C_PGPOOL_RAID4,      0x02, "Raid4") \
 	V(C_PGPOOL_ERASURE,    0x03, "Erasure-coded")
 
-c_make_strings(c_pgpool_type, 2)
+C_MAKE_STRINGS(c_pgpool_type, 2)
 
 #define c_pgpool_cachemode_strings_VALUE_STRING_LIST(V) \
 	V(C_PGPOOL_CACHEMODE_NONE,      0x00, "No caching")                                            \
@@ -1050,6 +1059,20 @@ C_MAKE_STRINGS_EXT(c_pgpool_cachemode, 2)
 
 C_MAKE_STRINGS_EXT(c_hitset_params_type, 2)
 
+#define c_auth_proto_strings_VALUE_STRING_LIST(V) \
+	V(C_AUTH_PROTO_UNKNOWN, 0x00, "Undecided")    \
+	V(C_AUTH_PROTO_NONE,    0x01, "None")         \
+	V(C_AUTH_PROTO_CEPHX,   0x02, "CephX")        \
+
+C_MAKE_STRINGS(c_auth_proto, 2)
+
+#define c_cephx_req_type_strings_VALUE_STRING_LIST(V) \
+	V(C_CEPHX_REQ_AUTH_SESSIONKEY, 0x0100, "Get Auth Session Key") \
+	V(C_CEPHX_REQ_PRINCIPAL_SESSIONKEY, 0x0200, "Get Principal Session Key") \
+	V(C_CEPHX_REQ_ROTATINGKEY, 0x0400, "Get Rotating Key")
+
+C_MAKE_STRINGS(c_cephx_req_type, 4)
+
 /** Node type database. */
 #define c_node_type_strings_LIST(V) \
 	V(C_NODE_TYPE_UNKNOWN, 0x00, "Unknown",               "unknown") \
@@ -1066,7 +1089,7 @@ C_MAKE_STRINGS_EXT(c_hitset_params_type, 2)
 /** Extract the full names to create a value_string list. */
 #define c_node_type_strings_VALUE_STRING_LIST(V) \
 	C_EVAL1(c_node_type_strings_LIST(V C_EXTRACT_123))
-c_make_strings(c_node_type, 2)
+C_MAKE_STRINGS(c_node_type, 2)
 
 /** Extract the abbreviations to create a value_string list. */
 #define c_node_type_abbr_strings_VALUE_STRING_LIST(V) \
@@ -1095,10 +1118,10 @@ typedef struct _c_node_name {
 	const char *type_str;
 	guint64 id;
 	c_node_type type;
-} c_node_name;
+} c_entity_name;
 
 static
-void c_node_name_init(c_node_name *d)
+void c_node_name_init(c_entity_name *d)
 {
 	d->slug     = NULL;
 	d->type_str = NULL;
@@ -1108,7 +1131,7 @@ void c_node_name_init(c_node_name *d)
 
 typedef struct _c_node {
 	address addr;
-	c_node_name name;
+	c_entity_name name;
 	c_state state;
 	guint16 port;
 } c_node;
@@ -1175,7 +1198,7 @@ typedef struct _c_header {
 	c_msg_type type;
 	guint16 ver;
 	guint8  priority;
-	c_node_name src;
+	c_entity_name src;
 } c_header;
 
 static
@@ -1475,6 +1498,87 @@ gshort c_warn_ver(proto_item *ti,
 
 /***** Data Structure Dissectors *****/
 
+/** Dissect a length-delimited binary blob.
+ */
+static
+guint c_dissect_blob(proto_tree *root, int hf, int hf_data, int hf_len,
+                     tvbuff_t *tvb, guint off)
+{
+	proto_item *ti;
+	proto_tree *tree;
+	guint32 size;
+	const char *hex;
+	
+	size = tvb_get_letohl(tvb, off);
+	hex  = bytestring_to_str(wmem_packet_scope(),
+	                         tvb_get_ptr(tvb, off+4, size), size,
+	                         '\0');
+	
+	ti = proto_tree_add_item(root, hf, tvb, off, size+4, ENC_NA);
+	tree = proto_item_add_subtree(ti, hf_data);
+	
+	proto_item_append_text(ti, ", Size: %"G_GINT32_MODIFIER"u", size);
+	if (size) proto_item_append_text(ti, ", Data: %s", hex);
+	
+	proto_tree_add_item(tree, hf_len,
+	                    tvb, off, 4, ENC_LITTLE_ENDIAN);
+	off += 4;
+	proto_tree_add_item(tree, hf_data,
+	                    tvb, off, size, ENC_NA);
+	off += size;
+	
+	return off;
+}
+
+/** Dissect a blob of data.
+ * 
+ * This is intended for data that is not yet being dissected but will be later.
+ */
+static
+guint c_dissect_data(proto_tree *tree, int hf,
+                     tvbuff_t *tvb, guint off)
+{
+	return c_dissect_blob(tree, hf, hf_data_data, hf_data_size, tvb, off);
+}
+
+typedef struct _c_str {
+	char    *str; /** The string data ('\0' terminated). */
+	guint32  size; /** The number of bytes in the string. */
+} c_str;
+
+/** Dissect a length-delimited string.
+ * 
+ * If \a out is provided the string will be stored there.
+ */
+static
+guint c_dissect_str(proto_tree *root, int hf, c_str *out,
+                     tvbuff_t *tvb, guint off)
+{
+	proto_item *ti;
+	proto_tree *tree;
+	c_str d;
+	
+	d.size = tvb_get_letohl(tvb, off);
+	d.str  = (char*)tvb_get_string_enc(wmem_packet_scope(),
+	                                   tvb, off+4, d.size, ENC_ASCII);
+	
+	ti = proto_tree_add_string_format_value(root, hf, tvb, off, 4+d.size,
+	                                        d.str,
+	                                        "%s", d.str);
+	tree = proto_item_add_subtree(ti, hf);
+	
+	proto_tree_add_item(tree, hf_string_size,
+	                    tvb, off, 4, ENC_LITTLE_ENDIAN);
+	off += 4;
+	proto_tree_add_item(tree, hf_string_data,
+	                    tvb, off, d.size, ENC_LITTLE_ENDIAN);
+	off += d.size;
+	
+	if (out) *out = d;
+	
+	return off;
+}
+
 enum c_size_sockaddr {
 	C_SIZE_SOCKADDR_STORAGE = 128
 };
@@ -1608,7 +1712,7 @@ enum c_size_entity_name {
  * If \a out is provided the data is stored there.
  */
 static
-guint c_dissect_node_name(proto_tree *root, c_node_name *out,
+guint c_dissect_entity_name(proto_tree *root, c_entity_name *out,
                           tvbuff_t *tvb, guint off, c_pkt_data *data _U_)
 {
 	/* From ceph:/src/include/msgr.h
@@ -1620,7 +1724,7 @@ guint c_dissect_node_name(proto_tree *root, c_node_name *out,
 	
 	proto_item *ti;
 	proto_tree *tree;
-	c_node_name d;
+	c_entity_name d;
 	
 	ti = proto_tree_add_item(root, hf_node_name,
 	                         tvb, off, C_SIZE_ENTITY_NAME, ENC_NA);
@@ -1651,6 +1755,40 @@ guint c_dissect_node_name(proto_tree *root, c_node_name *out,
 	proto_item_append_text(ti, ": %s", d.slug);
 	
 	if (out) *out = d;
+	return off;
+}
+
+/** Dissect an EntityName.
+ * 
+ * If \a out is provided the data is stored there.
+ * 
+ * \note This is different then c_dissect_entity_name()
+ */
+static
+guint c_dissect_EntityName(proto_tree *root,
+                           tvbuff_t *tvb, guint off, c_pkt_data *data _U_)
+{
+	/* EntityName from ceph:/src/common/entity_name.h */
+	
+	proto_item *ti;
+	proto_tree *tree;
+	c_node_type type;
+	c_str name;
+	
+	ti = proto_tree_add_item(root, hf_EntityName,
+	                         tvb, off, C_SIZE_ENTITY_NAME, ENC_NA);
+	tree = proto_item_add_subtree(ti, hf_EntityName);
+	
+	type = (c_node_type)tvb_get_letohl(tvb, off);
+	proto_tree_add_item(tree, hf_EntityName_type,
+	                    tvb, off, 4, ENC_LITTLE_ENDIAN);
+	off += 4;
+	
+	off = c_dissect_str(tree, hf_EntityName_id, &name, tvb, off);
+	
+	proto_item_append_text(ti, ": %s.%s",
+	                       c_node_type_abbr_string(type), name.str);
+	
 	return off;
 }
 
@@ -1800,87 +1938,6 @@ guint c_dissect_osd_flags(proto_tree *tree,
 	                       flags, ENC_LITTLE_ENDIAN);
 	
 	return off+4;
-}
-
-/** Dissect a length-delimited binary blob.
- */
-static
-guint c_dissect_blob(proto_tree *root, int hf, int hf_data, int hf_len,
-                     tvbuff_t *tvb, guint off)
-{
-	proto_item *ti;
-	proto_tree *tree;
-	guint32 size;
-	const char *hex;
-	
-	size = tvb_get_letohl(tvb, off);
-	hex  = bytestring_to_str(wmem_packet_scope(),
-	                         tvb_get_ptr(tvb, off+4, size), size,
-	                         '\0');
-	
-	ti = proto_tree_add_item(root, hf, tvb, off, size+4, ENC_NA);
-	tree = proto_item_add_subtree(ti, hf_data);
-	
-	proto_item_append_text(ti, ", Size: %"G_GINT32_MODIFIER"u", size);
-	if (size) proto_item_append_text(ti, ", Data: %s", hex);
-	
-	proto_tree_add_item(tree, hf_len,
-	                    tvb, off, 4, ENC_LITTLE_ENDIAN);
-	off += 4;
-	proto_tree_add_item(tree, hf_data,
-	                    tvb, off, size, ENC_NA);
-	off += size;
-	
-	return off;
-}
-
-/** Dissect a blob of data.
- * 
- * This is intended for data that is not yet being dissected but will be later.
- */
-static
-guint c_dissect_data(proto_tree *tree, int hf,
-                     tvbuff_t *tvb, guint off)
-{
-	return c_dissect_blob(tree, hf, hf_data_data, hf_data_size, tvb, off);
-}
-
-typedef struct _c_str {
-	char    *str; /** The string data ('\0' terminated). */
-	guint32  size; /** The number of bytes in the string. */
-} c_str;
-
-/** Dissect a length-delimited string.
- * 
- * If \a out is provided the string will be stored there.
- */
-static
-guint c_dissect_str(proto_tree *root, int hf, c_str *out,
-                     tvbuff_t *tvb, guint off)
-{
-	proto_item *ti;
-	proto_tree *tree;
-	c_str d;
-	
-	d.size = tvb_get_letohl(tvb, off);
-	d.str  = (char*)tvb_get_string_enc(wmem_packet_scope(),
-	                                   tvb, off+4, d.size, ENC_ASCII);
-	
-	ti = proto_tree_add_string_format_value(root, hf, tvb, off, 4+d.size,
-	                                        d.str,
-	                                        "%s", d.str);
-	tree = proto_item_add_subtree(ti, hf);
-	
-	proto_tree_add_item(tree, hf_string_size,
-	                    tvb, off, 4, ENC_LITTLE_ENDIAN);
-	off += 4;
-	proto_tree_add_item(tree, hf_string_data,
-	                    tvb, off, d.size, ENC_LITTLE_ENDIAN);
-	off += d.size;
-	
-	if (out) *out = d;
-	
-	return off;
 }
 
 /** Dissect a map<string,string>
@@ -2927,7 +2984,7 @@ guint c_dissect_osdmap(proto_tree *root,
 	off += 4;
 	while (i--)
 	{
-		off = c_dissect_entity_addr(subtree, hf_osdmap_hbbackaddr, NULL,
+		off = c_dissect_entity_addr(subtree, hf_osdmap_hbaddr_back, NULL,
 		                            tvb, off, data);
 	}
 	
@@ -2993,7 +3050,7 @@ guint c_dissect_osdmap(proto_tree *root,
 	off += 4;
 	while (i--)
 	{
-		off = c_dissect_entity_addr(subtree, hf_osdmap_hbfrontaddr, NULL,
+		off = c_dissect_entity_addr(subtree, hf_osdmap_hbaddr_front, NULL,
 		                            tvb, off, data);
 	}
 	
@@ -3612,9 +3669,12 @@ guint c_dissect_msg_auth(proto_tree *root,
                         guint front_len, guint middle_len _U_, guint data_len _U_,
                         c_pkt_data *data)
 {
-	proto_item *ti;
-	proto_tree *tree;
-	guint off = 0;
+	proto_item *ti, *ti2;
+	proto_tree *tree, *subtree;
+	guint off = 0, expectedoff;
+	guint8 ver;
+	guint32 i, len;
+	c_auth_proto proto;
 	
 	/* ceph:/src/messages/MAuth.h */
 	
@@ -3625,22 +3685,79 @@ guint c_dissect_msg_auth(proto_tree *root,
 	ti = proto_tree_add_item(root, hf_msg_auth, tvb, off, front_len-off, ENC_NA);
 	tree = proto_item_add_subtree(ti, hf_msg_auth);
 	
-	c_append_text(data, ti, ", Proto: 0x%02x", tvb_get_letohl(tvb, off));
+	proto = (c_auth_proto)tvb_get_letohl(tvb, off);
 	proto_tree_add_item(tree, hf_msg_auth_proto,
 	                    tvb, off, 4, ENC_LITTLE_ENDIAN);
 	off += 4;
 	
-	off = c_dissect_blob(tree, hf_msg_auth_payload,
-	                     hf_msg_auth_payload_data, hf_msg_auth_payload_size,
-	                     tvb, off);
+	expectedoff = off + 4 + tvb_get_letohl(tvb, off);
+	off += 4;
 	
-	/* @TODO: Parse auth. */
+	switch (proto)
+	{
+	case C_AUTH_PROTO_UNKNOWN:
+		/* auth_payload is a set of supported protocols. */
+		ti2 = proto_tree_add_item(tree, hf_msg_auth_supportedproto,
+		                          tvb, off, -1, ENC_LITTLE_ENDIAN);
+		subtree = proto_item_add_subtree(ti2, hf_msg_auth_supportedproto);
+		
+		ver = tvb_get_guint8(tvb, off);
+		c_warn_ver(ti2, ver, 1, 1, data);
+		proto_tree_add_item(tree, hf_msg_auth_supportedproto_ver,
+		                    tvb, off, 1, ENC_LITTLE_ENDIAN);
+		off += 1;
+		
+		len = tvb_get_letohl(tvb, off);
+		off += 4;
+		for (i = 0; i < len; i++)
+		{
+			c_auth_proto sp;
+			sp = (c_auth_proto)tvb_get_letohl(tvb, off);
+			proto_item_append_text(ti2, i?",%s":": %s", c_auth_proto_string(sp));
+			proto_tree_add_item(subtree, hf_msg_auth_supportedproto_proto,
+			                    tvb, off, 4, ENC_LITTLE_ENDIAN);
+			off += 4;
+		}
+		
+		off = c_dissect_EntityName(subtree, tvb, off, data);
+		
+		proto_tree_add_item(subtree, hf_msg_auth_supportedproto_gid,
+		                    tvb, off, 8, ENC_LITTLE_ENDIAN);
+		off += 8;
+		break;
+	case C_AUTH_PROTO_CEPHX:
+	{
+		c_cephx_req_type type;
+		
+		ti2 = proto_tree_add_item(tree, hf_msg_auth_cephx, tvb, off, -1, ENC_NA);
+		subtree = proto_item_add_subtree(ti2, hf_msg_auth_cephx);
+		
+		type = (c_cephx_req_type)tvb_get_letohs(tvb, off);
+		proto_tree_add_item(subtree, hf_msg_auth_cephx_req_type,
+		                    tvb, off, 2, ENC_LITTLE_ENDIAN);
+		off += 2;
+		
+		switch (type)
+		{
+		default:
+			expert_add_info(data->pinfo, ti2, &ei_union_unknown);
+		}
+		break;
+	}
+	default:
+		expert_add_info(data->pinfo, ti, &ei_union_unknown);
+	}
+	
+	c_warn_size(tree, tvb, off, expectedoff, data);
+	off = expectedoff;
 	
 	if (off+4 == front_len) { /* If there is an epoch. */
 		proto_tree_add_item(tree, hf_msg_auth_monmap_epoch,
 		                    tvb, off, 4, ENC_LITTLE_ENDIAN);
 		off += 4;
 	}
+	
+	c_append_text(data, ti, ", Proto: %s", c_auth_proto_string(proto));
 	
 	return off;
 }
@@ -3654,7 +3771,8 @@ guint c_dissect_msg_auth_reply(proto_tree *root,
 {
 	proto_item *ti;
 	proto_tree *tree;
-	guint off = 0;
+	guint off = 0, expectedoff;
+	c_auth_proto proto;
 	
 	/* ceph:/src/messages/MAuthReply.h */
 	
@@ -3663,7 +3781,7 @@ guint c_dissect_msg_auth_reply(proto_tree *root,
 	ti = proto_tree_add_item(root, hf_msg_auth_reply, tvb, off, front_len, ENC_NA);
 	tree = proto_item_add_subtree(ti, hf_msg_auth_reply);
 	
-	c_append_text(data, ti, ", Proto: %x", tvb_get_letohl(tvb, off));
+	proto = (c_auth_proto)tvb_get_letohl(tvb, off);
 	proto_tree_add_item(tree, hf_msg_auth_reply_proto,
 	                    tvb, off, 4, ENC_LITTLE_ENDIAN);
 	off += 4;
@@ -3674,10 +3792,21 @@ guint c_dissect_msg_auth_reply(proto_tree *root,
 	                    tvb, off, 8, ENC_LITTLE_ENDIAN);
 	off += 8;
 	
-	off = c_dissect_blob(tree, hf_msg_auth_reply_data,
-	                     hf_msg_auth_reply_data_data, hf_msg_auth_reply_data_size,
-	                     tvb, off);
+	expectedoff = off + 4 + tvb_get_letohl(tvb, off);
+	off += 4;
+	
+	switch (proto)
+	{
+	default:
+		expert_add_info(data->pinfo, ti, &ei_union_unknown);
+	}
+	
+	c_warn_size(tree, tvb, off, expectedoff, data);
+	off = expectedoff;
+	
 	off = c_dissect_str(tree, hf_msg_auth_reply_msg, NULL, tvb, off);
+	
+	c_append_text(data, ti, ", Proto: %s", c_auth_proto_string(proto));
 	
 	return off;
 }
@@ -4922,8 +5051,6 @@ guint c_dissect_msg(proto_tree *tree,
 	
 	/*** Header ***/
 	
-	/* @TODO: Old Header. */
-	
 	/* From ceph:/src/include/msgr.h
 	struct ceph_msg_header {
 		__le64 seq;       // message seq# for this session
@@ -4985,7 +5112,7 @@ guint c_dissect_msg(proto_tree *tree,
 	                    tvb, off, 2, ENC_LITTLE_ENDIAN);
 	off += 2;
 	
-	off = c_dissect_node_name(subtree, &data->header.src, tvb, off, data);
+	off = c_dissect_entity_name(subtree, &data->header.src, tvb, off, data);
 	
 	/*** Copy the data to the state structure. ***/
 	if (!data->src->name.slug)
@@ -5064,8 +5191,6 @@ guint c_dissect_msg(proto_tree *tree,
 	off += size;
 	
 	/*** Footer ***/
-	
-	/* @TODO: Old Footer. */
 	
 	/* From ceph:/src/include/msgr.h
 	struct ceph_msg_footer {
@@ -5540,6 +5665,21 @@ proto_register_ceph(void)
 			FT_NONE, BASE_NONE, NULL, 0,
 			NULL, HFILL
 		} },
+		{ &hf_EntityName, {
+			"Entity Name", "ceph.EntityName",
+			FT_NONE, BASE_NONE, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_EntityName_type, {
+			"Type", "ceph.EntityName.type",
+			FT_UINT32, BASE_HEX, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_EntityName_id, {
+			"ID", "ceph.EntityName.id",
+			FT_STRING, BASE_NONE, NULL, 0,
+			NULL, HFILL
+		} },
 		{ &hf_src_slug, {
 			"Source Node Name", "ceph.src",
 			FT_STRING, BASE_NONE, NULL, 0,
@@ -5736,7 +5876,7 @@ proto_register_ceph(void)
 			NULL, HFILL
 		} },
 		{ &hf_mds_release_mseq, {
-			"MSeq", "ceph.mds_release.mseq", //@HELP: There must be a better name.
+			"Migration Sequence", "ceph.mds_release.mseq",
 			FT_UINT32, BASE_HEX, NULL, 0,
 			NULL, HFILL
 		} },
@@ -6258,10 +6398,11 @@ proto_register_ceph(void)
 			FT_NONE, BASE_NONE, NULL, 0,
 			NULL, HFILL
 		} },
-		{ &hf_osdmap_hbbackaddr, { //@TODO What is this?
-			"HB Back Address", "ceph.osdmap.nbbackaddr",
+		{ &hf_osdmap_hbaddr_back, {
+			"Cluster-side Heartbeat Address", "ceph.osdmap.nbbackaddr",
 			FT_NONE, BASE_NONE, NULL, 0,
-			NULL, HFILL
+			"The address checked to ensure the OSD is reachable by "
+			"the cluster.", HFILL
 		} },
 		{ &hf_osdmap_osd_info, {
 			"OSD Info", "ceph.osdmap.osd.info",
@@ -6308,10 +6449,11 @@ proto_register_ceph(void)
 			FT_NONE, BASE_NONE, NULL, 0,
 			NULL, HFILL
 		} },
-		{ &hf_osdmap_hbfrontaddr, {
-			"HB Front Addr", "ceph.osdmap.hbfrontaddr",
+		{ &hf_osdmap_hbaddr_front, {
+			"Client-side Heartbeat Address", "ceph.osdmap.hbfrontaddr",
 			FT_NONE, BASE_NONE, NULL, 0,
-			NULL, HFILL
+			"The address checked to ensure the OSD is reachable "
+			"by the client.", HFILL
 		} },
 		{ &hf_osdmap_inc, {
 			"Incremental OSD Map", "ceph.osdmap_inc",
@@ -7157,7 +7299,37 @@ proto_register_ceph(void)
 		} },
 		{ &hf_msg_auth_proto, {
 			"Protocol", "ceph.msg.auth.proto",
-			FT_UINT32, BASE_HEX, NULL, 0,
+			FT_UINT32, BASE_HEX, VALS(c_auth_proto_strings), 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_auth_supportedproto, {
+			"Supported Protocols", "ceph.msg.auth.supportedproto",
+			FT_NONE, BASE_NONE, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_auth_supportedproto_ver, {
+			"Encoding Version", "ceph.msg.auth.supportedproto.ver",
+			FT_UINT8, BASE_DEC, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_auth_supportedproto_proto, {
+			"Supported Protocol", "ceph.msg.auth.supportedproto.proto",
+			FT_UINT32, BASE_HEX, VALS(c_auth_proto_strings), 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_auth_supportedproto_gid, {
+			"Global ID", "ceph.msg.auth.supportedproto.gid",
+			FT_UINT64, BASE_HEX, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_auth_cephx, {
+			"CephX", "ceph.msg.auth.cephx",
+			FT_NONE, BASE_NONE, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_auth_cephx_req_type, {
+			"Type", "ceph.msg.auth.cephx.req.type",
+			FT_UINT16, BASE_HEX, VALS(c_cephx_req_type_strings), 0,
 			NULL, HFILL
 		} },
 		{ &hf_msg_auth_payload, {
@@ -7187,7 +7359,7 @@ proto_register_ceph(void)
 		} },
 		{ &hf_msg_auth_reply_proto, {
 			"Protocol", "ceph.msg.auth_reply.proto",
-			FT_UINT32, BASE_HEX, NULL, 0,
+			FT_UINT32, BASE_HEX, VALS(c_auth_proto_strings), 0,
 			NULL, HFILL
 		} },
 		{ &hf_msg_auth_reply_result, {
@@ -7311,7 +7483,7 @@ proto_register_ceph(void)
 			NULL, HFILL
 		} },
 		{ &hf_msg_client_req_releases, {
-			"Number of Releases", "ceph.msg.client_req.releases", /*@HELP*/
+			"Number of Releases", "ceph.msg.client_req.releases",
 			FT_UINT16, BASE_DEC, NULL, 0,
 			NULL, HFILL
 		} },
