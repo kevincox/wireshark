@@ -382,17 +382,11 @@ static int hf_msg_auth_supportedproto_proto      = -1;
 static int hf_msg_auth_supportedproto_gid        = -1;
 static int hf_msg_auth_cephx                     = -1;
 static int hf_msg_auth_cephx_req_type            = -1;
-static int hf_msg_auth_payload                   = -1;
-static int hf_msg_auth_payload_data              = -1;
-static int hf_msg_auth_payload_size              = -1;
 static int hf_msg_auth_monmap_epoch              = -1;
 static int hf_msg_auth_reply                     = -1;
 static int hf_msg_auth_reply_proto               = -1;
 static int hf_msg_auth_reply_result              = -1;
 static int hf_msg_auth_reply_global_id           = -1;
-static int hf_msg_auth_reply_data                = -1;
-static int hf_msg_auth_reply_data_data           = -1;
-static int hf_msg_auth_reply_data_size           = -1;
 static int hf_msg_auth_reply_msg                 = -1;
 static int hf_msg_mds_map                        = -1;
 static int hf_msg_mds_map_fsid                   = -1;
@@ -447,7 +441,6 @@ static int hf_msg_osd_map_newest                 = -1;
 static int hf_msg_osd_op                         = -1;
 static int hf_msg_osd_op_client_inc              = -1;
 static int hf_msg_osd_op_osdmap_epoch            = -1;
-static int hf_msg_osd_op_flags                   = -1;
 static int hf_msg_osd_op_mtime                   = -1;
 static int hf_msg_osd_op_reassert_version        = -1;
 static int hf_msg_osd_op_oloc                    = -1;
@@ -464,7 +457,6 @@ static int hf_msg_osd_op_payload                 = -1;
 static int hf_msg_osd_opreply                    = -1;
 static int hf_msg_osd_opreply_oid                = -1;
 static int hf_msg_osd_opreply_pgid               = -1;
-static int hf_msg_osd_opreply_flags              = -1;
 static int hf_msg_osd_opreply_result             = -1;
 static int hf_msg_osd_opreply_bad_replay_ver     = -1;
 static int hf_msg_osd_opreply_osdmap_epoch       = -1;
@@ -1356,7 +1348,7 @@ char *c_format_timespec(tvbuff_t *tvb, guint off)
 	nstime_t t;
 	t.secs  = tvb_get_letohl(tvb, off);
 	t.nsecs = tvb_get_letohl(tvb, off+4);
-	return abs_time_to_ep_str(&t, ABSOLUTE_TIME_LOCAL, 1);
+	return abs_time_to_str(wmem_packet_scope(), &t, ABSOLUTE_TIME_LOCAL, 1);
 }
 
 /** Format a UUID
