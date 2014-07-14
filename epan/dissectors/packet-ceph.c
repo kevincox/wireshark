@@ -554,10 +554,6 @@ static int hf_msg_client_caprel_cap_id           = -1;
 static int hf_msg_client_caprel_cap_migrate      = -1;
 static int hf_msg_client_caprel_cap_seq          = -1;
 
-/* @TODO: Remove before release.  Just for copying convenience.
-static int hf_msg_                         = -1;
-*/
-
 /* Initialize the expert items. */
 static expert_field ei_unused         = EI_INIT;
 static expert_field ei_overrun        = EI_INIT;
@@ -3734,6 +3730,9 @@ guint c_dissect_msg_auth(proto_tree *root,
 			expert_add_info(data->pinfo, ti2, &ei_union_unknown);
 		}
 		break;
+		
+		proto_item_append_text(ti2, ", Request Type: %s",
+		                       c_cephx_req_type_string(type));
 	}
 	default:
 		expert_add_info(data->pinfo, ti, &ei_union_unknown);
@@ -7323,21 +7322,6 @@ proto_register_ceph(void)
 			FT_UINT16, BASE_HEX, VALS(c_cephx_req_type_strings), 0,
 			NULL, HFILL
 		} },
-		{ &hf_msg_auth_payload, {
-			"Payload", "ceph",
-			FT_NONE, BASE_NONE, NULL, 0,
-			NULL, HFILL
-		} },
-		{ &hf_msg_auth_payload_data, {
-			"Data", "ceph.msg.auth.payload",
-			FT_BYTES, BASE_NONE, NULL, 0,
-			NULL, HFILL
-		} },
-		{ &hf_msg_auth_payload_size, {
-			"Size", "ceph.msg.auth.payload_size",
-			FT_UINT32, BASE_DEC, NULL, 0,
-			NULL, HFILL
-		} },
 		{ &hf_msg_auth_monmap_epoch, {
 			"Monmap epoch", "ceph.msg.auth.monmap_epoch",
 			FT_UINT32, BASE_DEC, NULL, 0,
@@ -7361,21 +7345,6 @@ proto_register_ceph(void)
 		{ &hf_msg_auth_reply_global_id, {
 			"Global ID", "ceph.msg.auth_reply.id",
 			FT_UINT64, BASE_HEX, NULL, 0,
-			NULL, HFILL
-		} },
-		{ &hf_msg_auth_reply_data, {
-			"Data", "ceph",
-			FT_NONE, BASE_NONE, NULL, 0,
-			NULL, HFILL
-		} },
-		{ &hf_msg_auth_reply_data_data, {
-			"Data", "ceph.msg.auth_reply.data",
-			FT_BYTES, BASE_NONE, NULL, 0,
-			NULL, HFILL
-		} },
-		{ &hf_msg_auth_reply_data_size, {
-			"Size", "ceph.msg.auth_reply.data_size",
-			FT_UINT32, BASE_DEC, NULL, 0,
 			NULL, HFILL
 		} },
 		{ &hf_msg_auth_reply_msg, {
@@ -7648,11 +7617,6 @@ proto_register_ceph(void)
 			FT_UINT32, BASE_DEC, NULL, 0,
 			NULL, HFILL
 		} },
-		{ &hf_msg_osd_op_flags, {
-			"Flags", "ceph.msg.osd_op.flags",
-			FT_UINT32, BASE_HEX, NULL, 0,
-			NULL, HFILL
-		} },
 		{ &hf_msg_osd_op_mtime, {
 			"Modification Time", "ceph.msg.osd_op",
 			FT_ABSOLUTE_TIME, ABSOLUTE_TIME_LOCAL, NULL, 0,
@@ -7731,11 +7695,6 @@ proto_register_ceph(void)
 		{ &hf_msg_osd_opreply_pgid, {
 			"Placement Group ID", "ceph.msg.osd_opreply.pgid",
 			FT_NONE, BASE_NONE, NULL, 0,
-			NULL, HFILL
-		} },
-		{ &hf_msg_osd_opreply_flags, {
-			"Flags", "ceph.msg.osd_opreply.flags",
-			FT_UINT32, BASE_HEX, NULL, 0,
 			NULL, HFILL
 		} },
 		{ &hf_msg_osd_opreply_result, {
@@ -8251,9 +8210,7 @@ proto_register_ceph(void)
 		{ &ei_union_unknown, {
 			"ceph.union_unknown", PI_UNDECODED, PI_WARN,
 			"This data's meaning depends on other information in the message "
-			"but the dissector doesn't know what type it is.  This is most "
-			"likely an indication that the dissector is not up to date but "
-			"could also be an error by the sender.", EXPFILL
+			"but the dissector doesn't know what type it is.", EXPFILL
 		} },
 		{ &ei_ver_tooold, {
 			"ceph.ver.tooold", PI_UNDECODED, PI_WARN,
