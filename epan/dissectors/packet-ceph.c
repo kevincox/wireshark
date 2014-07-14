@@ -50,9 +50,9 @@ static int hf_node_id                            = -1;
 static int hf_node_type                          = -1;
 static int hf_node_nonce                         = -1;
 static int hf_node_name                          = -1;
-static int hf_EntityName                          = -1;
-static int hf_EntityName_type                          = -1;
-static int hf_EntityName_id                          = -1;
+static int hf_EntityName                         = -1;
+static int hf_EntityName_type                    = -1;
+static int hf_EntityName_id                      = -1;
 static int hf_src_slug                           = -1;
 static int hf_src_type                           = -1;
 static int hf_dst_type                           = -1;
@@ -196,7 +196,7 @@ static int hf_osdmap_erasurecodeprofile_prop     = -1;
 static int hf_osdmap_erasurecodeprofile_k        = -1;
 static int hf_osdmap_erasurecodeprofile_v        = -1;
 static int hf_osdmap_osd                         = -1;
-static int hf_osdmap_hbaddr_back                  = -1;
+static int hf_osdmap_hbaddr_back                 = -1;
 static int hf_osdmap_osd_info                    = -1;
 static int hf_osdmap_blacklist                   = -1;
 static int hf_osdmap_blacklist_addr              = -1;
@@ -206,7 +206,7 @@ static int hf_osdmap_cluster_snapepoch           = -1;
 static int hf_osdmap_cluster_snap                = -1;
 static int hf_osdmap_osd_uuid                    = -1;
 static int hf_osdmap_osd_xinfo                   = -1;
-static int hf_osdmap_hbaddr_front                 = -1;
+static int hf_osdmap_hbaddr_front                = -1;
 static int hf_osdmap_inc                         = -1;
 static int hf_osdmap_inc_client                  = -1;
 static int hf_osdmap_inc_fsid                    = -1;
@@ -376,12 +376,12 @@ static int hf_msg_mon_sub_ack_interval           = -1;
 static int hf_msg_mon_sub_ack_fsid               = -1;
 static int hf_msg_auth                           = -1;
 static int hf_msg_auth_proto                     = -1;
-static int hf_msg_auth_supportedproto                     = -1;
-static int hf_msg_auth_supportedproto_ver                     = -1;
-static int hf_msg_auth_supportedproto_proto                     = -1;
-static int hf_msg_auth_supportedproto_gid                     = -1;
+static int hf_msg_auth_supportedproto            = -1;
+static int hf_msg_auth_supportedproto_ver        = -1;
+static int hf_msg_auth_supportedproto_proto      = -1;
+static int hf_msg_auth_supportedproto_gid        = -1;
 static int hf_msg_auth_cephx                     = -1;
-static int hf_msg_auth_cephx_req_type                     = -1;
+static int hf_msg_auth_cephx_req_type            = -1;
 static int hf_msg_auth_payload                   = -1;
 static int hf_msg_auth_payload_data              = -1;
 static int hf_msg_auth_payload_size              = -1;
@@ -945,7 +945,7 @@ C_MAKE_STRINGS_EXT(c_osd_optype, 4)
 #define c_poolop_type_strings_VALUE_STRING_LIST(V) \
 	V(POOL_OP_CREATE,                0x01, "Create")                    \
 	V(POOL_OP_DELETE,                0x02, "Delete")                    \
-	V(POOL_OP_AUID_CHANGE,           0x03, "Change Owner") /*@HELP: is this right? */ \
+	V(POOL_OP_AUID_CHANGE,           0x03, "Change Owner") \
 	V(POOL_OP_CREATE_SNAP,           0x11, "Create Snapshot")           \
 	V(POOL_OP_DELETE_SNAP,           0x12, "Delete Snapshot")           \
 	V(POOL_OP_CREATE_UNMANAGED_SNAP, 0x21, "Create Unmanaged Snapshot") \
@@ -1139,7 +1139,6 @@ typedef struct _c_node {
 static
 void c_node_init(c_node *n)
 {
-	/* @HELP: n->addr is there a sane way to initialize this? */
 	c_node_name_init(&n->name);
 	n->port = 0xFFFF;
 	n->state = C_STATE_NEW;
@@ -2410,7 +2409,7 @@ guint c_dissect_pgpool(proto_tree *root,
 	
 	i = tvb_get_letohl(tvb, off);
 	off += 4;
-	while (i--) //@TODO Untested.
+	while (i--)
 	{
 		ti2 = proto_tree_add_item(tree, hf_pgpool_snap,
 		                          tvb, off, -1, ENC_LITTLE_ENDIAN);
@@ -2427,7 +2426,7 @@ guint c_dissect_pgpool(proto_tree *root,
 	
 	i = tvb_get_letohl(tvb, off);
 	off += 4;
-	while (i--) //@TODO Untested.
+	while (i--)
 	{
 		ti2 = proto_tree_add_item(tree, hf_pgpool_snapdel,
 		                          tvb, off, -1, ENC_LITTLE_ENDIAN);
@@ -2498,7 +2497,7 @@ guint c_dissect_pgpool(proto_tree *root,
 	
 	i = tvb_get_letohl(tvb, off);
 	off += 4;
-	while (i--) //@TODO: Untested.
+	while (i--)
 	{
 		c_str k, v;
 		
@@ -8028,7 +8027,7 @@ proto_register_ceph(void)
 			NULL, HFILL
 		} },
 		{ &hf_msg_mon_election_sharing, {
-			"Sharing", "ceph.msg.mon_election.sharing", //@HELP: What is this?
+			"Sharing", "ceph.msg.mon_election.sharing",
 			FT_NONE, BASE_NONE, NULL, 0,
 			NULL, HFILL
 		} },
