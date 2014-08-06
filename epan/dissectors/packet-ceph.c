@@ -4951,6 +4951,7 @@ guint c_dissect_msg_mon_paxos(proto_tree *root,
 	proto_tree *tree;
 	guint off = 0;
 	guint32 i;
+	guint64 pn;
 	c_mon_paxos_op op;
 	
 	/* ceph:/src/messages/MMonPaxos.h */
@@ -4981,6 +4982,7 @@ guint c_dissect_msg_mon_paxos(proto_tree *root,
 	                    tvb, off, 8, ENC_LITTLE_ENDIAN);
 	off += 8;
 	
+	pn = tvb_get_letoh64(tvb, off);
 	proto_tree_add_item(tree, hf_msg_mon_paxos_pn,
 	                    tvb, off, 8, ENC_LITTLE_ENDIAN);
 	off += 8;
@@ -5015,11 +5017,13 @@ guint c_dissect_msg_mon_paxos(proto_tree *root,
 	{
 		proto_item *ti2;
 		proto_tree *subtree;
+		guint64 ver;
 		
 		ti2 = proto_tree_add_item(tree, hf_msg_mon_paxos_value,
 		                          tvb, off, -1, ENC_LITTLE_ENDIAN);
 		subtree = proto_item_add_subtree(ti2, ett_msg_mon_paxos_value);
 		
+		ver = tvb_get_letoh64(tvb, off);
 		proto_tree_add_item(subtree, hf_msg_mon_paxos_ver,
 		                    tvb, off, 8, ENC_LITTLE_ENDIAN);
 		off += 8;
@@ -5028,11 +5032,12 @@ guint c_dissect_msg_mon_paxos(proto_tree *root,
 		                     hf_msg_mon_paxos_val_data, hf_msg_mon_paxos_val_size,
 		                     tvb, off);
 		
+		proto_item_append_text(ti2, ", Version: %"G_GINT64_MODIFIER"u", ver);
 		proto_item_set_end(ti2, tvb, off);
 	}
 	
-	c_append_text(data, ti, ", Op: %s",
-	              c_mon_paxos_op_string(op));
+	c_append_text(data, ti, ", Op: %s, Proposal Number: %"G_GINT64_MODIFIER"u",
+	              c_mon_paxos_op_string(op), pn);
 
 	return off;
 }
