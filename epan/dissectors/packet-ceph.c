@@ -45,7 +45,8 @@ static int hf_filter_data                        = -1;
 static int hf_node_id                            = -1;
 static int hf_node_type                          = -1;
 static int hf_node_nonce                         = -1;
-static int hf_node_name                          = -1;
+static int hf_entityinst_name                         = -1;
+static int hf_entityinst_addr                         = -1;
 static int hf_EntityName                         = -1;
 static int hf_EntityName_type                    = -1;
 static int hf_EntityName_id                      = -1;
@@ -335,6 +336,7 @@ static int hf_head_front_size                    = -1;
 static int hf_head_middle_size                   = -1;
 static int hf_head_data_size                     = -1;
 static int hf_head_data_off                      = -1;
+static int hf_head_srcname                       = -1;
 static int hf_head_compat_version                = -1;
 static int hf_head_reserved                      = -1;
 static int hf_head_crc                           = -1;
@@ -568,6 +570,17 @@ static int hf_msg_client_caprel_cap_inode        = -1;
 static int hf_msg_client_caprel_cap_id           = -1;
 static int hf_msg_client_caprel_cap_migrate      = -1;
 static int hf_msg_client_caprel_cap_seq          = -1;
+static int hf_msg_timecheck          = -1;
+static int hf_msg_timecheck_op          = -1;
+static int hf_msg_timecheck_epoch          = -1;
+static int hf_msg_timecheck_round          = -1;
+static int hf_msg_timecheck_time          = -1;
+static int hf_msg_timecheck_skew          = -1;
+static int hf_msg_timecheck_skew_node          = -1;
+static int hf_msg_timecheck_skew_skew          = -1;
+static int hf_msg_timecheck_latency          = -1;
+static int hf_msg_timecheck_latency_node          = -1;
+static int hf_msg_timecheck_latency_latency          = -1;
 
 /* Initialize the expert items. */
 static expert_field ei_unused         = EI_INIT;
@@ -590,6 +603,7 @@ static gint ett_sockaddr                   = -1;
 static gint ett_entityaddr                 = -1;
 static gint ett_entityname                 = -1;
 static gint ett_EntityName                 = -1;
+static gint ett_entityinst                 = -1;
 static gint ett_kv                         = -1;
 static gint ett_eversion                   = -1;
 static gint ett_objectlocator              = -1;
@@ -658,6 +672,9 @@ static gint ett_msg_mon_probe              = -1;
 static gint ett_msg_client_caps            = -1;
 static gint ett_msg_client_caprel          = -1;
 static gint ett_msg_client_caprel_cap      = -1;
+static gint ett_msg_timecheck      = -1;
+static gint ett_msg_timecheck_skew      = -1;
+static gint ett_msg_timecheck_latency      = -1;
 static gint ett_head                       = -1;
 static gint ett_foot                       = -1;
 static gint ett_connect                    = -1;
@@ -1132,6 +1149,13 @@ C_MAKE_STRINGS_EXT(c_mds_op_type, 8);
 
 C_MAKE_STRINGS_EXT(c_cap_op_type, 8)
 
+#define c_timecheck_op_strings_VALUE_STRING_LIST(V) \
+	V(C_TIMECHECK_OP_PING,   0x00000001, "Ping")    \
+	V(C_TIMECHECK_OP_PONG,   0x00000002, "Pong")    \
+	V(C_TIMECHECK_OP_REPORT, 0x00000003, "Report")  \
+
+C_MAKE_STRINGS_EXT(c_timecheck_op, 8)
+
 #define c_pgpool_type_strings_VALUE_STRING_LIST(V) \
 	V(C_PGPOOL_REPLICATED, 0x01, "Replicated") \
 	V(C_PGPOOL_RAID4,      0x02, "Raid4") \
@@ -1214,10 +1238,10 @@ typedef struct _c_node_name {
 	const char *type_str;
 	guint64 id;
 	c_node_type type;
-} c_entity_name;
+} c_entityname;
 
 static
-void c_node_name_init(c_entity_name *d)
+void c_node_name_init(c_entityname *d)
 {
 	d->slug     = NULL;
 	d->type_str = NULL;
@@ -1227,7 +1251,7 @@ void c_node_name_init(c_entity_name *d)
 
 typedef struct _c_node {
 	address addr;
-	c_entity_name name;
+	c_entityname name;
 	c_state state;
 	guint16 port;
 } c_node;
@@ -1293,7 +1317,7 @@ typedef struct _c_header {
 	c_msg_type type;
 	guint16 ver;
 	guint16 priority;
-	c_entity_name src;
+	c_entityname src;
 } c_header;
 
 static
@@ -1579,8 +1603,7 @@ static
 gshort c_warn_ver(proto_item *ti,
                   gint act, gint min, gint max, c_pkt_data *data)
 {
-	DISSECTOR_ASSERT_HINT(min <= max, "Minimum supported version must not be "
-	                                  "greater then max.");
+	DISSECTOR_ASSERT_CMPINT(min, <=, max);
 
 	if (act < min)
 	{
@@ -1776,15 +1799,15 @@ typedef struct _c_entity_addr {
 	c_sockaddr addr;
 	const char *type_str;
 	c_node_type type;
-} c_entity_addr;
+} c_entityaddr;
 
 static
-guint c_dissect_entity_addr(proto_tree *root, int hf, c_entity_addr *out,
+guint c_dissect_entityaddr(proto_tree *root, int hf, c_entityaddr *out,
                             tvbuff_t *tvb, guint off, c_pkt_data *data)
 {
 	proto_item *ti;
 	proto_tree *tree;
-	c_entity_addr d;
+	c_entityaddr d;
 
 	/* entity_addr_t from ceph:/src/msg/msg_types.h */
 
@@ -1818,7 +1841,7 @@ enum c_size_entity_name {
  * If \a out is provided the data is stored there.
  */
 static
-guint c_dissect_entity_name(proto_tree *root, c_entity_name *out,
+guint c_dissect_entityname(proto_tree *root, int hf, c_entityname *out,
                           tvbuff_t *tvb, guint off, c_pkt_data *data _U_)
 {
 	/* From ceph:/src/include/msgr.h
@@ -1830,9 +1853,9 @@ guint c_dissect_entity_name(proto_tree *root, c_entity_name *out,
 
 	proto_item *ti;
 	proto_tree *tree;
-	c_entity_name d;
+	c_entityname d;
 
-	ti = proto_tree_add_item(root, hf_node_name,
+	ti = proto_tree_add_item(root, hf,
 	                         tvb, off, C_SIZE_ENTITY_NAME, ENC_NA);
 	tree = proto_item_add_subtree(ti, ett_entityname);
 
@@ -1864,11 +1887,41 @@ guint c_dissect_entity_name(proto_tree *root, c_entity_name *out,
 	return off;
 }
 
+typedef struct _c_entityinst {
+	c_entityname name;
+	c_entityaddr addr;
+} c_entityinst;
+
+/** Dissect an entity_inst_t.
+ */
+static
+guint c_dissect_entityinst(proto_tree *root, int hf, c_entityinst *out,
+                           tvbuff_t *tvb, guint off, c_pkt_data *data)
+{
+	proto_item *ti;
+	proto_tree *tree;
+	
+	c_entityinst d;
+	
+	ti = proto_tree_add_item(root, hf, tvb, off, -1, ENC_NA);
+	tree = proto_item_add_subtree(ti, ett_entityinst);
+	
+	off = c_dissect_entityname(tree, hf_entityinst_name, &d.name, tvb, off, data);
+	off = c_dissect_entityaddr(tree, hf_entityinst_addr, &d.addr, tvb, off, data);
+	
+	proto_item_append_text(ti, ", Name: %s, Address: %s", d.name.slug, d.addr.addr.str);
+	
+	if (out) *out = d;
+	
+	proto_item_set_end(ti, tvb, off);
+	return off;
+}
+
 /** Dissect an EntityName.
  *
  * If \a out is provided the data is stored there.
  *
- * \note This is different then c_dissect_entity_name()
+ * \note This is different then c_dissect_entityname()
  */
 static
 guint c_dissect_EntityName(proto_tree *root,
@@ -2686,7 +2739,7 @@ guint c_dissect_monmap(proto_tree *root,
 	guint32 i;
 	c_encoded enc;
 	c_str str;
-	c_entity_addr addr;
+	c_entityaddr addr;
 
 	/** MonMap from ceph:/src/mon/MonMap.cc */
 
@@ -2720,7 +2773,7 @@ guint c_dissect_monmap(proto_tree *root,
 		subtree = proto_item_add_subtree(ti2, ett_mon_map_address);
 
 		off = c_dissect_str(subtree, hf_monmap_address_name, &str, tvb, off);
-		off = c_dissect_entity_addr(subtree, hf_monmap_address_addr, &addr,
+		off = c_dissect_entityaddr(subtree, hf_monmap_address_addr, &addr,
 		                            tvb, off, data);
 
 		proto_item_append_text(ti2, ", Name: %s, Address: %s",
@@ -2984,7 +3037,7 @@ guint c_dissect_osdmap(proto_tree *root,
 	off += 4;
 	while (i--)
 	{
-		off = c_dissect_entity_addr(subtree, hf_osdmap_osd_addr, NULL,
+		off = c_dissect_entityaddr(subtree, hf_osdmap_osd_addr, NULL,
 		                            tvb, off, data);
 	}
 
@@ -3095,7 +3148,7 @@ guint c_dissect_osdmap(proto_tree *root,
 	off += 4;
 	while (i--)
 	{
-		off = c_dissect_entity_addr(subtree, hf_osdmap_hbaddr_back, NULL,
+		off = c_dissect_entityaddr(subtree, hf_osdmap_hbaddr_back, NULL,
 		                            tvb, off, data);
 	}
 
@@ -3117,7 +3170,7 @@ guint c_dissect_osdmap(proto_tree *root,
 		                           tvb, off, -1, ENC_NA);
 		bltree = proto_item_add_subtree(blti, ett_osd_map_blacklist);
 
-		off = c_dissect_entity_addr(bltree, hf_osdmap_blacklist_addr, NULL,
+		off = c_dissect_entityaddr(bltree, hf_osdmap_blacklist_addr, NULL,
 		                            tvb, off, data);
 
 		proto_tree_add_item(bltree, hf_osdmap_blacklist_time,
@@ -3131,7 +3184,7 @@ guint c_dissect_osdmap(proto_tree *root,
 	off += 4;
 	while (i--)
 	{
-		off = c_dissect_entity_addr(subtree, hf_osdmap_cluster_addr, NULL,
+		off = c_dissect_entityaddr(subtree, hf_osdmap_cluster_addr, NULL,
 		                            tvb, off, data);
 	}
 
@@ -3161,7 +3214,7 @@ guint c_dissect_osdmap(proto_tree *root,
 	off += 4;
 	while (i--)
 	{
-		off = c_dissect_entity_addr(subtree, hf_osdmap_hbaddr_front, NULL,
+		off = c_dissect_entityaddr(subtree, hf_osdmap_hbaddr_front, NULL,
 		                            tvb, off, data);
 	}
 
@@ -5243,6 +5296,106 @@ guint c_dissect_msg_client_caprel(proto_tree *root,
 	return front_len+middle_len;
 }
 
+/** Time Check 0x0600 */
+static
+guint c_dissect_msg_timecheck(proto_tree *root,
+                              tvbuff_t *tvb,
+                              guint front_len, guint middle_len _U_, guint data_len _U_,
+                              c_pkt_data *data)
+{
+	proto_item *ti;
+	proto_tree *tree;
+	guint off = 0;
+	guint32 i;
+	c_timecheck_op op;
+	guint64 epoch, round;
+
+	/* ceph:/src/messages/MTimeCheck.h */
+
+	c_set_type(data, "Time Check");
+
+	ti = proto_tree_add_item(root, hf_msg_timecheck, tvb, off, front_len, ENC_NA);
+	tree = proto_item_add_subtree(ti, ett_msg_timecheck);
+	
+	op = (c_timecheck_op)tvb_get_letohl(tvb, off);
+	proto_tree_add_item(tree, hf_msg_timecheck_op,
+	                    tvb, off, 4, ENC_LITTLE_ENDIAN);
+	off += 4;
+	
+	epoch = tvb_get_letoh64(tvb, off);
+	proto_tree_add_item(tree, hf_msg_timecheck_epoch,
+	                    tvb, off, 8, ENC_LITTLE_ENDIAN);
+	off += 8;
+	
+	round = tvb_get_letoh64(tvb, off);
+	proto_tree_add_item(tree, hf_msg_timecheck_round,
+	                    tvb, off, 8, ENC_LITTLE_ENDIAN);
+	off += 8;
+	
+	c_append_text(data, ti, ", Operation: %s, Epoch: %"G_GINT64_MODIFIER"u"
+	              ", Round: %"G_GINT64_MODIFIER"u",
+	              c_timecheck_op_string(op),
+	              epoch, round);
+	
+	if (op == C_TIMECHECK_OP_PONG)
+	{
+		c_append_text(data, ti, ", Time: %s", c_format_timespec(tvb, off));
+		proto_tree_add_item(tree, hf_msg_timecheck_time,
+		                    tvb, off, 8, ENC_LITTLE_ENDIAN);
+	}
+	off += 8; /* Still in the message, but zeroed and meaningless. */
+	
+	i = tvb_get_letohl(tvb, off);
+	off += 4;
+	while (i--)
+	{
+		proto_item *ti2;
+		proto_tree *subtree;
+		c_entityinst inst;
+		double skew;
+		
+		ti2 = proto_tree_add_item(tree, hf_msg_timecheck_skew, tvb, off, -1, ENC_NA);
+		subtree = proto_item_add_subtree(ti2, ett_msg_timecheck_skew);
+		
+		off = c_dissect_entityinst(subtree, hf_msg_timecheck_skew_node, &inst,
+		                           tvb, off, data);
+		
+		skew = tvb_get_letohieee_double(tvb, off);
+		proto_tree_add_item(subtree, hf_msg_timecheck_skew_skew,
+		                    tvb, off, 8, ENC_LITTLE_ENDIAN);
+		off += 8;
+		
+		proto_item_append_text(ti2, ", Node: %s, Skew: %lf", inst.name.slug, skew);
+		proto_item_set_end(ti2, tvb, off);
+	}
+	
+	i = tvb_get_letohl(tvb, off);
+	off += 4;
+	while (i--)
+	{
+		proto_item *ti2;
+		proto_tree *subtree;
+		c_entityinst inst;
+		double ping;
+		
+		ti2 = proto_tree_add_item(tree, hf_msg_timecheck_latency, tvb, off, -1, ENC_NA);
+		subtree = proto_item_add_subtree(ti2, ett_msg_timecheck_latency);
+		
+		off = c_dissect_entityinst(subtree, hf_msg_timecheck_latency_node, &inst,
+		                           tvb, off, data);
+		
+		ping = tvb_get_letohieee_double(tvb, off);
+		proto_tree_add_item(subtree, hf_msg_timecheck_latency_latency,
+		                    tvb, off, 8, ENC_LITTLE_ENDIAN);
+		off += 8;
+		
+		proto_item_append_text(ti2, ", Node: %s, Latency: %lf", inst.name.slug, ping);
+		proto_item_set_end(ti2, tvb, off);
+	}
+
+	return off;
+}
+
 /*** MSGR Dissectors ***/
 
 enum c_size_msg {
@@ -5343,7 +5496,8 @@ guint c_dissect_msg(proto_tree *tree,
 	                    tvb, off, 2, ENC_LITTLE_ENDIAN);
 	off += 2;
 
-	off = c_dissect_entity_name(subtree, &data->header.src, tvb, off, data);
+	off = c_dissect_entityname(subtree, hf_head_srcname, &data->header.src,
+	                            tvb, off, data);
 
 	/*** Copy the data to the state structure. ***/
 
@@ -5412,6 +5566,7 @@ guint c_dissect_msg(proto_tree *tree,
 	C_HANDLE(C_MSG_MON_PROBE,                   c_dissect_msg_mon_probe)
 	C_HANDLE(C_CEPH_MSG_CLIENT_CAPS,            c_dissect_msg_client_caps)
 	C_HANDLE(C_CEPH_MSG_CLIENT_CAPRELEASE,      c_dissect_msg_client_caprel)
+	C_HANDLE(C_MSG_TIMECHECK,                   c_dissect_msg_timecheck)
 
 	default:
 		parsedsize = C_CALL(c_dissect_msg_unknown);
@@ -5610,9 +5765,9 @@ guint c_dissect_new(proto_tree *tree,
 	c_set_type(data, "Connect");
 
 	if (c_from_server(data))
-		off = c_dissect_entity_addr(tree, hf_server_info, NULL, tvb, off, data);
+		off = c_dissect_entityaddr(tree, hf_server_info, NULL, tvb, off, data);
 
-	off = c_dissect_entity_addr(tree, hf_client_info, NULL, tvb, off, data);
+	off = c_dissect_entityaddr(tree, hf_client_info, NULL, tvb, off, data);
 
 	if (c_from_client(data))
 		off = c_dissect_connect(tree, tvb, off, data);
@@ -5907,7 +6062,7 @@ int dissect_ceph(tvbuff_t *tvb, packet_info *pinfo,
 
 		offt2 = c_dissect_pdu(tree, tvb, off, &data);
 		if (!offt2) return 0;
-		DISSECTOR_ASSERT_HINT(offt2 == offt, "Actual length does not equal expected.");
+		DISSECTOR_ASSERT_CMPINT(offt2, ==, offt);
 
 		off = offt;
 	}
@@ -5972,8 +6127,13 @@ proto_register_ceph(void)
 			"Meaningless number to differentiate between nodes on "
 			"the same system.", HFILL
 		} },
-		{ &hf_node_name, {
-			"Source Name", "ceph.node",
+		{ &hf_entityinst_name, {
+			"Name", "ceph.entityinst.name",
+			FT_NONE, BASE_NONE, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_entityinst_addr, {
+			"Address", "ceph.entityinst.addr",
 			FT_NONE, BASE_NONE, NULL, 0,
 			NULL, HFILL
 		} },
@@ -7429,6 +7589,11 @@ proto_register_ceph(void)
 			FT_UINT16, BASE_DEC, NULL, 0,
 			NULL, HFILL
 		} },
+		{ &hf_head_srcname, {
+			"Source Name", "ceph.node",
+			FT_NONE, BASE_NONE, NULL, 0,
+			NULL, HFILL
+		} },
 		{ &hf_head_compat_version, {
 			"Compatibility Version", "ceph.compat_version",
 			FT_UINT64, BASE_DEC, NULL, 0,
@@ -8594,6 +8759,61 @@ proto_register_ceph(void)
 			FT_UINT32, BASE_DEC, NULL, 0,
 			NULL, HFILL
 		} },
+		{ &hf_msg_timecheck, {
+			"Timecheck", "ceph.msg.timecheck",
+			FT_NONE, BASE_NONE, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_timecheck_op, {
+			"Operation", "ceph.msg.timecheck.op",
+			FT_UINT32, BASE_HEX|BASE_EXT_STRING, &c_timecheck_op_strings_ext, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_timecheck_epoch, {
+			"Epoch", "ceph.msg.timecheck.epoch",
+			FT_UINT64, BASE_DEC, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_timecheck_round, {
+			"Round", "ceph.msg.timecheck.round",
+			FT_UINT64, BASE_DEC, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_timecheck_time, {
+			"Time", "ceph.msg.timecheck.time",
+			FT_ABSOLUTE_TIME, ABSOLUTE_TIME_LOCAL, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_timecheck_skew, {
+			"Skew", "ceph.msg.timecheck.skew",
+			FT_NONE, BASE_NONE, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_timecheck_skew_node, {
+			"Node", "ceph.msg.timecheck.skew.node",
+			FT_NONE, BASE_NONE, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_timecheck_skew_skew, {
+			"Skew", "ceph.msg.timecheck.skew.skew",
+			FT_DOUBLE, BASE_NONE, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_timecheck_latency, {
+			"Latency", "ceph.msg.timecheck.latency",
+			FT_NONE, BASE_NONE, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_timecheck_latency_node, {
+			"Node", "ceph.msg.timecheck.latency.node",
+			FT_NONE, BASE_NONE, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_timecheck_latency_latency, {
+			"Latency", "ceph.msg.timecheck.latency.latency",
+			FT_DOUBLE, BASE_NONE, NULL, 0,
+			NULL, HFILL
+		} },
 	};
 
 	/* Setup protocol subtree array */
@@ -8606,6 +8826,7 @@ proto_register_ceph(void)
 		&ett_entityaddr,
 		&ett_entityname,
 		&ett_EntityName,
+		&ett_entityinst,
 		&ett_kv,
 		&ett_eversion,
 		&ett_objectlocator,
@@ -8674,6 +8895,9 @@ proto_register_ceph(void)
 		&ett_msg_client_caps,
 		&ett_msg_client_caprel,
 		&ett_msg_client_caprel_cap,
+		&ett_msg_timecheck,
+		&ett_msg_timecheck_skew,
+		&ett_msg_timecheck_latency,
 		&ett_head,
 		&ett_foot,
 		&ett_connect,
