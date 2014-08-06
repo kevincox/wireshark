@@ -4379,12 +4379,12 @@ guint c_dissect_msg_osd_op(proto_tree *root,
 	ti2 = proto_tree_add_item(tree, hf_msg_osd_op_ops_len,
 	                          tvb, off, 2, ENC_LITTLE_ENDIAN);
 	off += 2;
-	if (opslen >= (tvb_reported_length(tvb)-off)/C_SIZE_OSD_OP_MIN)
+	if (opslen > (tvb_reported_length(tvb)-off)/C_SIZE_OSD_OP_MIN)
 	{
 		/*
 			If the size is huge (maybe it was mangled on the wire) we want to
 			avoid allocating massive amounts of memory to handle it.  So, if
-			it is larger then can possible fit in the rest of the message bail
+			it is larger then can possibly fit in the rest of the message bail
 			out.
 		*/
 		expert_add_info(data->pinfo, ti2, &ei_sizeillogical);
