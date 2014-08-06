@@ -386,6 +386,9 @@ static int hf_msg_auth_reply_proto               = -1;
 static int hf_msg_auth_reply_result              = -1;
 static int hf_msg_auth_reply_global_id           = -1;
 static int hf_msg_auth_reply_msg                 = -1;
+static int hf_msg_mon_getverison                     = -1;
+static int hf_msg_mon_getverison_tid                     = -1;
+static int hf_msg_mon_getverison_what                     = -1;
 static int hf_msg_mds_map                        = -1;
 static int hf_msg_mds_map_fsid                   = -1;
 static int hf_msg_mds_map_epoch                  = -1;
@@ -647,6 +650,7 @@ static gint ett_msg_auth                   = -1;
 static gint ett_msg_auth_supportedproto    = -1;
 static gint ett_msg_auth_cephx             = -1;
 static gint ett_msg_authreply              = -1;
+static gint ett_msg_mon_getversion              = -1;
 static gint ett_msg_mds_map                = -1;
 static gint ett_msg_client_sess            = -1;
 static gint ett_msg_client_req             = -1;
@@ -3985,6 +3989,40 @@ guint c_dissect_msg_auth_reply(proto_tree *root,
 	return off;
 }
 
+/** Authentication response. 0x0013 */
+static
+guint c_dissect_msg_mon_getversion(proto_tree *root,
+                                   tvbuff_t *tvb,
+                                   guint front_len, guint middle_len _U_, guint data_len _U_,
+                                   c_pkt_data *data)
+{
+	proto_item *ti;
+	proto_tree *tree;
+	guint off = 0;
+	guint64 tid;
+	c_str what;
+
+	/* ceph:/src/messages/MMonGetVersion.h */
+
+	c_set_type(data, "Monitor Get Version");
+
+	ti = proto_tree_add_item(root, hf_msg_mon_getverison, tvb, off, front_len, ENC_NA);
+	tree = proto_item_add_subtree(ti, ett_msg_mon_getversion);
+
+	tid = tvb_get_letoh64(tvb, off);
+	proto_tree_add_item(tree, hf_msg_mon_getverison_tid,
+	                    tvb, off, 8, ENC_LITTLE_ENDIAN);
+	off += 8;
+	
+	off = c_dissect_str(tree, hf_msg_mon_getverison_what, &what, tvb, off);
+	
+
+	c_append_text(data, ti, ", TID: %"G_GINT64_MODIFIER"u, What: %s",
+	              tid, what.str);
+
+	return off;
+}
+
 /** MDS Map 0x0015 */
 static
 guint c_dissect_msg_mds_map(proto_tree *root,
@@ -5574,6 +5612,7 @@ guint c_dissect_msg(proto_tree *tree,
 	C_HANDLE(C_CEPH_MSG_MON_SUBSCRIBE_ACK,      c_dissect_msg_mon_sub_ack)
 	C_HANDLE(C_CEPH_MSG_AUTH,                   c_dissect_msg_auth)
 	C_HANDLE(C_CEPH_MSG_AUTH_REPLY,             c_dissect_msg_auth_reply)
+	C_HANDLE(C_CEPH_MSG_MON_GET_VERSION,        c_dissect_msg_mon_getversion)
 	C_HANDLE(C_CEPH_MSG_MDS_MAP,                c_dissect_msg_mds_map)
 	C_HANDLE(C_CEPH_MSG_CLIENT_SESSION,         c_dissect_msg_client_sess)
 	C_HANDLE(C_CEPH_MSG_CLIENT_REQUEST,         c_dissect_msg_client_req)
@@ -7867,6 +7906,21 @@ proto_register_ceph(void)
 			FT_STRING, BASE_NONE, NULL, 0,
 			NULL, HFILL
 		} },
+		{ &hf_msg_mon_getverison, {
+			"Get Version", "ceph.msg.mon.getverison",
+			FT_NONE, BASE_NONE, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_mon_getverison_tid, {
+			"Transaction ID", "ceph.msg.mon.getverison.tid",
+			FT_UINT64, BASE_HEX, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_mon_getverison_what, {
+			"What", "ceph.msg.mon.getverison.what",
+			FT_STRING, BASE_NONE, NULL, 0,
+			NULL, HFILL
+		} },
 		{ &hf_msg_mds_map, {
 			"OSD Map Message", "ceph.msg.osd_map",
 			FT_NONE, BASE_NONE, NULL, 0,
@@ -8902,6 +8956,7 @@ proto_register_ceph(void)
 		&ett_msg_auth_supportedproto,
 		&ett_msg_auth_cephx,
 		&ett_msg_authreply,
+		&ett_msg_mon_getversion,
 		&ett_msg_mds_map,
 		&ett_msg_client_sess,
 		&ett_msg_client_req,
