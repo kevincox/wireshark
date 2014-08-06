@@ -512,6 +512,25 @@ static int hf_msg_mon_election_defunct_two       = -1;
 static int hf_msg_mon_election_sharing           = -1;
 static int hf_msg_mon_election_sharing_data      = -1;
 static int hf_msg_mon_election_sharing_size      = -1;
+static int hf_msg_mon_paxos                      = -1;
+static int hf_msg_mon_paxos_epoch                = -1;
+static int hf_msg_mon_paxos_op                   = -1;
+static int hf_msg_mon_paxos_first                = -1;
+static int hf_msg_mon_paxos_last                 = -1;
+static int hf_msg_mon_paxos_pnfrom               = -1;
+static int hf_msg_mon_paxos_pn                   = -1;
+static int hf_msg_mon_paxos_pnuncommitted        = -1;
+static int hf_msg_mon_paxos_lease                = -1;
+static int hf_msg_mon_paxos_sent                 = -1;
+static int hf_msg_mon_paxos_latest_ver           = -1;
+static int hf_msg_mon_paxos_latest_val           = -1;
+static int hf_msg_mon_paxos_latest_val_data      = -1;
+static int hf_msg_mon_paxos_latest_val_size      = -1;
+static int hf_msg_mon_paxos_value                = -1;
+static int hf_msg_mon_paxos_ver                  = -1;
+static int hf_msg_mon_paxos_val                  = -1;
+static int hf_msg_mon_paxos_val_data             = -1;
+static int hf_msg_mon_paxos_val_size             = -1;
 static int hf_msg_mon_probe                      = -1;
 static int hf_msg_mon_probe_fsid                 = -1;
 static int hf_msg_mon_probe_type                 = -1;
@@ -633,6 +652,8 @@ static gint ett_msg_poolstats              = -1;
 static gint ett_msg_poolstatsreply         = -1;
 static gint ett_msg_poolstatsreply_stat    = -1;
 static gint ett_msg_mon_election           = -1;
+static gint ett_msg_mon_paxos              = -1;
+static gint ett_msg_mon_paxos_value        = -1;
 static gint ett_msg_mon_probe              = -1;
 static gint ett_msg_client_caps            = -1;
 static gint ett_msg_client_caprel          = -1;
@@ -1024,6 +1045,17 @@ C_MAKE_STRINGS(c_poolop_type, 2)
 	V(C_MON_ELECTION_VICTORY, 0x00000004, "Victory")              \
 
 C_MAKE_STRINGS_EXT(c_mon_election_type, 8)
+
+#define c_mon_paxos_op_strings_VALUE_STRING_LIST(V) \
+	V(C_MON_PAXOS_COLLECT,  0x00000001, "Propose Round")        \
+	V(C_MON_PAXOS_LAST,     0x00000002, "Accept Round")         \
+	V(C_MON_PAXOS_BEGIN,    0x00000003, "Propose Value")        \
+	V(C_MON_PAXOS_ACCEPT,   0x00000004, "Accept Value")         \
+	V(C_MON_PAXOS_COMMIT,   0x00000005, "Commit")               \
+	V(C_MON_PAXOS_LEASE,    0x00000006, "Extend Peon Lease")    \
+	V(C_MON_PAXOS_LEASEACK, 0x00000007, "Lease Acknowledgment")
+
+C_MAKE_STRINGS_EXT(c_mon_paxos_op, 8)
 
 #define c_mon_probe_type_strings_VALUE_STRING_LIST(V) \
 	V(C_MON_PROBE_PROBE,            0x00000001, "Probe")        \
@@ -4855,6 +4887,103 @@ guint c_dissect_msg_mon_election(proto_tree *root,
 	return off;
 }
 
+/** Monitor Paxos 0x0042 */
+static
+guint c_dissect_msg_mon_paxos(proto_tree *root,
+                                 tvbuff_t *tvb,
+                                 guint front_len, guint middle_len _U_, guint data_len _U_,
+                                 c_pkt_data *data)
+{
+	proto_item *ti;
+	proto_tree *tree;
+	guint off = 0;
+	guint32 i;
+	c_mon_paxos_op op;
+	
+	/* ceph:/src/messages/MMonPaxos.h */
+
+	c_set_type(data, "Mon Paxos");
+
+	ti = proto_tree_add_item(root, hf_msg_mon_paxos, tvb, off, front_len, ENC_NA);
+	tree = proto_item_add_subtree(ti, ett_msg_mon_paxos);
+	
+	proto_tree_add_item(tree, hf_msg_mon_paxos_epoch,
+	                    tvb, off, 4, ENC_LITTLE_ENDIAN);
+	off += 4;
+	
+	op = (c_mon_paxos_op)tvb_get_letohl(tvb, off);
+	proto_tree_add_item(tree, hf_msg_mon_paxos_op,
+	                    tvb, off, 4, ENC_LITTLE_ENDIAN);
+	off += 4;
+	
+	proto_tree_add_item(tree, hf_msg_mon_paxos_first,
+	                    tvb, off, 8, ENC_LITTLE_ENDIAN);
+	off += 8;
+	
+	proto_tree_add_item(tree, hf_msg_mon_paxos_last,
+	                    tvb, off, 8, ENC_LITTLE_ENDIAN);
+	off += 8;
+	
+	proto_tree_add_item(tree, hf_msg_mon_paxos_pnfrom,
+	                    tvb, off, 8, ENC_LITTLE_ENDIAN);
+	off += 8;
+	
+	proto_tree_add_item(tree, hf_msg_mon_paxos_pn,
+	                    tvb, off, 8, ENC_LITTLE_ENDIAN);
+	off += 8;
+	
+	proto_tree_add_item(tree, hf_msg_mon_paxos_pnuncommitted,
+	                    tvb, off, 8, ENC_LITTLE_ENDIAN);
+	off += 8;
+	
+	proto_tree_add_item(tree, hf_msg_mon_paxos_lease,
+	                    tvb, off, 8, ENC_LITTLE_ENDIAN);
+	off += 8;
+	
+	if (data->header.ver >= 1)
+	{
+		proto_tree_add_item(tree, hf_msg_mon_paxos_sent,
+		                    tvb, off, 8, ENC_LITTLE_ENDIAN);
+		off += 8;
+	}
+	
+	proto_tree_add_item(tree, hf_msg_mon_paxos_latest_ver,
+	                    tvb, off, 8, ENC_LITTLE_ENDIAN);
+	off += 8;
+	
+	off = c_dissect_blob(tree, hf_msg_mon_paxos_latest_val,
+	                     hf_msg_mon_paxos_latest_val_data,
+	                     hf_msg_mon_paxos_latest_val_size,
+	                     tvb, off);
+	
+	i = tvb_get_letohl(tvb, off);
+	off += 4;
+	while (i--)
+	{
+		proto_item *ti2;
+		proto_tree *subtree;
+		
+		ti2 = proto_tree_add_item(tree, hf_msg_mon_paxos_value,
+		                          tvb, off, -1, ENC_LITTLE_ENDIAN);
+		subtree = proto_item_add_subtree(ti2, ett_msg_mon_paxos_value);
+		
+		proto_tree_add_item(subtree, hf_msg_mon_paxos_ver,
+		                    tvb, off, 8, ENC_LITTLE_ENDIAN);
+		off += 8;
+		
+		off = c_dissect_blob(subtree, hf_msg_mon_paxos_val,
+		                     hf_msg_mon_paxos_val_data, hf_msg_mon_paxos_val_size,
+		                     tvb, off);
+		
+		proto_item_set_end(ti2, tvb, off);
+	}
+	
+	c_append_text(data, ti, ", Op: %s",
+	              c_mon_paxos_op_string(op));
+
+	return off;
+}
+
 /** Monitor Probe 0x0043 */
 static
 guint c_dissect_msg_mon_probe(proto_tree *root,
@@ -5279,6 +5408,7 @@ guint c_dissect_msg(proto_tree *tree,
 	C_HANDLE(C_MSG_GETPOOLSTATS,                c_dissect_msg_poolstats)
 	C_HANDLE(C_MSG_GETPOOLSTATSREPLY,           c_dissect_msg_poolstatsreply)
 	C_HANDLE(C_MSG_MON_ELECTION,                c_dissect_msg_mon_election)
+	C_HANDLE(C_MSG_MON_PAXOS,                   c_dissect_msg_mon_paxos)
 	C_HANDLE(C_MSG_MON_PROBE,                   c_dissect_msg_mon_probe)
 	C_HANDLE(C_CEPH_MSG_CLIENT_CAPS,            c_dissect_msg_client_caps)
 	C_HANDLE(C_CEPH_MSG_CLIENT_CAPRELEASE,      c_dissect_msg_client_caprel)
@@ -8184,6 +8314,101 @@ proto_register_ceph(void)
 			FT_UINT32, BASE_DEC, NULL, 0,
 			NULL, HFILL
 		} },
+		{ &hf_msg_mon_paxos, {
+			"Paxos", "ceph.msg.mon_paxos",
+			FT_NONE, BASE_NONE, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_mon_paxos_epoch, {
+			"Epoch", "ceph.msg.mon_paxos.epoch",
+			FT_UINT32, BASE_DEC, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_mon_paxos_op, {
+			"Op", "ceph.msg.mon_paxos.op",
+			FT_INT32, BASE_DEC|BASE_EXT_STRING, &c_mon_paxos_op_strings_ext, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_mon_paxos_first, {
+			"First Committed", "ceph.msg.mon_paxos.first",
+			FT_UINT64, BASE_DEC, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_mon_paxos_last, {
+			"Last Committed", "ceph.msg.mon_paxos.last",
+			FT_UINT64, BASE_DEC, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_mon_paxos_pnfrom, {
+			"Greatest Seen Proposal Number", "ceph.msg.mon_paxos.pnfrom",
+			FT_UINT64, BASE_DEC, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_mon_paxos_pn, {
+			"Proposal Number", "ceph.msg.mon_paxos.pn",
+			FT_UINT64, BASE_DEC, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_mon_paxos_pnuncommitted, {
+			"Previous Proposal Number", "ceph.msg.mon_paxos.pnuncommitted",
+			FT_UINT64, BASE_DEC, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_mon_paxos_lease, {
+			"Lease Timestamp", "ceph.msg.mon_paxos.lease",
+			FT_ABSOLUTE_TIME, ABSOLUTE_TIME_LOCAL, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_mon_paxos_sent, {
+			"Sent Timestamp", "ceph.msg.mon_paxos.sent",
+			FT_ABSOLUTE_TIME, ABSOLUTE_TIME_LOCAL, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_mon_paxos_latest_ver, {
+			"Latest Version", "ceph.msg.mon_paxos.latest_ver",
+			FT_UINT64, BASE_DEC, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_mon_paxos_latest_val, {
+			"Latest Value", "ceph.msg.mon_paxos.latest_val",
+			FT_NONE, BASE_NONE, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_mon_paxos_latest_val_data, {
+			"Data", "ceph.msg.mon_paxos.latest_val.data",
+			FT_BYTES, BASE_NONE, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_mon_paxos_latest_val_size, {
+			"Size", "ceph.msg.mon_paxos.latest_val.size",
+			FT_UINT32, BASE_DEC, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_mon_paxos_value, {
+			"Proposal", "ceph.msg.mon_paxos.value",
+			FT_NONE, BASE_NONE, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_mon_paxos_ver, {
+			"Version", "ceph.msg.mon_paxos.ver",
+			FT_UINT64, BASE_DEC, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_mon_paxos_val, {
+			"Value", "ceph.msg.mon_paxos.val",
+			FT_NONE, BASE_NONE, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_mon_paxos_val_data, {
+			"Data", "ceph.msg.mon_paxos.val.data",
+			FT_BYTES, BASE_NONE, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_mon_paxos_val_size, {
+			"Size", "ceph.msg.mon_paxos.val.size",
+			FT_UINT32, BASE_DEC, NULL, 0,
+			NULL, HFILL
+		} },
 		{ &hf_msg_mon_probe, {
 			"Monitor Probe", "ceph.msg.mon_probe",
 			FT_NONE, BASE_NONE, NULL, 0,
@@ -8443,6 +8668,8 @@ proto_register_ceph(void)
 		&ett_msg_poolstatsreply,
 		&ett_msg_poolstatsreply_stat,
 		&ett_msg_mon_election,
+		&ett_msg_mon_paxos,
+		&ett_msg_mon_paxos_value,
 		&ett_msg_mon_probe,
 		&ett_msg_client_caps,
 		&ett_msg_client_caprel,
