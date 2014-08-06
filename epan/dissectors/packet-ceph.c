@@ -503,6 +503,7 @@ static int hf_msg_poolstatsreply_stat            = -1;
 static int hf_msg_poolstatsreply_pool            = -1;
 static int hf_msg_poolstatsreply_log_size        = -1;
 static int hf_msg_poolstatsreply_log_size_ondisk = -1;
+static int hf_msg_mon_globalid_max = -1;
 static int hf_msg_mon_election                   = -1;
 static int hf_msg_mon_election_fsid              = -1;
 static int hf_msg_mon_election_op                = -1;
@@ -4875,6 +4876,27 @@ guint c_dissect_msg_poolstatsreply(proto_tree *root,
 	return off;
 }
 
+/** Monitor Global ID 0x003C */
+static
+guint c_dissect_msg_mon_globalid(proto_tree *root,
+                                 tvbuff_t *tvb,
+                                 guint front_len _U_, guint middle_len _U_, guint data_len _U_,
+                                 c_pkt_data *data)
+{
+	guint off = 0;
+
+	/* ceph:/src/messages/MMonGlobalID.h */
+
+	c_set_type(data, "Mon Global ID");
+
+	off = c_dissect_paxos(root, tvb, off, data);
+	proto_tree_add_item(root, hf_msg_mon_globalid_max,
+	                    tvb, off, 8, ENC_LITTLE_ENDIAN);
+	off += 8;
+
+	return off;
+}
+
 /** Monitor Election 0x0041 */
 static
 guint c_dissect_msg_mon_election(proto_tree *root,
@@ -5566,6 +5588,7 @@ guint c_dissect_msg(proto_tree *tree,
 	C_HANDLE(C_MSG_MON_COMMAND_ACK,             c_dissect_msg_mon_cmd_ack)
 	C_HANDLE(C_MSG_GETPOOLSTATS,                c_dissect_msg_poolstats)
 	C_HANDLE(C_MSG_GETPOOLSTATSREPLY,           c_dissect_msg_poolstatsreply)
+	C_HANDLE(C_MSG_MON_GLOBAL_ID,               c_dissect_msg_mon_globalid)
 	C_HANDLE(C_MSG_MON_ELECTION,                c_dissect_msg_mon_election)
 	C_HANDLE(C_MSG_MON_PAXOS,                   c_dissect_msg_mon_paxos)
 	C_HANDLE(C_MSG_MON_PROBE,                   c_dissect_msg_mon_probe)
@@ -8427,6 +8450,11 @@ proto_register_ceph(void)
 		{ &hf_msg_poolstatsreply_log_size_ondisk, {
 			"On-Disk Log Size", "ceph.msg.poolstatsreply.log_size_ondisk",
 			FT_INT64, BASE_DEC, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_mon_globalid_max, {
+			"Old Max ID", "ceph.msg.mon.globalid.max",
+			FT_UINT64, BASE_HEX, NULL, 0,
 			NULL, HFILL
 		} },
 		{ &hf_msg_mon_election, {
