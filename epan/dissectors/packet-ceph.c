@@ -153,6 +153,8 @@ static int hf_monmap_address_addr                = -1;
 static int hf_monmap_changed                     = -1;
 static int hf_monmap_created                     = -1;
 static int hf_crush                              = -1;
+static int hf_osd_peerstat                        = -1;
+static int hf_osd_peerstat_timestamp                        = -1;
 static int hf_osdinfo_ver                        = -1;
 static int hf_osdinfo_lastclean_begin            = -1;
 static int hf_osdinfo_lastclean_end              = -1;
@@ -389,6 +391,10 @@ static int hf_msg_auth_reply_msg                 = -1;
 static int hf_msg_mon_getverison                     = -1;
 static int hf_msg_mon_getverison_tid                     = -1;
 static int hf_msg_mon_getverison_what                     = -1;
+static int hf_msg_mon_getverisonreply                     = -1;
+static int hf_msg_mon_getverisonreply_tid                     = -1;
+static int hf_msg_mon_getverisonreply_ver                     = -1;
+static int hf_msg_mon_getverisonreply_veroldest                     = -1;
 static int hf_msg_mds_map                        = -1;
 static int hf_msg_mds_map_fsid                   = -1;
 static int hf_msg_mds_map_epoch                  = -1;
@@ -546,6 +552,12 @@ static int hf_msg_mon_probe_paxos_first_ver      = -1;
 static int hf_msg_mon_probe_paxos_last_ver       = -1;
 static int hf_msg_mon_probe_ever_joined          = -1;
 static int hf_msg_mon_probe_req_features         = -1;
+static int hf_msg_osd_ping                      = -1;
+static int hf_msg_osd_ping_fsid                      = -1;
+static int hf_msg_osd_ping_mapepoch                      = -1;
+static int hf_msg_osd_ping_peerepoch                      = -1;
+static int hf_msg_osd_ping_op                      = -1;
+static int hf_msg_osd_ping_time                      = -1;
 static int hf_msg_client_caps                    = -1;
 static int hf_msg_client_caps_op                 = -1;
 static int hf_msg_client_caps_inode              = -1;
@@ -622,6 +634,7 @@ static gint ett_pgpool_snapdel             = -1;
 static gint ett_pgpool_property            = -1;
 static gint ett_mon_map                    = -1;
 static gint ett_mon_map_address            = -1;
+static gint ett_osd_peerstat                   = -1;
 static gint ett_osd_info                   = -1;
 static gint ett_osd_xinfo                  = -1;
 static gint ett_osd_map                    = -1;
@@ -651,6 +664,7 @@ static gint ett_msg_auth_supportedproto    = -1;
 static gint ett_msg_auth_cephx             = -1;
 static gint ett_msg_authreply              = -1;
 static gint ett_msg_mon_getversion              = -1;
+static gint ett_msg_mon_getversionreply              = -1;
 static gint ett_msg_mds_map                = -1;
 static gint ett_msg_client_sess            = -1;
 static gint ett_msg_client_req             = -1;
@@ -674,6 +688,7 @@ static gint ett_msg_mon_election           = -1;
 static gint ett_msg_mon_paxos              = -1;
 static gint ett_msg_mon_paxos_value        = -1;
 static gint ett_msg_mon_probe              = -1;
+static gint ett_msg_osd_ping              = -1;
 static gint ett_msg_client_caps            = -1;
 static gint ett_msg_client_caprel          = -1;
 static gint ett_msg_client_caprel_cap      = -1;
@@ -1088,6 +1103,16 @@ C_MAKE_STRINGS_EXT(c_mon_paxos_op, 8)
 	V(C_MON_PROBE_MISSING_FEATURES, 0x00000006, "Missing Features")
 
 C_MAKE_STRINGS_EXT(c_mon_probe_type, 8)
+
+#define c_osd_ping_op_strings_VALUE_STRING_LIST(V) \
+	V(C_TIMECHECK_HEARTBEAT,       0x00, "Heartbeat")       \
+	V(C_TIMECHECK_START_HEARTBEAT, 0x01, "Start Heartbeats") \
+	V(C_TIMECHECK_YOU_DIED,        0x02, "You Died")        \
+	V(C_TIMECHECK_STOP_HEARTBEAT,  0x03, "Stop Heartbeats")  \
+	V(C_TIMECHECK_PING,            0x04, "Ping")            \
+	V(C_TIMECHECK_PING_REPLY,      0x05, "Pong")      \
+
+C_MAKE_STRINGS_EXT(c_osd_ping_op, 2)
 
 #define c_session_op_type_strings_VALUE_STRING_LIST(V) \
 	V(C_SESSION_REQUEST_OPEN,      0x00000000, "Request Open")       \
@@ -2799,6 +2824,32 @@ guint c_dissect_monmap(proto_tree *root,
 	return off;
 }
 
+/** Dissect an osd_peer_stat_t */
+static
+guint c_dissect_osd_peerstat(proto_tree *root,
+                             tvbuff_t *tvb, guint off, c_pkt_data *data _U_)
+{
+	proto_item *ti;
+	proto_tree *tree;
+	c_encoded enc;
+
+	/* osd_peer_stat_t from ceph:/src/osd/osd_types.h */
+
+	ti   = proto_tree_add_item(root, hf_osd_peerstat, tvb, off, -1, ENC_NA);
+	tree = proto_item_add_subtree(ti, ett_osd_peerstat);
+
+	off = c_dissect_encoded(tree, &enc, 1, 1, tvb, off, data);
+	
+	proto_tree_add_item(tree, hf_osd_peerstat_timestamp,
+	                    tvb, off, 8, ENC_LITTLE_ENDIAN);
+	off += 8;
+	
+	c_warn_size(tree, tvb, off, enc.end, data);
+
+	proto_item_set_end(ti, tvb, off);
+	return off;
+}
+
 /** Dissect an osd_info_t. */
 static
 guint c_dissect_osdinfo(proto_tree *root, int hf,
@@ -3989,7 +4040,7 @@ guint c_dissect_msg_auth_reply(proto_tree *root,
 	return off;
 }
 
-/** Authentication response. 0x0013 */
+/** Get map versions. 0x0013 */
 static
 guint c_dissect_msg_mon_getversion(proto_tree *root,
                                    tvbuff_t *tvb,
@@ -4019,6 +4070,52 @@ guint c_dissect_msg_mon_getversion(proto_tree *root,
 
 	c_append_text(data, ti, ", TID: %"G_GINT64_MODIFIER"u, What: %s",
 	              tid, what.str);
+
+	return off;
+}
+
+
+/** Get map versions response. 0x0014 */
+static
+guint c_dissect_msg_mon_getversionreply(proto_tree *root,
+                                        tvbuff_t *tvb,
+                                        guint front_len,
+                                        guint middle_len _U_,
+                                        guint data_len _U_,
+                                        c_pkt_data *data)
+{
+	proto_item *ti;
+	proto_tree *tree;
+	guint off = 0;
+	guint64 tid;
+	guint64 ver, veroldest;
+
+	/* ceph:/src/messages/MMonGetVersionReply.h */
+
+	c_set_type(data, "Monitor Get Version Reply");
+
+	ti = proto_tree_add_item(root, hf_msg_mon_getverisonreply, tvb, off, front_len, ENC_NA);
+	tree = proto_item_add_subtree(ti, ett_msg_mon_getversionreply);
+
+	tid = tvb_get_letoh64(tvb, off);
+	proto_tree_add_item(tree, hf_msg_mon_getverisonreply_tid,
+	                    tvb, off, 8, ENC_LITTLE_ENDIAN);
+	off += 8;
+	
+	ver = tvb_get_letoh64(tvb, off);
+	proto_tree_add_item(tree, hf_msg_mon_getverisonreply_ver,
+	                    tvb, off, 8, ENC_LITTLE_ENDIAN);
+	off += 8;
+	
+	veroldest = tvb_get_letoh64(tvb, off);
+	proto_tree_add_item(tree, hf_msg_mon_getverisonreply_veroldest,
+	                    tvb, off, 8, ENC_LITTLE_ENDIAN);
+	off += 8;
+	
+	c_append_text(data, ti, ", TID: %"G_GINT64_MODIFIER"u"
+	              ", Version: %"G_GINT64_MODIFIER"u"
+	              ", Oldest Version: %"G_GINT64_MODIFIER"u",
+	              tid, ver, veroldest);
 
 	return off;
 }
@@ -5169,6 +5266,56 @@ guint c_dissect_msg_mon_probe(proto_tree *root,
 	return off;
 }
 
+
+/** OSD Ping (0x0046) */
+static
+guint c_dissect_msg_osd_ping(proto_tree *root,
+                             tvbuff_t *tvb,
+                             guint front_len, guint middle_len _U_, guint data_len _U_,
+                             c_pkt_data *data)
+{
+	proto_item *ti;
+	proto_tree *tree;
+	guint off = 0;
+	c_osd_ping_op op;
+
+	/* ceph:/src/messages/MOSDPing.h */
+
+	c_set_type(data, "OSD Ping");
+
+	ti = proto_tree_add_item(root, hf_msg_osd_ping, tvb, off, front_len, ENC_NA);
+	tree = proto_item_add_subtree(ti, ett_msg_osd_ping);
+
+	proto_tree_add_item(tree, hf_msg_mon_probe_fsid,
+	                    tvb, off, 16, ENC_BIG_ENDIAN);
+	off += 16;
+	
+	proto_tree_add_item(tree, hf_msg_osd_ping_mapepoch,
+	                    tvb, off, 4, ENC_LITTLE_ENDIAN);
+	off += 4;
+	
+	proto_tree_add_item(tree, hf_msg_osd_ping_peerepoch,
+	                    tvb, off, 4, ENC_LITTLE_ENDIAN);
+	off += 4;
+	
+	op = (c_osd_ping_op)tvb_get_guint8(tvb, off);
+	proto_tree_add_item(tree, hf_msg_osd_ping_op,
+	                    tvb, off, 1, ENC_LITTLE_ENDIAN);
+	off += 1;
+	
+	off = c_dissect_osd_peerstat(tree, tvb, off, data);
+	
+	if (data->header.ver >= 2)
+	{
+		proto_tree_add_item(tree, hf_msg_osd_ping_time,
+		                    tvb, off, 8, ENC_LITTLE_ENDIAN);
+		off += 8;
+	}
+	
+	c_append_text(data, ti, ", Operation: %s", c_osd_ping_op_string(op));
+	return off;
+}
+
 /** Client Caps 0x0310 */
 static
 guint c_dissect_msg_client_caps(proto_tree *root,
@@ -5613,6 +5760,7 @@ guint c_dissect_msg(proto_tree *tree,
 	C_HANDLE(C_CEPH_MSG_AUTH,                   c_dissect_msg_auth)
 	C_HANDLE(C_CEPH_MSG_AUTH_REPLY,             c_dissect_msg_auth_reply)
 	C_HANDLE(C_CEPH_MSG_MON_GET_VERSION,        c_dissect_msg_mon_getversion)
+	C_HANDLE(C_CEPH_MSG_MON_GET_VERSION_REPLY,        c_dissect_msg_mon_getversionreply)
 	C_HANDLE(C_CEPH_MSG_MDS_MAP,                c_dissect_msg_mds_map)
 	C_HANDLE(C_CEPH_MSG_CLIENT_SESSION,         c_dissect_msg_client_sess)
 	C_HANDLE(C_CEPH_MSG_CLIENT_REQUEST,         c_dissect_msg_client_req)
@@ -5631,6 +5779,7 @@ guint c_dissect_msg(proto_tree *tree,
 	C_HANDLE(C_MSG_MON_ELECTION,                c_dissect_msg_mon_election)
 	C_HANDLE(C_MSG_MON_PAXOS,                   c_dissect_msg_mon_paxos)
 	C_HANDLE(C_MSG_MON_PROBE,                   c_dissect_msg_mon_probe)
+	C_HANDLE(C_MSG_OSD_PING,                    c_dissect_msg_osd_ping)
 	C_HANDLE(C_CEPH_MSG_CLIENT_CAPS,            c_dissect_msg_client_caps)
 	C_HANDLE(C_CEPH_MSG_CLIENT_CAPRELEASE,      c_dissect_msg_client_caprel)
 	C_HANDLE(C_MSG_TIMECHECK,                   c_dissect_msg_timecheck)
@@ -6907,6 +7056,16 @@ proto_register_ceph(void)
 			FT_NONE, BASE_NONE, NULL, 0,
 			NULL, HFILL
 		} },
+		{ &hf_osd_peerstat, {
+			"Peer Stat", "ceph.osd.peerstat",
+			FT_NONE, BASE_NONE, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_osd_peerstat_timestamp, {
+			"Timestamp", "ceph.osd.peerstat.timestamp",
+			FT_ABSOLUTE_TIME, ABSOLUTE_TIME_LOCAL, NULL, 0,
+			NULL, HFILL
+		} },
 		{ &hf_osdmap_erasurecodeprofile, {
 			"Erasure Code Profile", "ceph.osdmap.erasurecodeprofile",
 			FT_NONE, BASE_NONE, NULL, 0,
@@ -7913,12 +8072,32 @@ proto_register_ceph(void)
 		} },
 		{ &hf_msg_mon_getverison_tid, {
 			"Transaction ID", "ceph.msg.mon.getverison.tid",
-			FT_UINT64, BASE_HEX, NULL, 0,
+			FT_UINT64, BASE_DEC, NULL, 0,
 			NULL, HFILL
 		} },
 		{ &hf_msg_mon_getverison_what, {
 			"What", "ceph.msg.mon.getverison.what",
 			FT_STRING, BASE_NONE, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_mon_getverisonreply, {
+			"Get Version Reply", "ceph.msg.mon.getverisonreply",
+			FT_NONE, BASE_NONE, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_mon_getverisonreply_tid, {
+			"Transaction ID", "ceph.msg.mon.getverisonreply.tid",
+			FT_UINT64, BASE_DEC, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_mon_getverisonreply_ver, {
+			"Version", "ceph.msg.mon.getverisonreply.ver",
+			FT_UINT64, BASE_DEC, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_mon_getverisonreply_veroldest, {
+			"Oldest Version", "ceph.msg.mon.getverisonreply.veroldest",
+			FT_UINT64, BASE_DEC, NULL, 0,
 			NULL, HFILL
 		} },
 		{ &hf_msg_mds_map, {
@@ -8706,6 +8885,36 @@ proto_register_ceph(void)
 			FT_UINT64, BASE_HEX, NULL, 0,
 			NULL, HFILL
 		} },
+		{ &hf_msg_osd_ping, {
+			"OSD Ping", "ceph.msg.osd.ping",
+			FT_NONE, BASE_NONE, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_osd_ping_fsid, {
+			"FSID", "ceph.msg.osd.ping.fsid",
+			FT_GUID, BASE_NONE, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_osd_ping_mapepoch, {
+			"OSD Map Epoch", "ceph.msg.osd.ping.mapepoch",
+			FT_UINT32, BASE_DEC, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_osd_ping_peerepoch, {
+			"Peer as of Epoch", "ceph.msg.osd.ping.peerepoch",
+			FT_UINT32, BASE_DEC, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_osd_ping_op, {
+			"Operation", "ceph.msg.osd.ping.op",
+			FT_UINT8, BASE_HEX|BASE_EXT_STRING, &c_osd_ping_op_strings_ext, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_osd_ping_time, {
+			"Timestamp", "ceph.msg.osd.ping.time",
+			FT_ABSOLUTE_TIME, ABSOLUTE_TIME_LOCAL, NULL, 0,
+			NULL, HFILL
+		} },
 		{ &hf_msg_client_caps, {
 			"Client Caps", "ceph.msg.client_caps",
 			FT_NONE, BASE_NONE, NULL, 0,
@@ -8928,6 +9137,7 @@ proto_register_ceph(void)
 		&ett_pgpool_property,
 		&ett_mon_map,
 		&ett_mon_map_address,
+		&ett_osd_peerstat,
 		&ett_osd_info,
 		&ett_osd_xinfo,
 		&ett_osd_map,
@@ -8957,6 +9167,7 @@ proto_register_ceph(void)
 		&ett_msg_auth_cephx,
 		&ett_msg_authreply,
 		&ett_msg_mon_getversion,
+		&ett_msg_mon_getversionreply,
 		&ett_msg_mds_map,
 		&ett_msg_client_sess,
 		&ett_msg_client_req,
@@ -8980,6 +9191,7 @@ proto_register_ceph(void)
 		&ett_msg_mon_paxos,
 		&ett_msg_mon_paxos_value,
 		&ett_msg_mon_probe,
+		&ett_msg_osd_ping,
 		&ett_msg_client_caps,
 		&ett_msg_client_caprel,
 		&ett_msg_client_caprel_cap,
