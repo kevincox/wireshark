@@ -3702,12 +3702,24 @@ guint c_dissect_msg_unknown(proto_tree *tree,
 	return off;
 }
 
+/** Dissect ping 0x0002 */
+static
+guint c_dissect_msg_ping(proto_tree *root,
+                         tvbuff_t *tvb,
+                         guint front_len _U_, guint middle_len _U_, guint data_len _U_,
+                         c_pkt_data *data)
+{
+	/* ceph:/src/messages/MPing.h */
+	c_set_type(data, "Ping");
+	return 0;
+}
+
 /** Dissect monmap message 0x0004 */
 static
-guint c_dissect_msg_mon_map(proto_tree *root,
-                           tvbuff_t *tvb,
+guint c_dissect_msg_mon_map(proto_tree *root _U_,
+                           tvbuff_t *tvb _U_,
                            guint front_len, guint middle_len _U_, guint data_len _U_,
-                           c_pkt_data *data)
+                           c_pkt_data *data _U_)
 {
 	proto_item *ti;
 	proto_tree *tree;
@@ -5752,6 +5764,7 @@ guint c_dissect_msg(proto_tree *tree,
 #define C_CALL(name) name(tree, subtvb, front_len, middle_len, data_len, data)
 #define C_HANDLE(tag, name) case tag: parsedsize = C_CALL(name); break;
 
+	C_HANDLE(C_CEPH_MSG_PING,                   c_dissect_msg_ping)
 	C_HANDLE(C_CEPH_MSG_MON_MAP,                c_dissect_msg_mon_map)
 	C_HANDLE(C_CEPH_MSG_STATFS,                 c_dissect_msg_statfs)
 	C_HANDLE(C_CEPH_MSG_STATFS_REPLY,           c_dissect_msg_statfsreply)
