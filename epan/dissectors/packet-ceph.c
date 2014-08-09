@@ -31,11 +31,45 @@
 #include <epan/conversation.h>
 #include <epan/to_str.h>
 
-/* Forward declaration that is needed below if using the
- * proto_reg_handoff_ceph function as a callback for when protocol
- * preferences get changed. */
-void proto_reg_handoff_ceph(void);
-void proto_register_ceph(void);
+/** Extending the Ceph Dissector.
+ *
+ * Hello, this is a quick overview of the insertion points in the Ceph dissector
+ * it is assumed that you know how dissectors work in general (if not please
+ * read 'doc/README.dissector' and related documents).
+ *
+ * If you have any questions feel free to contact Kevin <kevincox@kevincox.ca>.
+ * ## Adding a MSGR Tag
+ *
+ * To add a MSGR tag you must update the switch statements inside both
+ * `c_dissect_msgr()` to actually dissect the data and `c_pdu_end()` to
+ * calculate the length of the data.
+ *
+ * ## Adding a New Message.
+ *
+ * To add a new message type you simply create a new function
+ * `c_dissect_msg_{name}()` with the same signature as the others.  Please
+ * insert your function in order of the tag value like the others.
+ *
+ * Then you simply add it into the switch in `c_dissect_msg()` (also in the
+ * correct order).  Your message will then be dissected when encountered.
+ *
+ * ## Supporting new encodings.
+ *
+ * ### Message Encodings.
+ *
+ * The encoding version of messages is available in `data->head.ver` and the
+ * code should be modified to conditionally decode the new version of the
+ * message.
+ *
+ * ### Data Type Encodings.
+ *
+ * Data types encoded using Ceph's `ENCODE_START()` macro can be decoded by
+ * using `c_dissect_encoded()` to extract the version and length.  You can
+ * then conditionally decode using the version.
+ *
+ * Please rely on the length returned by `c_dissect_encoded()` to ensure future
+ * compatibility.
+ */
 
 static dissector_handle_t ceph_handle;
 
@@ -45,8 +79,8 @@ static int hf_filter_data                        = -1;
 static int hf_node_id                            = -1;
 static int hf_node_type                          = -1;
 static int hf_node_nonce                         = -1;
-static int hf_entityinst_name                         = -1;
-static int hf_entityinst_addr                         = -1;
+static int hf_entityinst_name                    = -1;
+static int hf_entityinst_addr                    = -1;
 static int hf_EntityName                         = -1;
 static int hf_EntityName_type                    = -1;
 static int hf_EntityName_id                      = -1;
@@ -153,8 +187,8 @@ static int hf_monmap_address_addr                = -1;
 static int hf_monmap_changed                     = -1;
 static int hf_monmap_created                     = -1;
 static int hf_crush                              = -1;
-static int hf_osd_peerstat                        = -1;
-static int hf_osd_peerstat_timestamp                        = -1;
+static int hf_osd_peerstat                       = -1;
+static int hf_osd_peerstat_timestamp             = -1;
 static int hf_osdinfo_ver                        = -1;
 static int hf_osdinfo_lastclean_begin            = -1;
 static int hf_osdinfo_lastclean_end              = -1;
@@ -388,13 +422,13 @@ static int hf_msg_auth_reply_proto               = -1;
 static int hf_msg_auth_reply_result              = -1;
 static int hf_msg_auth_reply_global_id           = -1;
 static int hf_msg_auth_reply_msg                 = -1;
-static int hf_msg_mon_getverison                     = -1;
-static int hf_msg_mon_getverison_tid                     = -1;
-static int hf_msg_mon_getverison_what                     = -1;
-static int hf_msg_mon_getverisonreply                     = -1;
-static int hf_msg_mon_getverisonreply_tid                     = -1;
-static int hf_msg_mon_getverisonreply_ver                     = -1;
-static int hf_msg_mon_getverisonreply_veroldest                     = -1;
+static int hf_msg_mon_getverison                 = -1;
+static int hf_msg_mon_getverison_tid             = -1;
+static int hf_msg_mon_getverison_what            = -1;
+static int hf_msg_mon_getverisonreply            = -1;
+static int hf_msg_mon_getverisonreply_tid        = -1;
+static int hf_msg_mon_getverisonreply_ver        = -1;
+static int hf_msg_mon_getverisonreply_veroldest  = -1;
 static int hf_msg_mds_map                        = -1;
 static int hf_msg_mds_map_fsid                   = -1;
 static int hf_msg_mds_map_epoch                  = -1;
@@ -512,7 +546,7 @@ static int hf_msg_poolstatsreply_stat            = -1;
 static int hf_msg_poolstatsreply_pool            = -1;
 static int hf_msg_poolstatsreply_log_size        = -1;
 static int hf_msg_poolstatsreply_log_size_ondisk = -1;
-static int hf_msg_mon_globalid_max = -1;
+static int hf_msg_mon_globalid_max               = -1;
 static int hf_msg_mon_election                   = -1;
 static int hf_msg_mon_election_fsid              = -1;
 static int hf_msg_mon_election_op                = -1;
@@ -552,12 +586,12 @@ static int hf_msg_mon_probe_paxos_first_ver      = -1;
 static int hf_msg_mon_probe_paxos_last_ver       = -1;
 static int hf_msg_mon_probe_ever_joined          = -1;
 static int hf_msg_mon_probe_req_features         = -1;
-static int hf_msg_osd_ping                      = -1;
-static int hf_msg_osd_ping_fsid                      = -1;
-static int hf_msg_osd_ping_mapepoch                      = -1;
-static int hf_msg_osd_ping_peerepoch                      = -1;
-static int hf_msg_osd_ping_op                      = -1;
-static int hf_msg_osd_ping_time                      = -1;
+static int hf_msg_osd_ping                       = -1;
+static int hf_msg_osd_ping_fsid                  = -1;
+static int hf_msg_osd_ping_mapepoch              = -1;
+static int hf_msg_osd_ping_peerepoch             = -1;
+static int hf_msg_osd_ping_op                    = -1;
+static int hf_msg_osd_ping_time                  = -1;
 static int hf_msg_client_caps                    = -1;
 static int hf_msg_client_caps_op                 = -1;
 static int hf_msg_client_caps_inode              = -1;
@@ -586,17 +620,17 @@ static int hf_msg_client_caprel_cap_inode        = -1;
 static int hf_msg_client_caprel_cap_id           = -1;
 static int hf_msg_client_caprel_cap_migrate      = -1;
 static int hf_msg_client_caprel_cap_seq          = -1;
-static int hf_msg_timecheck          = -1;
-static int hf_msg_timecheck_op          = -1;
-static int hf_msg_timecheck_epoch          = -1;
-static int hf_msg_timecheck_round          = -1;
-static int hf_msg_timecheck_time          = -1;
-static int hf_msg_timecheck_skew          = -1;
-static int hf_msg_timecheck_skew_node          = -1;
-static int hf_msg_timecheck_skew_skew          = -1;
-static int hf_msg_timecheck_latency          = -1;
-static int hf_msg_timecheck_latency_node          = -1;
-static int hf_msg_timecheck_latency_latency          = -1;
+static int hf_msg_timecheck                      = -1;
+static int hf_msg_timecheck_op                   = -1;
+static int hf_msg_timecheck_epoch                = -1;
+static int hf_msg_timecheck_round                = -1;
+static int hf_msg_timecheck_time                 = -1;
+static int hf_msg_timecheck_skew                 = -1;
+static int hf_msg_timecheck_skew_node            = -1;
+static int hf_msg_timecheck_skew_skew            = -1;
+static int hf_msg_timecheck_latency              = -1;
+static int hf_msg_timecheck_latency_node         = -1;
+static int hf_msg_timecheck_latency_latency      = -1;
 
 /* Initialize the expert items. */
 static expert_field ei_unused         = EI_INIT;
@@ -634,7 +668,7 @@ static gint ett_pgpool_snapdel             = -1;
 static gint ett_pgpool_property            = -1;
 static gint ett_mon_map                    = -1;
 static gint ett_mon_map_address            = -1;
-static gint ett_osd_peerstat                   = -1;
+static gint ett_osd_peerstat               = -1;
 static gint ett_osd_info                   = -1;
 static gint ett_osd_xinfo                  = -1;
 static gint ett_osd_map                    = -1;
@@ -663,8 +697,8 @@ static gint ett_msg_auth                   = -1;
 static gint ett_msg_auth_supportedproto    = -1;
 static gint ett_msg_auth_cephx             = -1;
 static gint ett_msg_authreply              = -1;
-static gint ett_msg_mon_getversion              = -1;
-static gint ett_msg_mon_getversionreply              = -1;
+static gint ett_msg_mon_getversion         = -1;
+static gint ett_msg_mon_getversionreply    = -1;
 static gint ett_msg_mds_map                = -1;
 static gint ett_msg_client_sess            = -1;
 static gint ett_msg_client_req             = -1;
@@ -688,12 +722,12 @@ static gint ett_msg_mon_election           = -1;
 static gint ett_msg_mon_paxos              = -1;
 static gint ett_msg_mon_paxos_value        = -1;
 static gint ett_msg_mon_probe              = -1;
-static gint ett_msg_osd_ping              = -1;
+static gint ett_msg_osd_ping               = -1;
 static gint ett_msg_client_caps            = -1;
 static gint ett_msg_client_caprel          = -1;
 static gint ett_msg_client_caprel_cap      = -1;
-static gint ett_msg_timecheck      = -1;
-static gint ett_msg_timecheck_skew      = -1;
+static gint ett_msg_timecheck              = -1;
+static gint ett_msg_timecheck_skew         = -1;
 static gint ett_msg_timecheck_latency      = -1;
 static gint ett_head                       = -1;
 static gint ett_foot                       = -1;
@@ -765,8 +799,8 @@ typedef enum _c_flags {
 } c_flags;
 
 typedef enum _c_pgpool_flags {
-	C_PGPOOL_FLAG_HASHPSPOOL = 1 << 0, /* hash pg seed and pool together (instead of adding) */
-	C_PGPOOL_FLAG_FULL       = 1 << 1, /* pool is full */
+	C_PGPOOL_FLAG_HASHPSPOOL   = 1 << 0, /* hash pg seed and pool together (instead of adding) */
+	C_PGPOOL_FLAG_FULL         = 1 << 1, /* pool is full */
 	C_PGPOOL_FLAG_FAKE_EC_POOL = 1 << 2, /* require ReplicatedPG to act like an EC pg */
 } c_pgpool_flags;
 
@@ -1930,19 +1964,19 @@ guint c_dissect_entityinst(proto_tree *root, int hf, c_entityinst *out,
 {
 	proto_item *ti;
 	proto_tree *tree;
-	
+
 	c_entityinst d;
-	
+
 	ti = proto_tree_add_item(root, hf, tvb, off, -1, ENC_NA);
 	tree = proto_item_add_subtree(ti, ett_entityinst);
-	
+
 	off = c_dissect_entityname(tree, hf_entityinst_name, &d.name, tvb, off, data);
 	off = c_dissect_entityaddr(tree, hf_entityinst_addr, &d.addr, tvb, off, data);
-	
+
 	proto_item_append_text(ti, ", Name: %s, Address: %s", d.name.slug, d.addr.addr.str);
-	
+
 	if (out) *out = d;
-	
+
 	proto_item_set_end(ti, tvb, off);
 	return off;
 }
@@ -2839,11 +2873,11 @@ guint c_dissect_osd_peerstat(proto_tree *root,
 	tree = proto_item_add_subtree(ti, ett_osd_peerstat);
 
 	off = c_dissect_encoded(tree, &enc, 1, 1, tvb, off, data);
-	
+
 	proto_tree_add_item(tree, hf_osd_peerstat_timestamp,
 	                    tvb, off, 8, ENC_LITTLE_ENDIAN);
 	off += 8;
-	
+
 	c_warn_size(tree, tvb, off, enc.end, data);
 
 	proto_item_set_end(ti, tvb, off);
@@ -4076,9 +4110,9 @@ guint c_dissect_msg_mon_getversion(proto_tree *root,
 	proto_tree_add_item(tree, hf_msg_mon_getverison_tid,
 	                    tvb, off, 8, ENC_LITTLE_ENDIAN);
 	off += 8;
-	
+
 	off = c_dissect_str(tree, hf_msg_mon_getverison_what, &what, tvb, off);
-	
+
 
 	c_append_text(data, ti, ", TID: %"G_GINT64_MODIFIER"u, What: %s",
 	              tid, what.str);
@@ -4113,17 +4147,17 @@ guint c_dissect_msg_mon_getversionreply(proto_tree *root,
 	proto_tree_add_item(tree, hf_msg_mon_getverisonreply_tid,
 	                    tvb, off, 8, ENC_LITTLE_ENDIAN);
 	off += 8;
-	
+
 	ver = tvb_get_letoh64(tvb, off);
 	proto_tree_add_item(tree, hf_msg_mon_getverisonreply_ver,
 	                    tvb, off, 8, ENC_LITTLE_ENDIAN);
 	off += 8;
-	
+
 	veroldest = tvb_get_letoh64(tvb, off);
 	proto_tree_add_item(tree, hf_msg_mon_getverisonreply_veroldest,
 	                    tvb, off, 8, ENC_LITTLE_ENDIAN);
 	off += 8;
-	
+
 	c_append_text(data, ti, ", TID: %"G_GINT64_MODIFIER"u"
 	              ", Version: %"G_GINT64_MODIFIER"u"
 	              ", Oldest Version: %"G_GINT64_MODIFIER"u",
@@ -5122,64 +5156,64 @@ guint c_dissect_msg_mon_paxos(proto_tree *root,
 	guint32 i;
 	guint64 pn;
 	c_mon_paxos_op op;
-	
+
 	/* ceph:/src/messages/MMonPaxos.h */
 
 	c_set_type(data, "Mon Paxos");
 
 	ti = proto_tree_add_item(root, hf_msg_mon_paxos, tvb, off, front_len, ENC_NA);
 	tree = proto_item_add_subtree(ti, ett_msg_mon_paxos);
-	
+
 	proto_tree_add_item(tree, hf_msg_mon_paxos_epoch,
 	                    tvb, off, 4, ENC_LITTLE_ENDIAN);
 	off += 4;
-	
+
 	op = (c_mon_paxos_op)tvb_get_letohl(tvb, off);
 	proto_tree_add_item(tree, hf_msg_mon_paxos_op,
 	                    tvb, off, 4, ENC_LITTLE_ENDIAN);
 	off += 4;
-	
+
 	proto_tree_add_item(tree, hf_msg_mon_paxos_first,
 	                    tvb, off, 8, ENC_LITTLE_ENDIAN);
 	off += 8;
-	
+
 	proto_tree_add_item(tree, hf_msg_mon_paxos_last,
 	                    tvb, off, 8, ENC_LITTLE_ENDIAN);
 	off += 8;
-	
+
 	proto_tree_add_item(tree, hf_msg_mon_paxos_pnfrom,
 	                    tvb, off, 8, ENC_LITTLE_ENDIAN);
 	off += 8;
-	
+
 	pn = tvb_get_letoh64(tvb, off);
 	proto_tree_add_item(tree, hf_msg_mon_paxos_pn,
 	                    tvb, off, 8, ENC_LITTLE_ENDIAN);
 	off += 8;
-	
+
 	proto_tree_add_item(tree, hf_msg_mon_paxos_pnuncommitted,
 	                    tvb, off, 8, ENC_LITTLE_ENDIAN);
 	off += 8;
-	
+
 	proto_tree_add_item(tree, hf_msg_mon_paxos_lease,
 	                    tvb, off, 8, ENC_LITTLE_ENDIAN);
 	off += 8;
-	
+
 	if (data->header.ver >= 1)
 	{
 		proto_tree_add_item(tree, hf_msg_mon_paxos_sent,
 		                    tvb, off, 8, ENC_LITTLE_ENDIAN);
 		off += 8;
 	}
-	
+
 	proto_tree_add_item(tree, hf_msg_mon_paxos_latest_ver,
 	                    tvb, off, 8, ENC_LITTLE_ENDIAN);
 	off += 8;
-	
+
 	off = c_dissect_blob(tree, hf_msg_mon_paxos_latest_val,
 	                     hf_msg_mon_paxos_latest_val_data,
 	                     hf_msg_mon_paxos_latest_val_size,
 	                     tvb, off);
-	
+
 	i = tvb_get_letohl(tvb, off);
 	off += 4;
 	while (i--)
@@ -5187,24 +5221,24 @@ guint c_dissect_msg_mon_paxos(proto_tree *root,
 		proto_item *ti2;
 		proto_tree *subtree;
 		guint64 ver;
-		
+
 		ti2 = proto_tree_add_item(tree, hf_msg_mon_paxos_value,
 		                          tvb, off, -1, ENC_LITTLE_ENDIAN);
 		subtree = proto_item_add_subtree(ti2, ett_msg_mon_paxos_value);
-		
+
 		ver = tvb_get_letoh64(tvb, off);
 		proto_tree_add_item(subtree, hf_msg_mon_paxos_ver,
 		                    tvb, off, 8, ENC_LITTLE_ENDIAN);
 		off += 8;
-		
+
 		off = c_dissect_blob(subtree, hf_msg_mon_paxos_val,
 		                     hf_msg_mon_paxos_val_data, hf_msg_mon_paxos_val_size,
 		                     tvb, off);
-		
+
 		proto_item_append_text(ti2, ", Version: %"G_GINT64_MODIFIER"u", ver);
 		proto_item_set_end(ti2, tvb, off);
 	}
-	
+
 	c_append_text(data, ti, ", Op: %s, Proposal Number: %"G_GINT64_MODIFIER"u",
 	              c_mon_paxos_op_string(op), pn);
 
@@ -5301,29 +5335,29 @@ guint c_dissect_msg_osd_ping(proto_tree *root,
 	proto_tree_add_item(tree, hf_msg_mon_probe_fsid,
 	                    tvb, off, 16, ENC_BIG_ENDIAN);
 	off += 16;
-	
+
 	proto_tree_add_item(tree, hf_msg_osd_ping_mapepoch,
 	                    tvb, off, 4, ENC_LITTLE_ENDIAN);
 	off += 4;
-	
+
 	proto_tree_add_item(tree, hf_msg_osd_ping_peerepoch,
 	                    tvb, off, 4, ENC_LITTLE_ENDIAN);
 	off += 4;
-	
+
 	op = (c_osd_ping_op)tvb_get_guint8(tvb, off);
 	proto_tree_add_item(tree, hf_msg_osd_ping_op,
 	                    tvb, off, 1, ENC_LITTLE_ENDIAN);
 	off += 1;
-	
+
 	off = c_dissect_osd_peerstat(tree, tvb, off, data);
-	
+
 	if (data->header.ver >= 2)
 	{
 		proto_tree_add_item(tree, hf_msg_osd_ping_time,
 		                    tvb, off, 8, ENC_LITTLE_ENDIAN);
 		off += 8;
 	}
-	
+
 	c_append_text(data, ti, ", Operation: %s", c_osd_ping_op_string(op));
 	return off;
 }
@@ -5540,27 +5574,27 @@ guint c_dissect_msg_timecheck(proto_tree *root,
 
 	ti = proto_tree_add_item(root, hf_msg_timecheck, tvb, off, front_len, ENC_NA);
 	tree = proto_item_add_subtree(ti, ett_msg_timecheck);
-	
+
 	op = (c_timecheck_op)tvb_get_letohl(tvb, off);
 	proto_tree_add_item(tree, hf_msg_timecheck_op,
 	                    tvb, off, 4, ENC_LITTLE_ENDIAN);
 	off += 4;
-	
+
 	epoch = tvb_get_letoh64(tvb, off);
 	proto_tree_add_item(tree, hf_msg_timecheck_epoch,
 	                    tvb, off, 8, ENC_LITTLE_ENDIAN);
 	off += 8;
-	
+
 	round = tvb_get_letoh64(tvb, off);
 	proto_tree_add_item(tree, hf_msg_timecheck_round,
 	                    tvb, off, 8, ENC_LITTLE_ENDIAN);
 	off += 8;
-	
+
 	c_append_text(data, ti, ", Operation: %s, Epoch: %"G_GINT64_MODIFIER"u"
 	              ", Round: %"G_GINT64_MODIFIER"u",
 	              c_timecheck_op_string(op),
 	              epoch, round);
-	
+
 	if (op == C_TIMECHECK_OP_PONG)
 	{
 		c_append_text(data, ti, ", Time: %s", c_format_timespec(tvb, off));
@@ -5568,7 +5602,7 @@ guint c_dissect_msg_timecheck(proto_tree *root,
 		                    tvb, off, 8, ENC_LITTLE_ENDIAN);
 	}
 	off += 8; /* Still in the message, but zeroed and meaningless. */
-	
+
 	i = tvb_get_letohl(tvb, off);
 	off += 4;
 	while (i--)
@@ -5577,22 +5611,22 @@ guint c_dissect_msg_timecheck(proto_tree *root,
 		proto_tree *subtree;
 		c_entityinst inst;
 		double skew;
-		
+
 		ti2 = proto_tree_add_item(tree, hf_msg_timecheck_skew, tvb, off, -1, ENC_NA);
 		subtree = proto_item_add_subtree(ti2, ett_msg_timecheck_skew);
-		
+
 		off = c_dissect_entityinst(subtree, hf_msg_timecheck_skew_node, &inst,
 		                           tvb, off, data);
-		
+
 		skew = tvb_get_letohieee_double(tvb, off);
 		proto_tree_add_item(subtree, hf_msg_timecheck_skew_skew,
 		                    tvb, off, 8, ENC_LITTLE_ENDIAN);
 		off += 8;
-		
+
 		proto_item_append_text(ti2, ", Node: %s, Skew: %lf", inst.name.slug, skew);
 		proto_item_set_end(ti2, tvb, off);
 	}
-	
+
 	i = tvb_get_letohl(tvb, off);
 	off += 4;
 	while (i--)
@@ -5601,18 +5635,18 @@ guint c_dissect_msg_timecheck(proto_tree *root,
 		proto_tree *subtree;
 		c_entityinst inst;
 		double ping;
-		
+
 		ti2 = proto_tree_add_item(tree, hf_msg_timecheck_latency, tvb, off, -1, ENC_NA);
 		subtree = proto_item_add_subtree(ti2, ett_msg_timecheck_latency);
-		
+
 		off = c_dissect_entityinst(subtree, hf_msg_timecheck_latency_node, &inst,
 		                           tvb, off, data);
-		
+
 		ping = tvb_get_letohieee_double(tvb, off);
 		proto_tree_add_item(subtree, hf_msg_timecheck_latency_latency,
 		                    tvb, off, 8, ENC_LITTLE_ENDIAN);
 		off += 8;
-		
+
 		proto_item_append_text(ti2, ", Node: %s, Latency: %lf", inst.name.slug, ping);
 		proto_item_set_end(ti2, tvb, off);
 	}
@@ -6020,7 +6054,7 @@ gboolean c_unknowntagnext(tvbuff_t *tvb, guint off)
  */
 static
 guint c_dissect_msgr(proto_tree *tree,
-                   tvbuff_t *tvb, guint off, c_pkt_data *data)
+                     tvbuff_t *tvb, guint off, c_pkt_data *data)
 {
 	proto_item *ti;
 	c_tag tag;
