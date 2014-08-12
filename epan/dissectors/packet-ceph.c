@@ -189,6 +189,25 @@ static int hf_monmap_created                     = -1;
 static int hf_crush                              = -1;
 static int hf_osd_peerstat                       = -1;
 static int hf_osd_peerstat_timestamp             = -1;
+static int hf_featureset_mask                    = -1;
+static int hf_featureset_name                    = -1;
+static int hf_featureset_name_val                = -1;
+static int hf_featureset_name_name               = -1;
+static int hf_compatset                          = -1;
+static int hf_compatset_compat                   = -1;
+static int hf_compatset_compatro                 = -1;
+static int hf_compatset_incompat                 = -1;
+static int hf_osd_superblock                     = -1;
+static int hf_osd_superblock_clusterfsid         = -1;
+static int hf_osd_superblock_role                = -1;
+static int hf_osd_superblock_epoch               = -1;
+static int hf_osd_superblock_map_old             = -1;
+static int hf_osd_superblock_map_new             = -1;
+static int hf_osd_superblock_weight              = -1;
+static int hf_osd_superblock_mounted             = -1;
+static int hf_osd_superblock_osdfsid             = -1;
+static int hf_osd_superblock_clean               = -1;
+static int hf_osd_superblock_full                = -1;
 static int hf_osdinfo_ver                        = -1;
 static int hf_osdinfo_lastclean_begin            = -1;
 static int hf_osdinfo_lastclean_end              = -1;
@@ -592,6 +611,14 @@ static int hf_msg_osd_ping_mapepoch              = -1;
 static int hf_msg_osd_ping_peerepoch             = -1;
 static int hf_msg_osd_ping_op                    = -1;
 static int hf_msg_osd_ping_time                  = -1;
+static int hf_msg_osd_boot                       = -1;
+static int hf_msg_osd_boot_addr_back             = -1;
+static int hf_msg_osd_boot_addr_cluster          = -1;
+static int hf_msg_osd_boot_epoch                 = -1;
+static int hf_msg_osd_boot_addr_front            = -1;
+static int hf_msg_osd_boot_metadata              = -1;
+static int hf_msg_osd_boot_metadata_k            = -1;
+static int hf_msg_osd_boot_metadata_v            = -1;
 static int hf_msg_client_caps                    = -1;
 static int hf_msg_client_caps_op                 = -1;
 static int hf_msg_client_caps_inode              = -1;
@@ -642,7 +669,7 @@ static expert_field ei_ver_tooold     = EI_INIT;
 static expert_field ei_ver_toonew     = EI_INIT;
 static expert_field ei_oloc_both      = EI_INIT;
 static expert_field ei_banner_invalid = EI_INIT;
-static expert_field ei_sizeillogical = EI_INIT;
+static expert_field ei_sizeillogical  = EI_INIT;
 
 /* Initialize the subtree pointers */
 static gint ett_ceph                       = -1;
@@ -669,6 +696,10 @@ static gint ett_pgpool_property            = -1;
 static gint ett_mon_map                    = -1;
 static gint ett_mon_map_address            = -1;
 static gint ett_osd_peerstat               = -1;
+static gint ett_featureset                 = -1;
+static gint ett_featureset_name            = -1;
+static gint ett_compatset                  = -1;
+static gint ett_osd_superblock             = -1;
 static gint ett_osd_info                   = -1;
 static gint ett_osd_xinfo                  = -1;
 static gint ett_osd_map                    = -1;
@@ -723,6 +754,7 @@ static gint ett_msg_mon_paxos              = -1;
 static gint ett_msg_mon_paxos_value        = -1;
 static gint ett_msg_mon_probe              = -1;
 static gint ett_msg_osd_ping               = -1;
+static gint ett_msg_osd_boot               = -1;
 static gint ett_msg_client_caps            = -1;
 static gint ett_msg_client_caprel          = -1;
 static gint ett_msg_client_caprel_cap      = -1;
@@ -2884,6 +2916,157 @@ guint c_dissect_osd_peerstat(proto_tree *root,
 	return off;
 }
 
+/** Dissect a CompatSet::FeatureSet */
+static
+guint c_dissect_featureset(proto_tree *root, int hf,
+                           tvbuff_t *tvb, guint off, c_pkt_data *data _U_)
+{
+	proto_item *ti;
+	proto_tree *tree;
+	guint32 i;
+	guint64 features;
+
+	/* CompatSet::FeatureSet from ceph:/src/include/FeatureSet.h */
+
+	ti   = proto_tree_add_item(root, hf, tvb, off, -1, ENC_NA);
+	tree = proto_item_add_subtree(ti, ett_featureset);
+	
+	features = tvb_get_letoh64(tvb, off);
+	proto_tree_add_item(tree, hf_featureset_mask,
+	                    tvb, off, 8, ENC_LITTLE_ENDIAN);
+	off += 8;
+	
+	i = tvb_get_letohl(tvb, off);
+	off += 4;
+	while (i--)
+	{
+		proto_item *ti2;
+		proto_tree *subtree;
+		guint64 val;
+		c_str name;
+		
+		ti2 = proto_tree_add_item(tree, hf_featureset_name,
+		                          tvb, off, -1, ENC_LITTLE_ENDIAN);
+		subtree = proto_item_add_subtree(ti2, ett_featureset_name);
+		
+		val = tvb_get_letoh64(tvb, off);
+		proto_tree_add_item(subtree, hf_featureset_name_val,
+		                    tvb, off, 8, ENC_LITTLE_ENDIAN);
+		off += 8;
+		
+		off = c_dissect_str(subtree, hf_featureset_name_name, &name, tvb, off);
+		
+		proto_item_append_text(ti2, ", Value: %"G_GINT64_MODIFIER"u, Name: %s",
+		                       val, name.str);
+		proto_item_set_end(ti2, tvb, off);
+	}
+	
+	proto_item_append_text(ti, ", Features: 0x%016"G_GINT64_MODIFIER"X", features);
+	proto_item_set_end(ti, tvb, off);
+	return off;
+}
+
+/** Dissect a CompatSet */
+static
+guint c_dissect_compatset(proto_tree *root,
+                          tvbuff_t *tvb, guint off, c_pkt_data *data _U_)
+{
+	proto_item *ti;
+	proto_tree *tree;
+
+	/* CompatSet from ceph:/src/include/CompatSet.h */
+
+	ti   = proto_tree_add_item(root, hf_compatset, tvb, off, -1, ENC_NA);
+	tree = proto_item_add_subtree(ti, ett_compatset);
+	
+	off = c_dissect_featureset(tree, hf_compatset_compat,   tvb, off, data);
+	off = c_dissect_featureset(tree, hf_compatset_compatro, tvb, off, data);
+	off = c_dissect_featureset(tree, hf_compatset_incompat, tvb, off, data);
+	
+	proto_item_set_end(ti, tvb, off);
+	return off;
+}
+
+/** Dissect an OSDSuperblock */
+static
+guint c_dissect_osd_superblock(proto_tree *root,
+                               tvbuff_t *tvb, guint off, c_pkt_data *data _U_)
+{
+	proto_item *ti;
+	proto_tree *tree;
+	c_encoded enc;
+	guint32 role, epoch;
+	double weight;
+
+	/* OSDSuperblock from ceph:/src/osd/osd_types.h */
+
+	ti   = proto_tree_add_item(root, hf_osd_superblock, tvb, off, -1, ENC_NA);
+	tree = proto_item_add_subtree(ti, ett_osd_superblock);
+
+	off = c_dissect_encoded(tree, &enc, 5, 6, tvb, off, data);
+	
+	proto_tree_add_item(tree, hf_osd_superblock_clusterfsid,
+	                    tvb, off, 16, ENC_BIG_ENDIAN);
+	off += 16;
+	
+	role = tvb_get_letohl(tvb, off);
+	proto_tree_add_item(tree, hf_osd_superblock_role,
+	                    tvb, off, 4, ENC_LITTLE_ENDIAN);
+	off += 4;
+	
+	epoch = tvb_get_letohl(tvb, off);
+	proto_tree_add_item(tree, hf_osd_superblock_epoch,
+	                    tvb, off, 4, ENC_LITTLE_ENDIAN);
+	off += 4;
+	
+	proto_tree_add_item(tree, hf_osd_superblock_map_old,
+	                    tvb, off, 4, ENC_LITTLE_ENDIAN);
+	off += 4;
+	
+	proto_tree_add_item(tree, hf_osd_superblock_map_new,
+	                    tvb, off, 4, ENC_LITTLE_ENDIAN);
+	off += 4;
+	
+	weight = tvb_get_letohieee_double(tvb, off);
+	proto_tree_add_item(tree, hf_osd_superblock_weight,
+	                    tvb, off, 8, ENC_LITTLE_ENDIAN);
+	off += 8;
+	
+	if (enc.version >= 2)
+		off = c_dissect_compatset(tree, tvb, off, data);
+	
+	proto_tree_add_item(tree, hf_osd_superblock_clean,
+	                    tvb, off, 4, ENC_LITTLE_ENDIAN);
+	off += 4;
+	
+	proto_tree_add_item(tree, hf_osd_superblock_mounted,
+	                    tvb, off, 4, ENC_LITTLE_ENDIAN);
+	off += 4;
+	
+	proto_item_append_text(ti, ", Role: %"G_GINT32_MODIFIER"d, Weight: %lf"
+	                       ", Boot Epoch: %"G_GINT32_MODIFIER"d",
+	                       role, weight, epoch);
+	if (enc.version >= 4)
+	{
+		proto_item_append_text(ti, ", OSD FSID: %s", c_format_uuid(tvb, off));
+		proto_tree_add_item(tree, hf_osd_superblock_osdfsid,
+		                    tvb, off, 16, ENC_BIG_ENDIAN);
+		off += 16;
+	}
+	
+	if (enc.version >= 6)
+	{
+		proto_tree_add_item(tree, hf_osd_superblock_full,
+		                    tvb, off, 4, ENC_LITTLE_ENDIAN);
+		off += 4;
+	}
+
+	c_warn_size(tree, tvb, off, enc.end, data);
+
+	proto_item_set_end(ti, tvb, off);
+	return off;
+}
+
 /** Dissect an osd_info_t. */
 static
 guint c_dissect_osdinfo(proto_tree *root, int hf,
@@ -3710,7 +3893,7 @@ guint c_dissect_msg_unknown(proto_tree *tree,
 {
 	guint off = 0;
 
-	c_set_type(data, "MSG");
+	c_set_type(data, c_msg_type_string(data->header.type));
 	proto_item_append_text(data->item_root,
 	                       ", Type: %s, Front Len: %u, Middle Len: %u, Data Len %u",
 	                       c_msg_type_string(data->header.type),
@@ -3738,8 +3921,8 @@ guint c_dissect_msg_unknown(proto_tree *tree,
 
 /** Dissect ping 0x0002 */
 static
-guint c_dissect_msg_ping(proto_tree *root,
-                         tvbuff_t *tvb,
+guint c_dissect_msg_ping(proto_tree *root _U_,
+                         tvbuff_t *tvb _U_,
                          guint front_len _U_, guint middle_len _U_, guint data_len _U_,
                          c_pkt_data *data)
 {
@@ -5312,7 +5495,6 @@ guint c_dissect_msg_mon_probe(proto_tree *root,
 	return off;
 }
 
-
 /** OSD Ping (0x0046) */
 static
 guint c_dissect_msg_osd_ping(proto_tree *root,
@@ -5359,6 +5541,50 @@ guint c_dissect_msg_osd_ping(proto_tree *root,
 	}
 
 	c_append_text(data, ti, ", Operation: %s", c_osd_ping_op_string(op));
+	return off;
+}
+
+/** OSD Boot (0x0047) */
+static
+guint c_dissect_msg_osd_boot(proto_tree *root,
+                             tvbuff_t *tvb,
+                             guint front_len, guint middle_len _U_, guint data_len _U_,
+                             c_pkt_data *data)
+{
+	proto_item *ti;
+	proto_tree *tree;
+	guint off = 0;
+	guint32 i;
+
+	/* ceph:/src/messages/MOSDBoot.h */
+
+	c_set_type(data, "OSD Boot");
+	
+	off = c_dissect_paxos(root, tvb, off, data);
+
+	ti = proto_tree_add_item(root, hf_msg_osd_boot, tvb, off, front_len, ENC_NA);
+	tree = proto_item_add_subtree(ti, ett_msg_osd_boot);
+	
+	off = c_dissect_osd_superblock(tree, tvb, off, data);
+	
+	off = c_dissect_entityaddr(tree, hf_msg_osd_boot_addr_back, NULL, tvb, off, data);
+	off = c_dissect_entityaddr(tree, hf_msg_osd_boot_addr_back, NULL, tvb, off, data);
+	
+	proto_tree_add_item(tree, hf_msg_osd_boot_epoch,
+	                    tvb, off, 4, ENC_LITTLE_ENDIAN);
+	off += 4;
+	
+	off = c_dissect_entityaddr(tree, hf_msg_osd_boot_addr_back, NULL, tvb, off, data);
+	
+	i = tvb_get_letohl(tvb, off);
+	off += 4;
+	while (i--)
+	{
+		off = c_dissect_kv(tree, hf_msg_osd_boot_metadata,
+		                   hf_msg_osd_boot_metadata_k, hf_msg_osd_boot_metadata_v,
+		                   tvb, off);
+	}
+
 	return off;
 }
 
@@ -5827,6 +6053,7 @@ guint c_dissect_msg(proto_tree *tree,
 	C_HANDLE(C_MSG_MON_PAXOS,                   c_dissect_msg_mon_paxos)
 	C_HANDLE(C_MSG_MON_PROBE,                   c_dissect_msg_mon_probe)
 	C_HANDLE(C_MSG_OSD_PING,                    c_dissect_msg_osd_ping)
+	C_HANDLE(C_MSG_OSD_BOOT,                    c_dissect_msg_osd_boot)
 	C_HANDLE(C_CEPH_MSG_CLIENT_CAPS,            c_dissect_msg_client_caps)
 	C_HANDLE(C_CEPH_MSG_CLIENT_CAPRELEASE,      c_dissect_msg_client_caprel)
 	C_HANDLE(C_MSG_TIMECHECK,                   c_dissect_msg_timecheck)
@@ -6926,6 +7153,61 @@ proto_register_ceph(void)
 			FT_ABSOLUTE_TIME, ABSOLUTE_TIME_LOCAL, NULL, 0,
 			NULL, HFILL
 		} },
+		{ &hf_osd_superblock, {
+			"Superblock", "ceph.osd_superblock",
+			FT_NONE, BASE_NONE, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_osd_superblock_clusterfsid, {
+			"Cluster FSID", "ceph.osd_superblock.fsid",
+			FT_GUID, BASE_NONE, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_osd_superblock_role, {
+			"Role", "ceph.osd_superblock.role",
+			FT_INT32, BASE_DEC, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_osd_superblock_epoch, {
+			"Epoch", "ceph.osd_superblock.epoch",
+			FT_UINT32, BASE_DEC, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_osd_superblock_map_old, {
+			"Oldest Map", "ceph.osd_superblock.map_old",
+			FT_UINT32, BASE_DEC, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_osd_superblock_map_new, {
+			"Newest Map", "ceph.osd_superblock.map_new",
+			FT_UINT32, BASE_DEC, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_osd_superblock_weight, {
+			"Weight", "ceph.osd_superblock.weight",
+			FT_DOUBLE, BASE_NONE, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_osd_superblock_mounted, {
+			"Mounted", "ceph.osd_superblock.mounted",
+			FT_UINT32, BASE_DEC, NULL, 0,
+			"Last epoch mounted.", HFILL
+		} },
+		{ &hf_osd_superblock_osdfsid, {
+			"OSD FSID", "ceph.osd_superblock.osdfsid",
+			FT_GUID, BASE_NONE, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_osd_superblock_clean, {
+			"Clean Through", "ceph.osd_superblock.clean",
+			FT_UINT32, BASE_DEC, NULL, 0,
+			"Last epoch active and clean.", HFILL
+		} },
+		{ &hf_osd_superblock_full, {
+			"Last Marked Full", "ceph.osd_superblock.full",
+			FT_UINT32, BASE_DEC, NULL, 0,
+			"Last epoch OSDMap was marked full.", HFILL
+		} },
 		{ &hf_osdinfo_ver, {
 			"Encoding Version", "ceph.osdinfo.ver",
 			FT_UINT8, BASE_DEC, NULL, 0,
@@ -7111,6 +7393,46 @@ proto_register_ceph(void)
 		{ &hf_osd_peerstat_timestamp, {
 			"Timestamp", "ceph.osd.peerstat.timestamp",
 			FT_ABSOLUTE_TIME, ABSOLUTE_TIME_LOCAL, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_featureset_mask, {
+			"Feature Mask", "ceph.featureset.mask",
+			FT_UINT64, BASE_DEC, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_featureset_name, {
+			"Name", "ceph.featureset.name",
+			FT_NONE, BASE_NONE, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_featureset_name_val, {
+			"Value", "ceph.featureset.name.val",
+			FT_UINT64, BASE_DEC, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_featureset_name_name, {
+			"Name", "ceph.featureset.name.name",
+			FT_STRING, BASE_NONE, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_compatset, {
+			"Compat Set", "ceph.compatset",
+			FT_NONE, BASE_NONE, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_compatset_compat, {
+			"Compatible", "ceph.compatset.compat",
+			FT_NONE, BASE_NONE, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_compatset_compatro, {
+			"Read-Only Compatible", "ceph.compatset.rocompat",
+			FT_NONE, BASE_NONE, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_compatset_incompat, {
+			"Incompatible", "ceph.compatset.incompat",
+			FT_NONE, BASE_NONE, NULL, 0,
 			NULL, HFILL
 		} },
 		{ &hf_osdmap_erasurecodeprofile, {
@@ -8962,6 +9284,46 @@ proto_register_ceph(void)
 			FT_ABSOLUTE_TIME, ABSOLUTE_TIME_LOCAL, NULL, 0,
 			NULL, HFILL
 		} },
+		{ &hf_msg_osd_boot, {
+			"OSD Boot", "ceph.msg.osd_boot",
+			FT_NONE, BASE_NONE, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_osd_boot_addr_back, {
+			"Back Address", "ceph.msg.osd_boot.addr.back",
+			FT_NONE, BASE_NONE, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_osd_boot_addr_cluster, {
+			"Cluster Address", "ceph.msg.osd_boot.addr.cluster",
+			FT_NONE, BASE_NONE, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_osd_boot_epoch, {
+			"Boot Epoch", "ceph.msg.osd_boot.epoch",
+			FT_UINT32, BASE_DEC, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_osd_boot_addr_front, {
+			"Front Address", "ceph.msg.osd_boot.addr.front",
+			FT_NONE, BASE_NONE, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_osd_boot_metadata, {
+			"Metadata", "ceph.msg.osd_boot.metadata",
+			FT_NONE, BASE_NONE, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_osd_boot_metadata_k, {
+			"Key", "ceph.msg.osd_boot.metadata.k",
+			FT_STRING, BASE_NONE, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_osd_boot_metadata_v, {
+			"Value", "ceph.msg.osd_boot.metadata.v",
+			FT_STRING, BASE_NONE, NULL, 0,
+			NULL, HFILL
+		} },
 		{ &hf_msg_client_caps, {
 			"Client Caps", "ceph.msg.client_caps",
 			FT_NONE, BASE_NONE, NULL, 0,
@@ -9185,6 +9547,10 @@ proto_register_ceph(void)
 		&ett_mon_map,
 		&ett_mon_map_address,
 		&ett_osd_peerstat,
+		&ett_featureset,
+		&ett_featureset_name,
+		&ett_compatset,
+		&ett_osd_superblock,
 		&ett_osd_info,
 		&ett_osd_xinfo,
 		&ett_osd_map,
@@ -9239,6 +9605,7 @@ proto_register_ceph(void)
 		&ett_msg_mon_paxos_value,
 		&ett_msg_mon_probe,
 		&ett_msg_osd_ping,
+		&ett_msg_osd_boot,
 		&ett_msg_client_caps,
 		&ett_msg_client_caprel,
 		&ett_msg_client_caprel_cap,
