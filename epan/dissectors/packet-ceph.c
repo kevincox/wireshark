@@ -2428,22 +2428,22 @@ guint c_dissect_pg_create(proto_tree *root, gint hf,
 
 	ti   = proto_tree_add_item(root, hf, tvb, off, -1, ENC_NA);
 	tree = proto_item_add_subtree(ti, ett_pg_create);
-	
+
 	off = c_dissect_encoded(tree, &enc, 1, 1, tvb, off, data);
-	
+
 	proto_tree_add_item(tree, hf_pg_create_epoch,
 	                    tvb, off, 4, ENC_LITTLE_ENDIAN);
 	off += 4;
-	
+
 	off = c_dissect_pg(tree, hf_pg_create_parent, tvb, off, data);
-	
+
 	proto_tree_add_item(tree, hf_pg_create_splitbits,
 	                    tvb, off, 4, ENC_LITTLE_ENDIAN);
 	off += 4;
-	
+
 	c_warn_size(tree, tvb, off, enc.end, data);
 	off = enc.end;
-	
+
 	proto_item_set_end(ti, tvb, off);
 	return off;
 }
@@ -2974,12 +2974,12 @@ guint c_dissect_featureset(proto_tree *root, int hf,
 
 	ti   = proto_tree_add_item(root, hf, tvb, off, -1, ENC_NA);
 	tree = proto_item_add_subtree(ti, ett_featureset);
-	
+
 	features = tvb_get_letoh64(tvb, off);
 	proto_tree_add_item(tree, hf_featureset_mask,
 	                    tvb, off, 8, ENC_LITTLE_ENDIAN);
 	off += 8;
-	
+
 	i = tvb_get_letohl(tvb, off);
 	off += 4;
 	while (i--)
@@ -2988,22 +2988,22 @@ guint c_dissect_featureset(proto_tree *root, int hf,
 		proto_tree *subtree;
 		guint64 val;
 		c_str name;
-		
+
 		ti2 = proto_tree_add_item(tree, hf_featureset_name, tvb, off, -1, ENC_NA);
 		subtree = proto_item_add_subtree(ti2, ett_featureset_name);
-		
+
 		val = tvb_get_letoh64(tvb, off);
 		proto_tree_add_item(subtree, hf_featureset_name_val,
 		                    tvb, off, 8, ENC_LITTLE_ENDIAN);
 		off += 8;
-		
+
 		off = c_dissect_str(subtree, hf_featureset_name_name, &name, tvb, off);
-		
+
 		proto_item_append_text(ti2, ", Value: %"G_GINT64_MODIFIER"u, Name: %s",
 		                       val, name.str);
 		proto_item_set_end(ti2, tvb, off);
 	}
-	
+
 	proto_item_append_text(ti, ", Features: 0x%016"G_GINT64_MODIFIER"X", features);
 	proto_item_set_end(ti, tvb, off);
 	return off;
@@ -3021,11 +3021,11 @@ guint c_dissect_compatset(proto_tree *root,
 
 	ti   = proto_tree_add_item(root, hf_compatset, tvb, off, -1, ENC_NA);
 	tree = proto_item_add_subtree(ti, ett_compatset);
-	
+
 	off = c_dissect_featureset(tree, hf_compatset_compat,   tvb, off, data);
 	off = c_dissect_featureset(tree, hf_compatset_compatro, tvb, off, data);
 	off = c_dissect_featureset(tree, hf_compatset_incompat, tvb, off, data);
-	
+
 	proto_item_set_end(ti, tvb, off);
 	return off;
 }
@@ -3047,45 +3047,45 @@ guint c_dissect_osd_superblock(proto_tree *root,
 	tree = proto_item_add_subtree(ti, ett_osd_superblock);
 
 	off = c_dissect_encoded(tree, &enc, 5, 6, tvb, off, data);
-	
+
 	proto_tree_add_item(tree, hf_osd_superblock_clusterfsid,
 	                    tvb, off, 16, ENC_BIG_ENDIAN);
 	off += 16;
-	
+
 	role = tvb_get_letohl(tvb, off);
 	proto_tree_add_item(tree, hf_osd_superblock_role,
 	                    tvb, off, 4, ENC_LITTLE_ENDIAN);
 	off += 4;
-	
+
 	epoch = tvb_get_letohl(tvb, off);
 	proto_tree_add_item(tree, hf_osd_superblock_epoch,
 	                    tvb, off, 4, ENC_LITTLE_ENDIAN);
 	off += 4;
-	
+
 	proto_tree_add_item(tree, hf_osd_superblock_map_old,
 	                    tvb, off, 4, ENC_LITTLE_ENDIAN);
 	off += 4;
-	
+
 	proto_tree_add_item(tree, hf_osd_superblock_map_new,
 	                    tvb, off, 4, ENC_LITTLE_ENDIAN);
 	off += 4;
-	
+
 	weight = tvb_get_letohieee_double(tvb, off);
 	proto_tree_add_item(tree, hf_osd_superblock_weight,
 	                    tvb, off, 8, ENC_LITTLE_ENDIAN);
 	off += 8;
-	
+
 	if (enc.version >= 2)
 		off = c_dissect_compatset(tree, tvb, off, data);
-	
+
 	proto_tree_add_item(tree, hf_osd_superblock_clean,
 	                    tvb, off, 4, ENC_LITTLE_ENDIAN);
 	off += 4;
-	
+
 	proto_tree_add_item(tree, hf_osd_superblock_mounted,
 	                    tvb, off, 4, ENC_LITTLE_ENDIAN);
 	off += 4;
-	
+
 	proto_item_append_text(ti, ", Role: %"G_GINT32_MODIFIER"d, Weight: %lf"
 	                       ", Boot Epoch: %"G_GINT32_MODIFIER"d",
 	                       role, weight, epoch);
@@ -3096,7 +3096,7 @@ guint c_dissect_osd_superblock(proto_tree *root,
 		                    tvb, off, 16, ENC_BIG_ENDIAN);
 		off += 16;
 	}
-	
+
 	if (enc.version >= 6)
 	{
 		proto_tree_add_item(tree, hf_osd_superblock_full,
@@ -5602,23 +5602,23 @@ guint c_dissect_msg_osd_boot(proto_tree *root,
 	/* ceph:/src/messages/MOSDBoot.h */
 
 	c_set_type(data, "OSD Boot");
-	
+
 	off = c_dissect_paxos(root, tvb, off, data);
 
 	ti = proto_tree_add_item(root, hf_msg_osd_boot, tvb, off, front_len, ENC_NA);
 	tree = proto_item_add_subtree(ti, ett_msg_osd_boot);
-	
+
 	off = c_dissect_osd_superblock(tree, tvb, off, data);
-	
+
 	off = c_dissect_entityaddr(tree, hf_msg_osd_boot_addr_back, NULL, tvb, off, data);
 	off = c_dissect_entityaddr(tree, hf_msg_osd_boot_addr_back, NULL, tvb, off, data);
-	
+
 	proto_tree_add_item(tree, hf_msg_osd_boot_epoch,
 	                    tvb, off, 4, ENC_LITTLE_ENDIAN);
 	off += 4;
-	
+
 	off = c_dissect_entityaddr(tree, hf_msg_osd_boot_addr_back, NULL, tvb, off, data);
-	
+
 	i = tvb_get_letohl(tvb, off);
 	off += 4;
 	while (i--)
@@ -5646,28 +5646,28 @@ guint c_dissect_msg_osd_pg_create(proto_tree *root,
 	/* ceph:/src/messages/MOSDPGCreate.h */
 
 	c_set_type(data, "OSD PG Create");
-	
+
 	ti = proto_tree_add_item(root, hf_msg_osd_pg_create, tvb, off, front_len, ENC_NA);
 	tree = proto_item_add_subtree(ti, ett_msg_osd_pg_create);
-	
+
 	proto_tree_add_item(tree, hf_msg_osd_pg_create_epoch,
 	                    tvb, off, 8, ENC_LITTLE_ENDIAN);
 	off += 8;
-	
+
 	i = tvb_get_letohl(tvb, off);
 	off += 4;
 	while (i--)
 	{
 		proto_item *ti2;
 		proto_tree *subtree;
-		
+
 		ti2 = proto_tree_add_item(tree, hf_msg_osd_pg_create_mkpg,
 		                          tvb, off, -1, ENC_NA);
 		subtree = proto_item_add_subtree(ti2, ett_msg_osd_pg_create_mkpg);
-		
+
 		off = c_dissect_pg(subtree, hf_msg_osd_pg_create_mkpg_pg, tvb, off, data);
 		off = c_dissect_pg_create(subtree, hf_msg_osd_pg_create_mkpg_create, tvb, off, data);
-		
+
 		proto_item_set_end(ti2, tvb, off);
 	}
 
