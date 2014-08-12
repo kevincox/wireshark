@@ -114,6 +114,9 @@ static int hf_pgid_ver                           = -1;
 static int hf_pgid_pool                          = -1;
 static int hf_pgid_seed                          = -1;
 static int hf_pgid_preferred                     = -1;
+static int hf_pg_create_epoch                    = -1;
+static int hf_pg_create_parent                   = -1;
+static int hf_pg_create_splitbits                = -1;
 static int hf_path_ver                           = -1;
 static int hf_path_inode                         = -1;
 static int hf_path_rel                           = -1;
@@ -619,6 +622,11 @@ static int hf_msg_osd_boot_addr_front            = -1;
 static int hf_msg_osd_boot_metadata              = -1;
 static int hf_msg_osd_boot_metadata_k            = -1;
 static int hf_msg_osd_boot_metadata_v            = -1;
+static int hf_msg_osd_pg_create                  = -1;
+static int hf_msg_osd_pg_create_epoch            = -1;
+static int hf_msg_osd_pg_create_mkpg             = -1;
+static int hf_msg_osd_pg_create_mkpg_pg          = -1;
+static int hf_msg_osd_pg_create_mkpg_create      = -1;
 static int hf_msg_client_caps                    = -1;
 static int hf_msg_client_caps_op                 = -1;
 static int hf_msg_client_caps_inode              = -1;
@@ -684,7 +692,8 @@ static gint ett_entityinst                 = -1;
 static gint ett_kv                         = -1;
 static gint ett_eversion                   = -1;
 static gint ett_objectlocator              = -1;
-static gint ett_placementgroup             = -1;
+static gint ett_pg                         = -1;
+static gint ett_pg_create                  = -1;
 static gint ett_filepath                   = -1;
 static gint ett_mds_release                = -1;
 static gint ett_hitset_params              = -1;
@@ -755,6 +764,8 @@ static gint ett_msg_mon_paxos_value        = -1;
 static gint ett_msg_mon_probe              = -1;
 static gint ett_msg_osd_ping               = -1;
 static gint ett_msg_osd_boot               = -1;
+static gint ett_msg_osd_pg_create          = -1;
+static gint ett_msg_osd_pg_create_mkpg     = -1;
 static gint ett_msg_client_caps            = -1;
 static gint ett_msg_client_caprel          = -1;
 static gint ett_msg_client_caprel_cap      = -1;
@@ -2377,7 +2388,7 @@ guint c_dissect_pg(proto_tree *root, gint hf,
 	/** pg_t from ceph:/src/osd/osd_types.h */
 
 	ti   = proto_tree_add_item(root, hf, tvb, off, -1, ENC_NA);
-	tree = proto_item_add_subtree(ti, ett_placementgroup);
+	tree = proto_item_add_subtree(ti, ett_pg);
 
 	ver = tvb_get_guint8(tvb, off);
 	ti2 = proto_tree_add_item(tree, hf_pgid_ver, tvb, off, 1, ENC_LITTLE_ENDIAN);
@@ -2400,6 +2411,39 @@ guint c_dissect_pg(proto_tree *root, gint hf,
 	proto_tree_add_item(tree, hf_pgid_preferred, tvb, off, 4, ENC_LITTLE_ENDIAN);
 	off += 4;
 
+	proto_item_set_end(ti, tvb, off);
+	return off;
+}
+
+/** Dissect a placement group creation. */
+static
+guint c_dissect_pg_create(proto_tree *root, gint hf,
+                          tvbuff_t *tvb, guint off, c_pkt_data *data _U_)
+{
+	proto_item *ti;
+	proto_tree *tree;
+	c_encoded enc;
+
+	/** pg_create_t from ceph:/src/osd/osd_types.h */
+
+	ti   = proto_tree_add_item(root, hf, tvb, off, -1, ENC_NA);
+	tree = proto_item_add_subtree(ti, ett_pg_create);
+	
+	off = c_dissect_encoded(tree, &enc, 1, 1, tvb, off, data);
+	
+	proto_tree_add_item(tree, hf_pg_create_epoch,
+	                    tvb, off, 4, ENC_LITTLE_ENDIAN);
+	off += 4;
+	
+	off = c_dissect_pg(tree, hf_pg_create_parent, tvb, off, data);
+	
+	proto_tree_add_item(tree, hf_pg_create_splitbits,
+	                    tvb, off, 4, ENC_LITTLE_ENDIAN);
+	off += 4;
+	
+	c_warn_size(tree, tvb, off, enc.end, data);
+	off = enc.end;
+	
 	proto_item_set_end(ti, tvb, off);
 	return off;
 }
@@ -2945,8 +2989,7 @@ guint c_dissect_featureset(proto_tree *root, int hf,
 		guint64 val;
 		c_str name;
 		
-		ti2 = proto_tree_add_item(tree, hf_featureset_name,
-		                          tvb, off, -1, ENC_LITTLE_ENDIAN);
+		ti2 = proto_tree_add_item(tree, hf_featureset_name, tvb, off, -1, ENC_NA);
 		subtree = proto_item_add_subtree(ti2, ett_featureset_name);
 		
 		val = tvb_get_letoh64(tvb, off);
@@ -5588,6 +5631,49 @@ guint c_dissect_msg_osd_boot(proto_tree *root,
 	return off;
 }
 
+/** OSD PG Create (0x0059) */
+static
+guint c_dissect_msg_osd_pg_create(proto_tree *root,
+                                  tvbuff_t *tvb,
+                                  guint front_len, guint middle_len _U_, guint data_len _U_,
+                                  c_pkt_data *data)
+{
+	proto_item *ti;
+	proto_tree *tree;
+	guint off = 0;
+	guint32 i;
+
+	/* ceph:/src/messages/MOSDPGCreate.h */
+
+	c_set_type(data, "OSD PG Create");
+	
+	ti = proto_tree_add_item(root, hf_msg_osd_pg_create, tvb, off, front_len, ENC_NA);
+	tree = proto_item_add_subtree(ti, ett_msg_osd_pg_create);
+	
+	proto_tree_add_item(tree, hf_msg_osd_pg_create_epoch,
+	                    tvb, off, 8, ENC_LITTLE_ENDIAN);
+	off += 8;
+	
+	i = tvb_get_letohl(tvb, off);
+	off += 4;
+	while (i--)
+	{
+		proto_item *ti2;
+		proto_tree *subtree;
+		
+		ti2 = proto_tree_add_item(tree, hf_msg_osd_pg_create_mkpg,
+		                          tvb, off, -1, ENC_NA);
+		subtree = proto_item_add_subtree(ti2, ett_msg_osd_pg_create_mkpg);
+		
+		off = c_dissect_pg(subtree, hf_msg_osd_pg_create_mkpg_pg, tvb, off, data);
+		off = c_dissect_pg_create(subtree, hf_msg_osd_pg_create_mkpg_create, tvb, off, data);
+		
+		proto_item_set_end(ti2, tvb, off);
+	}
+
+	return off;
+}
+
 /** Client Caps 0x0310 */
 static
 guint c_dissect_msg_client_caps(proto_tree *root,
@@ -6054,6 +6140,7 @@ guint c_dissect_msg(proto_tree *tree,
 	C_HANDLE(C_MSG_MON_PROBE,                   c_dissect_msg_mon_probe)
 	C_HANDLE(C_MSG_OSD_PING,                    c_dissect_msg_osd_ping)
 	C_HANDLE(C_MSG_OSD_BOOT,                    c_dissect_msg_osd_boot)
+	C_HANDLE(C_MSG_OSD_PG_CREATE,               c_dissect_msg_osd_pg_create)
 	C_HANDLE(C_CEPH_MSG_CLIENT_CAPS,            c_dissect_msg_client_caps)
 	C_HANDLE(C_CEPH_MSG_CLIENT_CAPRELEASE,      c_dissect_msg_client_caprel)
 	C_HANDLE(C_MSG_TIMECHECK,                   c_dissect_msg_timecheck)
@@ -6789,6 +6876,21 @@ proto_register_ceph(void)
 		} },
 		{ &hf_pgid_preferred, {
 			"Preferred", "ceph.pg.preferred",
+			FT_INT32, BASE_DEC, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_pg_create_epoch, {
+			"Epoch Created", "ceph.pg_create.epoch",
+			FT_UINT32, BASE_DEC, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_pg_create_parent, {
+			"Parent", "ceph.pg_create.parent",
+			FT_NONE, BASE_NONE, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_pg_create_splitbits, {
+			"Split Bits", "ceph.pg_create.splitbits",
 			FT_INT32, BASE_DEC, NULL, 0,
 			NULL, HFILL
 		} },
@@ -9324,6 +9426,31 @@ proto_register_ceph(void)
 			FT_STRING, BASE_NONE, NULL, 0,
 			NULL, HFILL
 		} },
+		{ &hf_msg_osd_pg_create, {
+			"PG Create", "ceph.msg.osd.pg.create",
+			FT_NONE, BASE_NONE, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_osd_pg_create_epoch, {
+			"Epoch", "ceph.msg.osd.pg.create.epoch",
+			FT_UINT64, BASE_DEC, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_osd_pg_create_mkpg, {
+			"Creation Request", "ceph.msg.osd.pg.create.mkpg",
+			FT_NONE, BASE_NONE, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_osd_pg_create_mkpg_pg, {
+			"PG", "ceph.msg.osd.pg.create.mkpg.pg",
+			FT_NONE, BASE_NONE, NULL, 0,
+			NULL, HFILL
+		} },
+		{ &hf_msg_osd_pg_create_mkpg_create, {
+			"Creation Options", "ceph.msg.osd.pg.create.mkpg.create",
+			FT_NONE, BASE_NONE, NULL, 0,
+			NULL, HFILL
+		} },
 		{ &hf_msg_client_caps, {
 			"Client Caps", "ceph.msg.client_caps",
 			FT_NONE, BASE_NONE, NULL, 0,
@@ -9535,7 +9662,8 @@ proto_register_ceph(void)
 		&ett_kv,
 		&ett_eversion,
 		&ett_objectlocator,
-		&ett_placementgroup,
+		&ett_pg,
+		&ett_pg_create,
 		&ett_filepath,
 		&ett_mds_release,
 		&ett_hitset_params,
@@ -9606,6 +9734,8 @@ proto_register_ceph(void)
 		&ett_msg_mon_probe,
 		&ett_msg_osd_ping,
 		&ett_msg_osd_boot,
+		&ett_msg_osd_pg_create,
+		&ett_msg_osd_pg_create_mkpg,
 		&ett_msg_client_caps,
 		&ett_msg_client_caprel,
 		&ett_msg_client_caprel_cap,
