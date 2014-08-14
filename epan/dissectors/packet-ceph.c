@@ -670,7 +670,6 @@ static int hf_msg_osd_boot_metadata_k            = -1;
 static int hf_msg_osd_boot_metadata_v            = -1;
 static int hf_msg_pgstats                  = -1;
 static int hf_msg_pgstats_fsid                  = -1;
-static int hf_msg_pgstats_osdstat                  = -1;
 static int hf_msg_pgstats_pgstat                  = -1;
 static int hf_msg_pgstats_pgstat_pg                  = -1;
 static int hf_msg_pgstats_pgstat_stat                  = -1;
@@ -5913,7 +5912,7 @@ guint c_dissect_msg_osd_ping(proto_tree *root,
 	ti = proto_tree_add_item(root, hf_msg_osd_ping, tvb, off, front_len, ENC_NA);
 	tree = proto_item_add_subtree(ti, ett_msg_osd_ping);
 
-	proto_tree_add_item(tree, hf_msg_mon_probe_fsid,
+	proto_tree_add_item(tree, hf_msg_osd_ping_fsid,
 	                    tvb, off, 16, ENC_BIG_ENDIAN);
 	off += 16;
 
@@ -10085,11 +10084,6 @@ proto_register_ceph(void)
 		{ &hf_msg_pgstats_fsid, {
 			"FSID", "ceph.msg.pgstats.fsid",
 			FT_GUID, BASE_NONE, NULL, 0,
-			NULL, HFILL
-		} },
-		{ &hf_msg_pgstats_osdstat, {
-			"OSD Stats", "ceph.msg.pgstats.osdstat",
-			FT_NONE, BASE_NONE, NULL, 0,
 			NULL, HFILL
 		} },
 		{ &hf_msg_pgstats_pgstat, {
