@@ -5967,21 +5967,31 @@ guint c_dissect_msg_osd_boot(proto_tree *root,
 	off = c_dissect_osd_superblock(tree, tvb, off, data);
 
 	off = c_dissect_entityaddr(tree, hf_msg_osd_boot_addr_back, NULL, tvb, off, data);
-	off = c_dissect_entityaddr(tree, hf_msg_osd_boot_addr_back, NULL, tvb, off, data);
-
-	proto_tree_add_item(tree, hf_msg_osd_boot_epoch,
-	                    tvb, off, 4, ENC_LITTLE_ENDIAN);
-	off += 4;
-
-	off = c_dissect_entityaddr(tree, hf_msg_osd_boot_addr_back, NULL, tvb, off, data);
-
-	i = tvb_get_letohl(tvb, off);
-	off += 4;
-	while (i--)
+	
+	if (data->header.ver >= 2)
 	{
-		off = c_dissect_kv(tree, hf_msg_osd_boot_metadata,
-		                   hf_msg_osd_boot_metadata_k, hf_msg_osd_boot_metadata_v,
-		                   tvb, off);
+		off = c_dissect_entityaddr(tree, hf_msg_osd_boot_addr_cluster, NULL, tvb, off, data);
+	}
+	if (data->header.ver >= 3)
+	{
+		proto_tree_add_item(tree, hf_msg_osd_boot_epoch,
+		                    tvb, off, 4, ENC_LITTLE_ENDIAN);
+		off += 4;
+	}
+	if (data->header.ver >= 4)
+	{
+		off = c_dissect_entityaddr(tree, hf_msg_osd_boot_addr_front, NULL, tvb, off, data);
+	}
+	if (data->header.ver >= 5)
+	{
+		i = tvb_get_letohl(tvb, off);
+		off += 4;
+		while (i--)
+		{
+			off = c_dissect_kv(tree, hf_msg_osd_boot_metadata,
+			                   hf_msg_osd_boot_metadata_k, hf_msg_osd_boot_metadata_v,
+			                   tvb, off);
+		}
 	}
 
 	return off;
