@@ -121,6 +121,9 @@ export MallocGuardEdges=1
 export MallocCheckHeapStart=1000
 export MallocCheckHeapEach=1000
 export MallocCheckHeapAbort=1
+
+env
+
 # Call abort() if an illegal free() call is made
 export MallocBadFreeAbort=1
 
