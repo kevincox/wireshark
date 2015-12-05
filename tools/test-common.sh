@@ -28,7 +28,11 @@ if [ -z "$TEST_TYPE" ] ; then
     exit 1
 fi
 
-DATE=/bin/date
+
+DATE=`which date`
+if [ $? -ne 0 ] ; then
+	DATE=/bin/date
+fi
 BASE_NAME=$TEST_TYPE-`$DATE +%Y-%m-%d`-$$
 
 # Directory containing binaries.  Default current directory.
